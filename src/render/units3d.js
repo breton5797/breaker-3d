@@ -58,8 +58,8 @@ export function createUnits3d(scene) {
   let views = new Map(); // "c,r" -> view
 
   const shellMesh = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(0.42, 12, 10),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 0.5, 0.25), toneMapped: false }),
+    new THREE.SphereGeometry(0.7, 14, 12),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 0.45, 0.2), toneMapped: false }),
     MAX_SHELLS,
   );
   shellMesh.frustumCulled = false;

@@ -87,8 +87,14 @@ function stamp(g, pattern, ox, oy, scale, map, scaleY = scale) {
   });
 }
 /** Steel-lined vertical shaft from the bottom of the wall to the ceiling gutter. */
+const SHAFT_MOUTH = 4; // top rows where the shaft is flanked by bricks, not steel
+
+/**
+ * Vertical shaft from the bottom of the wall to the ceiling gutter. Its steel
+ * lining stops short of the top so balls leaving the mouth bite into bricks.
+ */
 function channel(g, x, w = 3) {
-  rect(g, x - 1, 0, w + 2, g.length, 'S');
+  rect(g, x - 1, SHAFT_MOUTH, w + 2, g.length - SHAFT_MOUTH, 'S');
   rect(g, x, 0, w, g.length, '.');
 }
 function sprinkle(g, rng, count, ch, where = (c) => c !== 'S') {

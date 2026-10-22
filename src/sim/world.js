@@ -9,6 +9,7 @@ import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells } from './units.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
+const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball by (min, max)
 
 /**
  * @param {string[]} lines level text
@@ -124,7 +125,14 @@ function moveBall(w, i, h) {
   b.x[i] = nx;
 
   let ny = b.y[i] + b.vy[i] * h;
-  if (ny > ROWS - BALL_R) { ny = ROWS - BALL_R; b.vy[i] = -Math.abs(b.vy[i]); }
+  if (ny > ROWS - BALL_R) {
+    // Bumpy ceiling: jitter the return angle so a ball that shot straight up a
+    // shaft drifts into the bricks instead of falling straight back out.
+    ny = ROWS - BALL_R;
+    const kick = (CEILING_KICK[0] + w.rng() * (CEILING_KICK[1] - CEILING_KICK[0])) * (w.rng() < 0.5 ? -1 : 1);
+    const angle = Math.PI - Math.atan2(b.vx[i], Math.abs(b.vy[i])) + kick;
+    aimBall(b, i, angle, Math.hypot(b.vx[i], b.vy[i]));
+  }
   else {
     const c = Math.floor(b.x[i]);
     const r = Math.floor(ny + Math.sign(b.vy[i]) * BALL_R);

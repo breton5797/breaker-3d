@@ -97,6 +97,18 @@ describe('ball vs cells', () => {
     expect(w.balls.vy[0]).toBeGreaterThan(0);
   });
 
+  it('the bumpy ceiling knocks near-vertical balls off their line', () => {
+    const w = world([[47, 0, '#']]);
+    for (let k = 0; k < 20; k++) addBall(w.balls, 10 + k, ROWS - 1.5, 0.5, 30, 0);
+    run(w, 0.1);
+    let tilted = 0;
+    for (let i = 0; i < w.balls.n; i++) {
+      expect(w.balls.vy[i]).toBeLessThan(0);
+      if (Math.abs(w.balls.vx[i]) > 3) tilted++;
+    }
+    expect(tilted).toBeGreaterThan(10);
+  });
+
   it('bounces off left, right and top walls', () => {
     const w = world([[47, 0, '#']]);
     addBall(w.balls, 0.6, 30, -30, 0, 0);
@@ -285,11 +297,12 @@ describe('paddle, lives and flow', () => {
   });
 
   it('finale also starts when play stalls near the end', () => {
-    // One straggler the bouncing ball can never reach: it rallies straight up and down.
-    const w = world([[2, 10, '#'], [3, 10, '#'], [4, 10, '#'], [5, 10, '#'], [0, 25, 'S']]);
+    // Four stragglers sealed in a steel box: nothing can ever reach them.
+    const p = [[2, 10, '#'], [3, 10, '#'], [4, 10, '#'], [5, 10, '#'], [1, 10, 'S'], [6, 10, 'S']];
+    for (let c = 1; c <= 6; c++) p.push([c, 9, 'S'], [c, 11, 'S']);
+    const w = world(p);
     w.grid.total = 100; // 4% left: above the instant-finale line, under the stall line
-    setPaddleX(w, 30);
-    addBall(w.balls, 30, 30, 0, 30, 0);
+    addBall(w.balls, 30, 30, 30, 0, 0); // rallies wall to wall forever
     run(w, STALL_TIME - 1);
     expect(w.finale).toBe(false);
     run(w, 2);
