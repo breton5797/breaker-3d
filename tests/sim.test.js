@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME } from '../src/sim/constants.js';
+import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME, LAUNCH_BALLS } from '../src/sim/constants.js';
 import { parseLevel, getLevel, LEVELS } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
 import { createWorld, stepWorld, launch, setPaddleX, useSkill, drainEvents } from '../src/sim/world.js';
@@ -272,13 +272,18 @@ describe('paddle, lives and flow', () => {
     expect(w.finale).toBe(true);
   });
 
-  it('launch fires the resting ball upward', () => {
+  it('launch fires a fan of LAUNCH_BALLS balls upward', () => {
     const w = createWorld(lines([[0, 0, '#']]), { rng: mulberry32(1) });
     expect(w.state).toBe('ready');
     launch(w);
     expect(w.state).toBe('play');
-    expect(w.balls.n).toBe(1);
-    expect(w.balls.vy[0]).toBeGreaterThan(0);
+    expect(w.balls.n).toBe(LAUNCH_BALLS);
+    const headings = new Set();
+    for (let i = 0; i < w.balls.n; i++) {
+      expect(w.balls.vy[i]).toBeGreaterThan(0);
+      headings.add(w.balls.vx[i].toFixed(2));
+    }
+    expect(headings.size).toBe(LAUNCH_BALLS);
   });
 
   it('split skill triples balls and spends a charge', () => {

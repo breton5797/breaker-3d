@@ -1,6 +1,6 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W,
-  PADDLE_MAX_ANGLE, START_LIVES, METEOR_FIRE, METEOR_COUNT, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
+  PADDLE_MAX_ANGLE, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
@@ -51,9 +51,11 @@ export function launch(w) {
   if (w.state !== 'ready') return false;
   const b = w.balls;
   b.n = 0;
-  addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, BALL_SPEED, 0);
-  const drift = Math.max(-0.4, Math.min(0.4, (w.paddle.x - w.paddle.prevX) * 0.08));
-  aimBall(b, 0, drift + (w.rng() - 0.5) * 0.3);
+  const drift = Math.max(-0.4, Math.min(0.4, (w.paddle.x - w.paddle.prevX) * 0.08)) + (w.rng() - 0.5) * 0.2;
+  for (let k = 0; k < LAUNCH_BALLS; k++) {
+    addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, BALL_SPEED, 0);
+    aimBall(b, k, drift + (k - (LAUNCH_BALLS - 1) / 2) * 0.28);
+  }
   w.state = 'play';
   w.events.push({ t: 'launch' });
   return true;

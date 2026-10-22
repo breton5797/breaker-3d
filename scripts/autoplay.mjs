@@ -1,12 +1,12 @@
 // Headless balance check: a bot paddle follows the lowest descending ball.
-// Usage: node scripts/autoplay.mjs
+// Usage: node scripts/autoplay.mjs [seedOffset]
 import { getLevel, LEVELS } from '../src/sim/levels.js';
 import { createWorld, stepWorld, launch, setPaddleX, useSkill } from '../src/sim/world.js';
 import { mulberry32 } from '../src/sim/rng.js';
 
 for (let li = 0; li < LEVELS.length + 2; li++) {
   const lvl = getLevel(li);
-  const w = createWorld(lvl.lines, { rng: mulberry32(li + 1) });
+  const w = createWorld(lvl.lines, { rng: mulberry32(li + 1 + Number(process.argv[2] ?? 0) * 1000) });
   const total = w.grid.remaining;
   const dt = 1 / 60;
   let t = 0;

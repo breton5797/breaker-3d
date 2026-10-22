@@ -19,6 +19,7 @@ export const BOMB_RADIUS = 3.2;
 export const BOMB_DELAY = 0.07; // chain reaction delay per hop
 export const COMBO_WINDOW = 0.6; // seconds without a break before combo resets
 export const METEOR_COUNT = 12;
+export const LAUNCH_BALLS = 3; // every serve is a small fan so openings are lively
 export const FINALE_FRACTION = 0.025; // bricks left (of total) that trigger the finale sweep
 export const STALL_TIME = 6; // seconds without a break that also trigger the finale...
 export const STALL_FRACTION = 0.12; // ...once at most this fraction is left

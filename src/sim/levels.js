@@ -59,11 +59,11 @@ function put(g, x, y, ch) {
 function rect(g, x, y, w, h, ch) {
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) put(g, i, j, ch);
 }
-function stamp(g, pattern, ox, oy, scale, map) {
+function stamp(g, pattern, ox, oy, scale, map, scaleY = scale) {
   pattern.forEach((row, j) => {
     [...row].forEach((p, i) => {
       const ch = map[p];
-      if (ch) rect(g, ox + i * scale, oy + j * scale, scale, scale, ch);
+      if (ch) rect(g, ox + i * scale, oy + j * scaleY, scale, scaleY, ch);
     });
   });
 }
@@ -198,9 +198,10 @@ const FONT = {
 };
 function wow() {
   const g = canvas(44, '#');
-  ['W', 'O', 'W'].forEach((ch, i) => stamp(g, FONT[ch], 1 + i * 16, 8, 3, { '#': 'S', o: '.' }));
-  rect(g, 16, 24, 3, 20, 'S');
-  rect(g, 17, 24, 1, 20, '.');
+  // Narrow letters (2x wide, 3x tall) leave 6-cell corridors so balls can climb past them.
+  ['W', 'O', 'W'].forEach((ch, i) => stamp(g, FONT[ch], 3 + i * 16, 8, 2, { '#': 'S', o: '.' }, 3));
+  channel(g, 15, 2);
+  channel(g, 31, 2);
   const rng = mulberry32(3);
   sprinkle(g, rng, 9, '2', (c) => c === '#');
   sprinkle(g, rng, 4, '5', (c) => c === '#');
@@ -271,7 +272,7 @@ export const LEVELS = [
   { name: '하트 폭탄', subtitle: '사랑은 연쇄 폭발', palette: PALETTES.pink, build: heartBombs },
   { name: '스마일', subtitle: '웃는 얼굴을 불태워라', palette: PALETTES.lemon, build: smiley },
   { name: '레이저 피라미드', subtitle: '층마다 레이저가 숨어 있다', palette: PALETTES.rainbow, build: pyramid },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, gates: 24 },
   { name: 'W O W', subtitle: '끝에 남는 것은?', palette: PALETTES.neon, build: wow },
   { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
   { name: '더 월', subtitle: '2,300개의 벽돌', palette: PALETTES.mint, build: theWall },
