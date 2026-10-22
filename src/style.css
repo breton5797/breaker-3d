@@ -138,7 +138,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .stage-btn:disabled { opacity: 0.35; cursor: default; }
 .legend { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; text-align: left; font-size: 13px; color: var(--muted); }
 .chip { display: inline-block; min-width: 76px; padding: 2px 8px; margin-right: 8px; border-radius: 6px; text-align: center; color: #fff; font-size: 12px; }
-.c-gate { background: #0d4b8f; } .c-bomb { background: #8a2c0c; } .c-laser { background: #7a1430; }
+.c-gate { background: #0d4b8f; } .c-item { background: linear-gradient(90deg, #12b85a, #9b3dff, #ffc400); } .c-bomb { background: #8a2c0c; } .c-laser { background: #7a1430; }
 .c-fire { background: #7a2a05; } .c-gold { background: #7a5505; }
 .controls { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.6; }
 

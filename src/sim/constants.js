@@ -38,7 +38,25 @@ export const CELL = Object.freeze({
   LASER_V: 8,
   GOLD: 9,
   FIRE: 10,
+  ITEM5: 11,
+  ITEM10: 12,
+  ITEM20: 13,
+  ITEM30: 14,
+  ITEM50: 15,
+  ITEM100: 16,
 });
+
+// Item bricks drop a capsule; catching it with the paddle multiplies the ball count.
+export const ITEM_MULT = Object.freeze({
+  [CELL.ITEM5]: 5,
+  [CELL.ITEM10]: 10,
+  [CELL.ITEM20]: 20,
+  [CELL.ITEM30]: 30,
+  [CELL.ITEM50]: 50,
+  [CELL.ITEM100]: 100,
+});
+export const DROP_SPEED = 9; // cells per second an item capsule falls
+export const DROP_CATCH = 0.8; // extra reach beyond the paddle edge when catching
 
 export const SPLIT_COUNT = Object.freeze({
   [CELL.SPLIT2]: 2,

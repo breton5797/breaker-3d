@@ -13,6 +13,12 @@ const CHAR_CELL = {
   '|': CELL.LASER_V,
   G: CELL.GOLD,
   F: CELL.FIRE,
+  A: CELL.ITEM5,
+  C: CELL.ITEM10,
+  D: CELL.ITEM20,
+  E: CELL.ITEM30,
+  I: CELL.ITEM50,
+  M: CELL.ITEM100,
 };
 
 /**
@@ -88,25 +94,60 @@ const toLines = (g) => g.map((r) => r.join(''));
 const GUTTER = 3; // empty rows under the ceiling where escaped balls go wild
 const withGutter = (lines) => [...Array(GUTTER).fill('.'.repeat(COLS)), ...lines].slice(0, ROWS - 14);
 
+// Multiplier items by weight: small ones are common, x100 is a rare jackpot.
+const ITEM_TABLE = [['A', 30], ['C', 25], ['D', 18], ['E', 12], ['I', 10], ['M', 5]];
+const GATE_TO_ITEM = { 2: 'A', 3: 'C', 5: 'D' };
+const isPlainBrick = (c) => c === '#' || (c >= 'a' && c <= 'h');
+
+function pickItem(rng) {
+  let roll = rng() * ITEM_TABLE.reduce((sum, [, wt]) => sum + wt, 0);
+  for (const [ch, wt] of ITEM_TABLE) {
+    roll -= wt;
+    if (roll < 0) return ch;
+  }
+  return 'A';
+}
+
 /**
- * Drops multiplier gates onto plain bricks in the lowest band of the wall so
- * the very first shots can start the chain reaction.
+ * Turns pass-through gates into item bricks and scatters extra items, so balls
+ * multiply only when the player catches what falls out.
  */
-function seedGates(lines, count, seed) {
-  const g = lines.map((l) => [...l]);
+function seedItems(lines, count, seed) {
   const rng = mulberry32(seed);
-  const solidLines = g.map((row, y) => (row.some((ch) => ch !== '.') ? y : -1)).filter((y) => y >= 0);
-  const bottom = Math.max(...solidLines);
-  const band = (c, x, y) => y > bottom - 12 && (c === '#' || (c >= 'a' && c <= 'h'));
+  const g = lines.map((l) => [...l].map((ch) => GATE_TO_ITEM[ch] ?? ch));
   let placed = 0;
   for (let tries = 0; placed < count && tries < 5000; tries++) {
     const x = Math.floor(rng() * COLS);
     const y = Math.floor(rng() * g.length);
-    if (band(g[y][x], x, y)) {
-      g[y][x] = rng() < 0.75 ? '2' : '3';
+    if (isPlainBrick(g[y][x])) {
+      g[y][x] = pickItem(rng);
       placed++;
     }
   }
+  return toLines(g);
+}
+
+const CAVITY = 4; // empty cells needed above the hole so an entering ball keeps going
+
+/**
+ * Seals the bottom of the stage with steel, leaving one narrow hole under the
+ * most central column that has open space above it (a shaft or a chamber).
+ */
+function sealFloor(lines, holeW) {
+  const g = lines.map((l) => [...l]);
+  const floor = g.length - 1;
+  const run = (x) => {
+    let n = 0;
+    for (let y = floor - 1; y >= 0 && g[y][x] === '.' && n < CAVITY; y--) n++;
+    return n;
+  };
+  let best = -1;
+  for (let x = 0; x + holeW <= COLS; x++) {
+    const open = Array.from({ length: holeW }, (_, k) => run(x + k)).every((n) => n >= CAVITY);
+    if (open && (best < 0 || Math.abs(x + holeW / 2 - COLS / 2) < Math.abs(best + holeW / 2 - COLS / 2))) best = x;
+  }
+  if (best < 0) best = Math.floor((COLS - holeW) / 2);
+  g[floor] = Array.from({ length: COLS }, (_, x) => (x >= best && x < best + holeW ? '.' : 'S'));
   return toLines(g);
 }
 
@@ -180,7 +221,7 @@ function chainReaction() {
 
 function smiley() {
   const g = canvas(46);
-  const cx = 23.5, cy = 22, R = 21;
+  const cx = 23.5, cy = 20, R = 19;
   for (let y = 0; y < 46; y++) for (let x = 0; x < COLS; x++) {
     const d = Math.hypot(x - cx, y - cy);
     if (d < R) put(g, x, y, d > R - 1 ? 'H' : 'b');
@@ -268,21 +309,21 @@ const PALETTES = {
 };
 
 export const LEVELS = [
-  { name: 'T 터널', subtitle: '통로를 뚫고 들어가 분열시켜라', palette: PALETTES.red, build: tunnelT },
-  { name: '하트 폭탄', subtitle: '사랑은 연쇄 폭발', palette: PALETTES.pink, build: heartBombs },
-  { name: '스마일', subtitle: '웃는 얼굴을 불태워라', palette: PALETTES.lemon, build: smiley },
-  { name: '레이저 피라미드', subtitle: '층마다 레이저가 숨어 있다', palette: PALETTES.rainbow, build: pyramid },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, gates: 24 },
-  { name: 'W O W', subtitle: '끝에 남는 것은?', palette: PALETTES.neon, build: wow },
+  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
+  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs },
+  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
+  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, items: 14 },
+  { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow },
   { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
-  { name: '더 월', subtitle: '2,300개의 벽돌', palette: PALETTES.mint, build: theWall },
+  { name: '더 월', subtitle: '구멍 하나, 벽돌 1,700개', palette: PALETTES.mint, build: theWall },
 ];
 
 /** @param {number} i zero-based stage index; beyond the handcrafted list stages are procedural */
 export function getLevel(i) {
   if (i < LEVELS.length) {
     const l = LEVELS[i];
-    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, lines: withGutter(seedGates(l.build(), l.gates ?? 12, i + 101)) };
+    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, lines: withGutter(sealFloor(seedItems(l.build(), l.items ?? 10, i + 101), l.holeW ?? 2)) };
   }
   const keys = Object.keys(PALETTES);
   return {
@@ -290,6 +331,6 @@ export function getLevel(i) {
     name: `무한 ${i - LEVELS.length + 1}`,
     subtitle: '끝없는 벽',
     palette: PALETTES[keys[i % keys.length]],
-    lines: withGutter(seedGates(procedural(i), 12, i + 101)),
+    lines: withGutter(sealFloor(seedItems(procedural(i), 10, i + 101), 2)),
   };
 }

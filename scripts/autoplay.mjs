@@ -19,6 +19,8 @@ for (let li = 0; li < LEVELS.length + 2; li++) {
     for (let i = 0; i < w.balls.n; i++) {
       if (w.balls.vy[i] < 0 && w.balls.y[i] < low) { low = w.balls.y[i]; target = w.balls.x[i]; }
     }
+    // Falling multiplier items are worth more than any single ball.
+    for (const d of w.drops) if (d.y - 4 < low) { low = d.y - 4; target = d.x; }
     // Aim off-centre so returns fan out like a human player's would.
     const aim = target + Math.sin(t * 1.7) * 2.5;
     setPaddleX(w, w.paddle.x + Math.max(-1.2, Math.min(1.2, aim - w.paddle.x)));
@@ -29,5 +31,5 @@ for (let li = 0; li < LEVELS.length + 2; li++) {
     w.events = [];
     t += dt;
   }
-  console.log(`${String(li + 1).padStart(2)} ${lvl.name.padEnd(10)} bricks=${total} state=${w.state} t=${t.toFixed(1)}s left=${w.grid.remaining} peak=${w.peakBalls} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
+  console.log(`${String(li + 1).padStart(2)} ${lvl.name.padEnd(10)} bricks=${total} state=${w.state} t=${t.toFixed(1)}s left=${w.grid.remaining} peak=${w.peakBalls} items=${w.collected} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
 }

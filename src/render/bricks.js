@@ -12,6 +12,12 @@ export const SPECIALS = {
   [CELL.LASER_V]: { tint: [2.4, 0.4, 0.6], label: '↕', bg: '#e02a5a' },
   [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c' },
   [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00' },
+  [CELL.ITEM5]: { tint: [0.6, 2.4, 1.2], label: '×5', bg: '#12b85a' },
+  [CELL.ITEM10]: { tint: [0.5, 1.6, 2.8], label: '×10', bg: '#1a7cff' },
+  [CELL.ITEM20]: { tint: [1.8, 0.7, 2.8], label: '×20', bg: '#9b3dff' },
+  [CELL.ITEM30]: { tint: [2.8, 0.6, 1.6], label: '×30', bg: '#ff2f8e' },
+  [CELL.ITEM50]: { tint: [2.8, 1.2, 0.3], label: '×50', bg: '#ff7a00' },
+  [CELL.ITEM100]: { tint: [3.0, 2.4, 0.5], label: '×100', bg: '#ffc400' },
 };
 
 const STEEL = new THREE.Color(0x6c7a96);
@@ -34,7 +40,7 @@ function iconTexture({ label, bg }) {
     g.fillStyle = '#ffd34d';
     g.beginPath(); g.arc(46, 14, 7, 0, Math.PI * 2); g.fill();
   } else {
-    g.font = `bold ${label.length > 1 && label[0] === '×' ? 34 : 40}px system-ui, sans-serif`;
+    g.font = `900 ${label[0] === '×' ? (label.length > 3 ? 22 : label.length > 2 ? 28 : 34) : 40}px system-ui, sans-serif`;
     g.fillText(label, 32, 35);
   }
   const tex = new THREE.CanvasTexture(c);

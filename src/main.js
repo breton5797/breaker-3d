@@ -6,6 +6,7 @@ import { createStage, toWorldX } from './render/stage.js';
 import { createBricks } from './render/bricks.js';
 import { createBalls3d } from './render/balls3d.js';
 import { createFx } from './render/fx.js';
+import { createDrops3d, createBeacon } from './render/drops3d.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
@@ -18,6 +19,8 @@ const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
 const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
+const drops3d = createDrops3d(stage.scene);
+const beacon = createBeacon(stage.scene);
 const audio = createAudio();
 
 let save = loadSave();
@@ -51,6 +54,7 @@ function startLevel(i) {
   level = getLevel(i);
   world = createWorld(level.lines);
   bricks.setLevel(world.grid, level.palette);
+  beacon.setLevel(world.grid);
   director.reset();
   stage.setZoom(1);
   elapsed = 0;
@@ -167,12 +171,14 @@ function frame(now) {
     }
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
     balls3d.update(world.balls, resting);
+    drops3d.update(world.drops, now / 1000);
     stage.paddle.position.x = toWorldX(world.paddle.x);
     stage.paddle.scale.y = world.paddle.w / 1.7;
     hudTimer -= dt;
     if (hudTimer <= 0 && mode === 'play') { hud(); hudTimer = 0.08; }
   }
   bricks.update(now / 1000);
+  beacon.update(now / 1000);
   fx.update(dt * (mode === 'outro' ? 0.6 : scale));
   stage.render(dt, world ? world.paddle.x : COLS / 2);
   requestAnimationFrame(frame);
@@ -184,9 +190,14 @@ function showMenu() {
   const preview = getLevel(Math.min(save.unlocked - 1, LEVELS.length - 1));
   const backdrop = createWorld(preview.lines);
   bricks.setLevel(backdrop.grid, preview.palette);
+  beacon.setLevel(backdrop.grid);
+  drops3d.update([], 0);
   balls3d.update(backdrop.balls, null);
   ui.showTitle(save);
 }
 
 showMenu();
 requestAnimationFrame(frame);
+
+// Dev-only handle for browser E2E checks; stripped from production builds.
+if (import.meta.env.DEV) window.__breaker = { get world() { return world; } };

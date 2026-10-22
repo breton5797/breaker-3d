@@ -74,6 +74,7 @@ export function createUI(h) {
     lastBalls = 0;
     toast(level.name, 'mega');
     setTimeout(() => toast(level.subtitle, 'small'), 250);
+    setTimeout(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1300);
   }
 
   /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean}} s */

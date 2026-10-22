@@ -132,6 +132,12 @@ export function createFx(scene) {
     boom: (c, r) => ring(c + 0.5, r + 0.5, 4.2, [3, 1.3, 0.3], 0.55),
     split: (c, r, n) => ring(c + 0.5, r + 0.5, 1 + n * 0.3, n >= 5 ? [2.6, 0.6, 2.4] : [0.4, 2.2, 2.6], 0.35),
     gold: (c, r) => ring(c + 0.5, r + 0.5, 3, [3, 2.2, 0.4], 0.6),
+    catchBurst: (x, mult) => {
+      const size = 3 + Math.log10(mult) * 4;
+      ring(x, 3, size, [0.6, 2.6, 3], 0.6);
+      ring(x, 3, size * 1.6, [3, 2.2, 0.5], 0.9);
+      for (let k = 0; k < Math.min(120, mult * 2); k++) debris.spawn(x, 3, 0xfff1a8, 1.3);
+    },
     laser: (axis, c, r) => (axis === 'h'
       ? beam(COLS / 2, r + 0.5, COLS, 1, [3, 0.5, 0.9])
       : beam(c + 0.5, ROWS / 2, 1, ROWS, [3, 0.5, 0.9])),

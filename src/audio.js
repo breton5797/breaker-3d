@@ -80,6 +80,15 @@ export function createAudio() {
     laser() { tone(1400, 0.3, 'sawtooth', 0.08, 200); },
     zap() { tone(2200, 0.08, 'square', 0.05, 900); },
     gold() { [0, 4, 7].forEach((s, k) => setTimeout(() => tone(note(10 + s), 0.15, 'sine', 0.12), k * 60)); },
+    drop() { tone(1568, 0.12, 'sine', 0.1, 2093); },
+    /** Bigger multipliers climb higher and longer. */
+    collect(mult) {
+      const steps = Math.min(8, 2 + Math.round(Math.log2(mult)));
+      for (let k = 0; k < steps; k++) {
+        setTimeout(() => { voices = 0; tone(note(6 + k * 2), 0.18, 'triangle', 0.16); }, k * 55);
+      }
+      burst(0.35, 5000, 0.25);
+    },
     launch() { tone(330, 0.15, 'sine', 0.2, 660); },
     lost() { tone(300, 0.5, 'sawtooth', 0.12, 80); },
     skill() { burst(0.3, 4000, 0.3); tone(440, 0.35, 'square', 0.1, 1760); },

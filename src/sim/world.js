@@ -5,6 +5,7 @@ import {
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
+import { updateDrops } from './items.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
@@ -20,6 +21,8 @@ export function createWorld(lines, opts = {}) {
     paddle: { x: COLS / 2, w: PADDLE_W, prevX: COLS / 2 },
     state: 'ready', // ready | play | clear | over
     lives: opts.lives ?? START_LIVES,
+    drops: [], // falling multiplier items { x, y, mult }
+    collected: 0,
     score: 0,
     combo: 0,
     bestCombo: 0,
@@ -156,6 +159,7 @@ export function stepWorld(w, dt) {
   if (w.state === 'ready') w.lastBreak = w.time;
   if (w.state === 'play') {
     updateBalls(w, dt);
+    updateDrops(w, dt);
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;
@@ -172,6 +176,7 @@ export function stepWorld(w, dt) {
   const zapsLeft = w.finale && w.pending.some((p) => p.kind === 'zap');
   if (w.state === 'play' && w.balls.n === 0 && !zapsLeft) {
     w.lives--;
+    w.drops = [];
     w.events.push({ t: 'lost' });
     w.state = w.lives > 0 ? 'ready' : 'over';
     if (w.state === 'over') w.events.push({ t: 'over' });

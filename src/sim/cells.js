@@ -1,5 +1,5 @@
 import {
-  COLS, ROWS, CELL, SPLIT_COUNT, BOMB_RADIUS, BOMB_DELAY, FIRE_TIME, BALL_SPEED, COMBO_WINDOW, FINALE_GAP,
+  COLS, ROWS, CELL, SPLIT_COUNT, BOMB_RADIUS, BOMB_DELAY, FIRE_TIME, BALL_SPEED, COMBO_WINDOW, FINALE_GAP, ITEM_MULT,
 } from './constants.js';
 import { addBall } from './balls.js';
 
@@ -67,6 +67,10 @@ export function breakCell(w, c, r, ball = -1) {
   w.score += 10 * (1 + Math.floor(w.combo / 25));
   w.events.push({ t: 'break', c, r, type, color: g.color[i] });
 
+  if (ITEM_MULT[type]) {
+    w.drops = [...w.drops, { x: c + 0.5, y: r + 0.5, mult: ITEM_MULT[type] }];
+    w.events.push({ t: 'drop', c, r, mult: ITEM_MULT[type] });
+  }
   const n = SPLIT_COUNT[type];
   if (n) {
     // A ball wearing out a gate already split in hitCell; explosions burst it.

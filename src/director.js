@@ -59,6 +59,16 @@ export function createDirector({ stage, bricks, fx, audio, ui }) {
         case 'gold': fx.gold(e.c, e.r); audio.gold(); ui.toast(e.skill === 'split' ? '+1 분열' : '+1 메테오', 'small'); break;
         case 'fire': audio.split(5); break;
         case 'zap': fx.zap(e.c, e.r); audio.zap(); break;
+        case 'drop': fx.gold(e.c, e.r); audio.drop(); break;
+        case 'collect':
+          fx.catchBurst(e.x, e.mult);
+          stage.shake(Math.min(1.5, 0.3 + e.mult / 60));
+          stage.flashAt(e.x, 3, 1.5);
+          audio.collect(e.mult);
+          ui.toast(`×${e.mult}!  →  ${ui.fmt(e.n)} BALLS`, e.mult >= 20 ? 'mega' : '');
+          if (e.mult >= 50) { slowMo(0.4, 0.5); stage.setBloom(1.5); setTimeout(() => stage.setBloom(0.75), 700); }
+          break;
+        case 'miss': ui.toast(`×${e.mult} 놓침`, 'small danger'); break;
         case 'paddle': audio.paddle(); break;
         case 'launch': audio.launch(); break;
         case 'skill':
