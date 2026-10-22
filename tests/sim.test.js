@@ -143,6 +143,30 @@ describe('special cells', () => {
     expect(w.balls.n).toBeGreaterThanOrEqual(4);
   });
 
+  it('a ball grazing a row of adjacent gates does not cascade', () => {
+    const p = [[0, 0, '#']];
+    for (let c = 10; c < 22; c++) p.push([c, 20, '2']);
+    const w = world(p);
+    addBall(w.balls, 15.02, topRow(20) - 2, 0.5, 30, 0);
+    run(w, 0.15);
+    expect(w.balls.n).toBeLessThanOrEqual(4);
+  });
+
+  it('a gate fires again when the ball comes back through it', () => {
+    const w = world([[10, 20, '2'], [0, 0, '#']]);
+    addBall(w.balls, 10.5, topRow(20) - 2, 0, 30, 0);
+    run(w, 0.1);
+    expect(w.balls.n).toBe(2);
+    // Send the original back down through the same gate.
+    w.balls.n = 1;
+    w.balls.x[0] = 10.5;
+    w.balls.y[0] = topRow(20) + 2.5;
+    w.balls.vx[0] = 0;
+    w.balls.vy[0] = -30;
+    run(w, 0.1);
+    expect(w.balls.n).toBe(2);
+  });
+
   it('split5 multiplies the ball into five', () => {
     const w = world([[10, 2, '5']]);
     addBall(w.balls, 10.5, topRow(2) - 2, 0, 30, 0);
@@ -270,6 +294,37 @@ describe('paddle, lives and flow', () => {
     expect(w.finale).toBe(false);
     run(w, 2);
     expect(w.finale).toBe(true);
+  });
+
+  it('losing every ball during the finale costs nothing and the zaps still clear', () => {
+    const w = world([[2, 10, '#'], [3, 10, '#']]);
+    w.lives = 1;
+    w.grid.total = 1000;
+    setPaddleX(w, 40);
+    addBall(w.balls, 5, 1.5, 0, -30, 0);
+    run(w, 3);
+    expect(w.lives).toBe(1);
+    expect(w.state).toBe('clear');
+  });
+
+  it('the stall timer does not run while the ball waits on the paddle', () => {
+    const w = createWorld(lines([[2, 10, '#'], [3, 10, '#'], [4, 10, '#'], [5, 10, '#']]), { rng: mulberry32(1) });
+    w.grid.total = 100;
+    run(w, STALL_TIME + 2);
+    expect(w.state).toBe('ready');
+    expect(w.finale).toBe(false);
+    launch(w);
+    run(w, 0.05);
+    expect(w.finale).toBe(false);
+  });
+
+  it('a dead-centre paddle hit still leaves the ball some sideways speed', () => {
+    const w = world([[0, 0, '#']]);
+    setPaddleX(w, 20);
+    addBall(w.balls, 20, PADDLE_Y + 3, 0, -30, 0);
+    run(w, 0.12);
+    expect(w.balls.vy[0]).toBeGreaterThan(0);
+    expect(Math.abs(w.balls.vx[0])).toBeGreaterThan(1);
   });
 
   it('launch fires a fan of LAUNCH_BALLS balls upward', () => {

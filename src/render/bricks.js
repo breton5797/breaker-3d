@@ -57,7 +57,7 @@ export function createBricks(scene) {
   const specialMeshes = Object.fromEntries(Object.entries(SPECIALS).map(([type, spec]) => {
     const m = new THREE.InstancedMesh(iconGeo, new THREE.MeshBasicMaterial({
       map: iconTexture(spec), color: new THREE.Color(...spec.tint).multiplyScalar(0.3).addScalar(0.75), toneMapped: false,
-    }), 400);
+    }), total);
     m.count = 0;
     scene.add(m);
     return [type, m];
@@ -103,8 +103,8 @@ export function createBricks(scene) {
     }
     for (const [type, m] of Object.entries(specialMeshes)) {
       const cells = specialCells[type];
-      m.count = Math.min(cells.length, 400);
-      cells.slice(0, 400).forEach((i, slot) => place(m, slot, i));
+      m.count = cells.length;
+      cells.forEach((i, slot) => place(m, slot, i));
       m.instanceMatrix.needsUpdate = true;
     }
     mesh.instanceMatrix.needsUpdate = true;

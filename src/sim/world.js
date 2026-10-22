@@ -92,7 +92,9 @@ function bouncePaddle(w, i) {
   const p = w.paddle;
   if (b.vy[i] >= 0 || b.y[i] - BALL_R > PADDLE_TOP || b.y[i] < PADDLE_Y - PADDLE_H) return;
   if (Math.abs(b.x[i] - p.x) > p.w / 2 + BALL_R) return;
-  const off = Math.max(-1, Math.min(1, (b.x[i] - p.x) / (p.w / 2)));
+  let off = Math.max(-1, Math.min(1, (b.x[i] - p.x) / (p.w / 2)));
+  // Never return a ball perfectly vertical: that can loop forever in a cleared column.
+  if (Math.abs(off) < 0.08) off = w.rng() < 0.5 ? -0.08 : 0.08;
   aimBall(b, i, off * PADDLE_MAX_ANGLE, Math.hypot(b.vx[i], b.vy[i]));
   b.y[i] = PADDLE_TOP + BALL_R;
   if (w.events.length < 8000) w.events.push({ t: 'paddle', x: b.x[i] });
@@ -129,6 +131,7 @@ function moveBall(w, i, h) {
     b.x[i] += b.vx[i] * h;
     b.y[i] += b.vy[i] * h;
   }
+  if (b.lastCell[i] >= 0 && b.lastCell[i] !== Math.floor(b.y[i]) * COLS + Math.floor(b.x[i])) b.lastCell[i] = -1;
   bouncePaddle(w, i);
 }
 
@@ -150,6 +153,7 @@ export function stepWorld(w, dt) {
   w.comboTimer -= dt;
   if (w.comboTimer <= 0) w.combo = 0;
   processPending(w);
+  if (w.state === 'ready') w.lastBreak = w.time;
   if (w.state === 'play') {
     updateBalls(w, dt);
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
@@ -165,7 +169,8 @@ export function stepWorld(w, dt) {
     w.events.push({ t: 'clear' });
     return;
   }
-  if (w.state === 'play' && w.balls.n === 0) {
+  const zapsLeft = w.finale && w.pending.some((p) => p.kind === 'zap');
+  if (w.state === 'play' && w.balls.n === 0 && !zapsLeft) {
     w.lives--;
     w.events.push({ t: 'lost' });
     w.state = w.lives > 0 ? 'ready' : 'over';

@@ -65,7 +65,7 @@ export function breakCell(w, c, r, ball = -1) {
   w.bestCombo = Math.max(w.bestCombo, w.combo);
   w.comboTimer = COMBO_WINDOW;
   w.score += 10 * (1 + Math.floor(w.combo / 25));
-  if (w.events.length < 8000) w.events.push({ t: 'break', c, r, type, color: g.color[i] });
+  w.events.push({ t: 'break', c, r, type, color: g.color[i] });
 
   const n = SPLIT_COUNT[type];
   if (n) {
@@ -100,7 +100,10 @@ export function hitCell(w, c, r, ball) {
   const onFire = w.balls.fire[ball] > 0;
   const n = SPLIT_COUNT[type];
   if (n) {
-    if (w.balls.lastCell[ball] === i) return false; // still crossing this gate
+    const b = w.balls;
+    const inside = Math.floor(b.x[ball]) === c && Math.floor(b.y[ball]) === r;
+    // Only the gate holding the ball's centre fires, once per pass.
+    if (!inside || b.lastCell[ball] === i) return false;
     w.balls.lastCell[ball] = i;
     const made = splitBall(w, ball, n);
     w.events.push({ t: 'split', c, r, n: made + 1 });

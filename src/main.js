@@ -34,7 +34,7 @@ const ui = createUI({
   onPlay: (i) => startLevel(i),
   onNext: () => startLevel(level.index + 1),
   onRetry: () => startLevel(level.index),
-  onMenu: () => { mode = 'title'; ui.showTitle(save); },
+  onMenu: () => showMenu(),
   onSkill: (name) => world && mode === 'play' && useSkill(world, name),
   onMute: () => {
     audio.unlock();
@@ -120,7 +120,7 @@ window.addEventListener('pointerdown', (e) => {
 window.addEventListener('keydown', (e) => {
   audio.unlock();
   keys.add(e.code);
-  if (!world) return;
+  if (e.repeat || !world) return; // held keys must not burn every skill charge
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (mode !== 'play') return;
   if (e.code === 'Space') { e.preventDefault(); launch(world); }
@@ -178,10 +178,15 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-// Title backdrop: show the first stage behind the menu.
-{
+/** Title screen with the latest unlocked stage as an untouched backdrop. */
+function showMenu() {
+  mode = 'title';
   const preview = getLevel(Math.min(save.unlocked - 1, LEVELS.length - 1));
-  bricks.setLevel(createWorld(preview.lines).grid, preview.palette);
+  const backdrop = createWorld(preview.lines);
+  bricks.setLevel(backdrop.grid, preview.palette);
+  balls3d.update(backdrop.balls, null);
+  ui.showTitle(save);
 }
-ui.showTitle(save);
+
+showMenu();
 requestAnimationFrame(frame);
