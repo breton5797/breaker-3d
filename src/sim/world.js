@@ -13,10 +13,10 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
 
 /**
  * @param {string[]} lines level text
- * @param {{ rng?: () => number, lives?: number, charges?: {split:number, meteor:number} }} [opts]
+ * @param {{ rng?: () => number, lives?: number, brickHp?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
-  const grid = parseLevel(lines);
+  const grid = parseLevel(lines, { brickHp: opts.brickHp });
   const rng = opts.rng ?? Math.random;
   return {
     grid,
@@ -30,6 +30,8 @@ export function createWorld(lines, opts = {}) {
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
     collected: 0,
+    queued: 0, // balls owed by caught multipliers, released gradually
+    releaseAcc: 0,
     score: 0,
     combo: 0,
     bestCombo: 0,
@@ -195,6 +197,7 @@ export function stepWorld(w, dt) {
     w.lives--;
     w.drops = [];
     w.shells = [];
+    w.queued = 0;
     w.events.push({ t: 'lost' });
     w.state = w.lives > 0 ? 'ready' : 'over';
     if (w.state === 'over') w.events.push({ t: 'over' });

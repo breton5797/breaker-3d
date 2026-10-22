@@ -1,7 +1,7 @@
 import { COLS, CELL, PADDLE_Y, PADDLE_H, PADDLE_W, UNIT_TIERS, UNIT_GRACE, STUN_SHRINK, MAX_SHELLS } from './constants.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
-const SPREAD = 2.6; // sideways speed between bombs of one volley
+const SPREAD = 4.4; // sideways speed between bombs of one volley
 
 /** Lists every unit cell of a freshly parsed grid with its fire cooldown. */
 export function buildUnits(grid, rng) {

@@ -21,6 +21,7 @@ export const SPECIALS = {
 };
 
 const STEEL = new THREE.Color(0x6c7a96);
+const ICON_SCALE = 1.8; // special blocks are drawn bigger than one fine cell so icons stay legible
 const HARD_SHINE = new THREE.Color(0xffffff);
 
 function iconTexture({ label, bg }) {
@@ -77,7 +78,8 @@ export function createBricks(scene) {
   function brickColor(grid, i) {
     if (grid.cells[i] === CELL.STEEL) return STEEL;
     baseColor.set(palette[grid.color[i] % palette.length]);
-    return grid.hp[i] > 1 ? baseColor.clone().lerp(HARD_SHINE, 0.18) : baseColor;
+    // Tougher bricks gleam a little and dull with every hit.
+    return grid.hp[i] > 1 ? baseColor.clone().lerp(HARD_SHINE, Math.min(0.15, 0.05 * (grid.hp[i] - 1))) : baseColor;
   }
 
   function place(m, slot, i, scale = 1) {
@@ -110,7 +112,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       const cells = specialCells[type];
       m.count = cells.length;
-      cells.forEach((i, slot) => place(m, slot, i));
+      cells.forEach((i, slot) => place(m, slot, i, ICON_SCALE));
       m.instanceMatrix.needsUpdate = true;
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -144,7 +146,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       if (!m.count) continue;
       const cells = specialCells[type];
-      const s = 1 + Math.sin(time * 6 + Number(type)) * 0.07;
+      const s = ICON_SCALE * (1 + Math.sin(time * 6 + Number(type)) * 0.07);
       for (let slot = 0; slot < m.count; slot++) {
         if (slotOf[cells[slot]] === slot) place(m, slot, cells[slot], s);
       }

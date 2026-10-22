@@ -55,7 +55,7 @@ const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 
 function startLevel(i) {
   level = getLevel(i);
-  world = createWorld(level.lines);
+  world = createWorld(level.lines, { brickHp: level.brickHp });
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   units3d.setLevel(world.units);
@@ -185,7 +185,7 @@ function frame(now) {
     const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
     stage.paddle.material.emissive.setHex(stunned ? 0xff2030 : 0x4060ff);
     stage.paddle.position.x = toWorldX(world.paddle.x);
-    stage.paddle.scale.y = world.paddle.w / 1.7;
+    stage.paddle.scale.y = world.paddle.w / (1 + PADDLE_H);
     hudTimer -= dt;
     if (hudTimer <= 0 && mode === 'play') { hud(); hudTimer = 0.08; }
   }
@@ -200,7 +200,7 @@ function frame(now) {
 function showMenu() {
   mode = 'title';
   const preview = getLevel(Math.min(save.unlocked - 1, LEVELS.length - 1));
-  const backdrop = createWorld(preview.lines);
+  const backdrop = createWorld(preview.lines, { brickHp: preview.brickHp });
   bricks.setLevel(backdrop.grid, preview.palette);
   beacon.setLevel(backdrop.grid);
   drops3d.update([], 0);

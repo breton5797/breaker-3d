@@ -17,6 +17,9 @@ function world(placements) {
   return w;
 }
 const run = (w, s, dt = 1 / 120) => { for (let t = 0; t < s; t += dt) stepWorld(w, dt); };
+// A sealed upper chamber (steel floor on text line 28) keeps released balls alive.
+const sealed = () => world([[0, 29, '#'], ...Array.from({ length: COLS }, (_, c) => [c, 28, 'S'])]);
+const CHAMBER_Y = ROWS - 10;
 
 describe('multiplier item bricks', () => {
   it('parses item chars into item cells with their multipliers', () => {
@@ -37,26 +40,51 @@ describe('multiplier item bricks', () => {
   });
 
   it('a caught item multiplies the ball count', () => {
-    const w = world([[10, 2, 'A'], [0, 0, '#']]);
+    // [0,0] is caged in steel so the stage can never clear mid-test.
+    const w = world([[10, 2, 'A'], [0, 0, '#'], [1, 0, 'S'], [0, 1, 'S'], [1, 1, 'S']]);
     addBall(w.balls, 10.5, topRow(2) - 2, 0, 30, 0);
     addBall(w.balls, 30, 50, 30, 0, 0); // parked: rallies wall to wall, never falls
     run(w, 0.1);
     const { x } = w.drops[0];
     setPaddleX(w, x);
-    run(w, 8);
-    expect(w.drops).toHaveLength(0);
+    run(w, 1);
+    const n0 = w.balls.n;
+    let target = 0;
+    for (let t = 0; t < 14 && !target; t += 1 / 120) {
+      stepWorld(w, 1 / 120);
+      target = drainEvents(w).find((e) => e.t === 'collect')?.n ?? 0;
+    }
     expect(w.collected).toBe(1);
-    expect(w.peakBalls).toBeGreaterThanOrEqual(5);
+    expect(target).toBe(n0 * 5);
+    run(w, 10);
+    expect(w.queued).toBe(0); // everything owed has been released
   });
 
-  it('collecting emits a collect event with the multiplier', () => {
+  it('collecting emits a collect event with the multiplier and the target count', () => {
     const w = world([[0, 0, '#']]);
-    addBall(w.balls, 30, 40, 0, 30, 0);
+    addBall(w.balls, 30, 60, 30, 0, 0); // parked: rallies wall to wall
     w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 20 }];
     setPaddleX(w, 20);
     run(w, 0.3);
-    expect(w.balls.n).toBe(20);
-    expect(drainEvents(w).some((e) => e.t === 'collect' && e.mult === 20)).toBe(true);
+    expect(drainEvents(w).some((e) => e.t === 'collect' && e.mult === 20 && e.n === 20)).toBe(true);
+  });
+
+  it('a caught item releases its balls gradually, not all at once', () => {
+    const w = sealed();
+    addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
+    addBall(w.balls, 40, CHAMBER_Y - 4, 30, 0, 0);
+    w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 100 }];
+    setPaddleX(w, 20);
+    run(w, 0.3);
+    const early = w.balls.n;
+    expect(early).toBeGreaterThan(2);
+    expect(early).toBeLessThan(60);
+    run(w, 2);
+    const mid = w.balls.n;
+    expect(mid).toBeGreaterThan(early);
+    run(w, 45);
+    expect(w.balls.n).toBe(200);
+    expect(w.queued).toBe(0);
   });
 
   it('a missed item falls away without multiplying', () => {
@@ -71,11 +99,11 @@ describe('multiplier item bricks', () => {
   });
 
   it('multiplication never exceeds MAX_BALLS', () => {
-    const w = world([[0, 0, '#']]);
-    for (let i = 0; i < 100; i++) addBall(w.balls, 30, 40, 0, 30, 0);
+    const w = sealed();
+    for (let i = 0; i < MAX_BALLS - 40; i++) addBall(w.balls, 30, CHAMBER_Y - (i % 12), 30, 0, 0);
     w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 100 }];
     setPaddleX(w, 20);
-    run(w, 0.3);
+    run(w, 15, 1 / 30);
     expect(w.balls.n).toBe(MAX_BALLS);
   });
 
@@ -100,7 +128,7 @@ describe('multiplier item bricks', () => {
 describe('narrow-entrance stages', () => {
   // The lowest occupied row of every built-in stage is a steel floor with one small hole.
   for (let i = 0; i < LEVELS.length + 2; i++) {
-    it(`stage ${i + 1} is sealed by a steel floor with a 1-2 cell entrance and has items`, () => {
+    it(`stage ${i + 1} is sealed by a steel floor with a narrow (1-3 cell) entrance and has items`, () => {
       const g = parseLevel(getLevel(i).lines);
       let floor = -1;
       for (let r = 0; r < ROWS && floor < 0; r++) {
@@ -112,11 +140,12 @@ describe('narrow-entrance stages', () => {
         if (t !== CELL.STEEL) open.push(c);
       }
       expect(open.length).toBeGreaterThanOrEqual(1);
-      expect(open.length).toBeLessThanOrEqual(2);
+      expect(open.length).toBeLessThanOrEqual(3);
       expect(open[open.length - 1] - open[0]).toBe(open.length - 1); // one contiguous hole
       let items = 0;
       for (let k = 0; k < g.cells.length; k++) if (ITEM_MULT[g.cells[k]]) items++;
       expect(items).toBeGreaterThanOrEqual(6);
+      expect(g.total).toBeGreaterThanOrEqual(i < LEVELS.length ? 3000 : 4000); // finer bricks
     });
   }
 });

@@ -1,4 +1,8 @@
-import { COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
+import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
+
+// Stages are designed on a coarse 48-wide grid, then upscaled x2 to the fine game grid.
+const COLS = 48;
+const SCALE = GRID_COLS / COLS;
 import { mulberry32 } from './rng.js';
 
 const CHAR_CELL = {
@@ -26,9 +30,10 @@ const CHAR_CELL = {
  * Letters a-h are bricks with an explicit palette index; '#' bricks get a
  * stripe colour from their line.
  * @param {string[]} lines
+ * @param {{ brickHp?: number }} [opts] hits a plain brick takes ('H' adds one more)
  */
-export function parseLevel(lines) {
-  const size = COLS * ROWS;
+export function parseLevel(lines, { brickHp = 1 } = {}) {
+  const size = GRID_COLS * ROWS;
   const cells = new Uint8Array(size);
   const hp = new Uint8Array(size);
   const color = new Uint8Array(size);
@@ -37,16 +42,19 @@ export function parseLevel(lines) {
   lines.forEach((line, li) => {
     const r = ROWS - 1 - li;
     if (r < 0) return;
-    for (let c = 0; c < Math.min(COLS, line.length); c++) {
+    for (let c = 0; c < Math.min(GRID_COLS, line.length); c++) {
       const ch = line[c];
       const code = ch.charCodeAt(0);
       const isLetter = code >= 97 && code <= 104; // a-h
       const unitTier = UNIT_CHARS.indexOf(ch) + 1;
       const type = isLetter ? CELL.BRICK : unitTier ? CELL.UNIT : CHAR_CELL[ch];
       if (!type) continue;
-      const i = r * COLS + c;
+      const i = r * GRID_COLS + c;
       cells[i] = type;
-      hp[i] = unitTier ? UNIT_TIERS[unitTier - 1].hp : SPLIT_COUNT[type] ? SPLIT_USES : ch === 'H' ? 2 : 1;
+      hp[i] = unitTier ? UNIT_TIERS[unitTier - 1].hp
+        : SPLIT_COUNT[type] ? SPLIT_USES
+        : ch === 'H' ? brickHp + 1
+        : type === CELL.BRICK ? brickHp : 1;
       tier[i] = unitTier;
       color[i] = isLetter ? code - 97 : Math.floor(li / 5) % 8;
       if (type !== CELL.STEEL) remaining++;
@@ -59,8 +67,8 @@ export function parseLevel(lines) {
 function findFloorRow(cells) {
   for (let r = 0; r < ROWS; r++) {
     let steel = 0;
-    for (let c = 0; c < COLS; c++) if (cells[r * COLS + c] === CELL.STEEL) steel++;
-    if (steel >= COLS - 3) return r;
+    for (let c = 0; c < GRID_COLS; c++) if (cells[r * GRID_COLS + c] === CELL.STEEL) steel++;
+    if (steel >= GRID_COLS - 3) return r;
   }
   return -1;
 }
@@ -110,8 +118,17 @@ function sprinkle(g, rng, count, ch, where = (c) => c !== 'S') {
 }
 const toLines = (g) => g.map((r) => r.join(''));
 
-const GUTTER = 3; // empty rows under the ceiling where escaped balls go wild
-const withGutter = (lines) => [...Array(GUTTER).fill('.'.repeat(COLS)), ...lines].slice(0, ROWS - 14);
+const GUTTER = 6; // empty fine rows under the ceiling where escaped balls go wild
+const withGutter = (lines) => [...Array(GUTTER).fill('.'.repeat(GRID_COLS)), ...lines].slice(0, ROWS - 14);
+
+// Cells that stay a single fine cell when upscaling; the rest of their block becomes brick.
+const SINGLE = new Set(['A', 'C', 'D', 'E', 'I', 'M', 'B', '-', '|', 'G', 'F', '2', '3', '5', ...UNIT_CHARS]);
+
+/** Upscales a coarse stage SCALE times: every cell becomes a SCALE x SCALE block of finer bricks. */
+function upscale(lines) {
+  return lines.flatMap((line) => Array.from({ length: SCALE }, (_, dy) => [...line].flatMap((ch) =>
+    Array.from({ length: SCALE }, (_, dx) => (SINGLE.has(ch) && (dx || dy) ? '#' : ch))).join('')));
+}
 
 // Multiplier items by weight: small ones are common, x100 is a rare jackpot.
 const ITEM_TABLE = [['A', 30], ['C', 25], ['D', 18], ['E', 12], ['I', 10], ['M', 5]];
@@ -168,7 +185,7 @@ function seedUnits(lines, stage, seed) {
   return toLines(g);
 }
 
-const CAVITY = 4; // empty cells needed above the hole so an entering ball keeps going
+const CAVITY = 8; // empty cells needed above the hole so an entering ball keeps going
 
 /**
  * Seals the bottom of the stage with steel, leaving one narrow hole under the
@@ -183,12 +200,12 @@ function sealFloor(lines, holeW) {
     return n;
   };
   let best = -1;
-  for (let x = 0; x + holeW <= COLS; x++) {
+  for (let x = 0; x + holeW <= GRID_COLS; x++) {
     const open = Array.from({ length: holeW }, (_, k) => run(x + k)).every((n) => n >= CAVITY);
-    if (open && (best < 0 || Math.abs(x + holeW / 2 - COLS / 2) < Math.abs(best + holeW / 2 - COLS / 2))) best = x;
+    if (open && (best < 0 || Math.abs(x + holeW / 2 - GRID_COLS / 2) < Math.abs(best + holeW / 2 - GRID_COLS / 2))) best = x;
   }
-  if (best < 0) best = Math.floor((COLS - holeW) / 2);
-  g[floor] = Array.from({ length: COLS }, (_, x) => (x >= best && x < best + holeW ? '.' : 'S'));
+  if (best < 0) best = Math.floor((GRID_COLS - holeW) / 2);
+  g[floor] = Array.from({ length: GRID_COLS }, (_, x) => (x >= best && x < best + holeW ? '.' : 'S'));
   return toLines(g);
 }
 
@@ -350,28 +367,35 @@ const PALETTES = {
 };
 
 export const LEVELS = [
-  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
-  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs },
-  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
-  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, items: 14 },
+  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT, hp: 3 },
+  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, hp: 3 },
+  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley, hp: 4 },
+  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid, hp: 4 },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, items: 36, hp: 3 },
   { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow },
   { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
-  { name: '더 월', subtitle: '구멍 하나, 벽돌 1,700개', palette: PALETTES.mint, build: theWall },
+  { name: '더 월', subtitle: '구멍 하나, 벽돌 7,000개', palette: PALETTES.mint, build: theWall },
 ];
+
+// Hits a plain fine brick takes; small stages override it (`hp`) so every stage
+// takes roughly 2-3 minutes once the swarm starts growing.
+const BRICK_HP = 2;
+const HOLE_W = 3; // fine cells: a narrow slit, about 5 ball widths
+const finish = (coarse) => withGutter(sealFloor(upscale(coarse), HOLE_W));
 
 /** @param {number} i zero-based stage index; beyond the handcrafted list stages are procedural */
 export function getLevel(i) {
   if (i < LEVELS.length) {
     const l = LEVELS[i];
-    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, lines: withGutter(sealFloor(seedUnits(seedItems(l.build(), l.items ?? 10, i + 101), i, i + 701), l.holeW ?? 2)) };
+    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, brickHp: l.hp ?? BRICK_HP, lines: finish(seedUnits(seedItems(l.build(), l.items ?? 28, i + 101), i, i + 701)) };
   }
   const keys = Object.keys(PALETTES);
   return {
     index: i,
     name: `무한 ${i - LEVELS.length + 1}`,
     subtitle: '끝없는 벽',
+    brickHp: BRICK_HP,
     palette: PALETTES[keys[i % keys.length]],
-    lines: withGutter(sealFloor(seedUnits(seedItems(procedural(i), 10, i + 101), i, i + 701), 2)),
+    lines: finish(seedUnits(seedItems(procedural(i), 28, i + 101), i, i + 701)),
   };
 }

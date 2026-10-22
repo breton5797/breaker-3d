@@ -1,21 +1,21 @@
 // Field is COLS x ROWS cells of size 1. y grows upward; row 0 is the bottom.
-export const COLS = 48;
-export const ROWS = 64;
+export const COLS = 96;
+export const ROWS = 128;
 
 export const BALL_R = 0.28;
-export const BALL_SPEED = 30;
-export const MAX_BALLS = 3000;
+export const BALL_SPEED = 36;
+export const MAX_BALLS = 1500;
 export const MAX_SUBSTEP = 0.4; // max distance a ball travels per substep (cells)
 
-export const PADDLE_Y = 3;
-export const PADDLE_H = 0.7;
-export const PADDLE_W = 7;
+export const PADDLE_Y = 6;
+export const PADDLE_H = 1;
+export const PADDLE_W = 12;
 export const PADDLE_MAX_ANGLE = (62 * Math.PI) / 180;
 
 export const START_LIVES = 3;
 export const FIRE_TIME = 2.2; // seconds a ball stays on fire (fire cell)
 export const METEOR_FIRE = 0.9; // shorter burn for meteor balls
-export const BOMB_RADIUS = 3.2;
+export const BOMB_RADIUS = 5.5;
 export const BOMB_DELAY = 0.07; // chain reaction delay per hop
 export const COMBO_WINDOW = 0.6; // seconds without a break before combo resets
 export const METEOR_COUNT = 12;
@@ -56,8 +56,11 @@ export const ITEM_MULT = Object.freeze({
   [CELL.ITEM50]: 50,
   [CELL.ITEM100]: 100,
 });
-export const DROP_SPEED = 9; // cells per second an item capsule falls
-export const DROP_CATCH = 0.8; // extra reach beyond the paddle edge when catching
+export const DROP_SPEED = 16; // cells per second an item capsule falls
+export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
+// Caught multipliers queue their balls and release them at this rate, so the
+// swarm swells over a minute or two instead of appearing all at once.
+export const RELEASE_RATE = 5; // balls per second
 
 export const SPLIT_COUNT = Object.freeze({
   [CELL.SPLIT2]: 2,
@@ -69,16 +72,16 @@ export const SPLIT_COUNT = Object.freeze({
 // each one tougher, faster, more accurate and more punishing than the last.
 // aim: 0 = straight down, 1 = leads the paddle. lethal: a hit also costs a life.
 export const UNIT_TIERS = Object.freeze([
-  { name: '정찰병', hp: 1, interval: 7.0, speed: 6, shots: 1, aim: 0, stun: 0.35, lethal: false },
-  { name: '보병', hp: 1, interval: 6.3, speed: 7, shots: 1, aim: 0.1, stun: 0.4, lethal: false },
-  { name: '척탄병', hp: 2, interval: 5.7, speed: 8, shots: 1, aim: 0.2, stun: 0.45, lethal: false },
-  { name: '포병', hp: 2, interval: 5.1, speed: 9, shots: 1, aim: 0.3, stun: 0.5, lethal: false },
-  { name: '저격수', hp: 3, interval: 4.6, speed: 10, shots: 2, aim: 0.45, stun: 0.6, lethal: false },
-  { name: '폭격수', hp: 3, interval: 4.1, speed: 11, shots: 2, aim: 0.5, stun: 0.7, lethal: false },
-  { name: '중장갑', hp: 4, interval: 3.7, speed: 12, shots: 2, aim: 0.6, stun: 0.8, lethal: false },
-  { name: '엘리트', hp: 4, interval: 3.3, speed: 13, shots: 3, aim: 0.7, stun: 0.95, lethal: false },
-  { name: '지휘관', hp: 5, interval: 2.9, speed: 14, shots: 3, aim: 0.8, stun: 1.1, lethal: false },
-  { name: '파괴신', hp: 6, interval: 2.6, speed: 15, shots: 4, aim: 0.9, stun: 1.3, lethal: true },
+  { name: '정찰병', hp: 1, interval: 7.0, speed: 10.2, shots: 1, aim: 0, stun: 0.35, lethal: false },
+  { name: '보병', hp: 1, interval: 6.3, speed: 11.9, shots: 1, aim: 0.1, stun: 0.4, lethal: false },
+  { name: '척탄병', hp: 2, interval: 5.7, speed: 13.6, shots: 1, aim: 0.2, stun: 0.45, lethal: false },
+  { name: '포병', hp: 2, interval: 5.1, speed: 15.3, shots: 1, aim: 0.3, stun: 0.5, lethal: false },
+  { name: '저격수', hp: 3, interval: 4.6, speed: 17, shots: 2, aim: 0.45, stun: 0.6, lethal: false },
+  { name: '폭격수', hp: 3, interval: 4.1, speed: 18.7, shots: 2, aim: 0.5, stun: 0.7, lethal: false },
+  { name: '중장갑', hp: 4, interval: 3.7, speed: 20.4, shots: 2, aim: 0.6, stun: 0.8, lethal: false },
+  { name: '엘리트', hp: 4, interval: 3.3, speed: 22.1, shots: 3, aim: 0.7, stun: 0.95, lethal: false },
+  { name: '지휘관', hp: 5, interval: 2.9, speed: 23.8, shots: 3, aim: 0.8, stun: 1.1, lethal: false },
+  { name: '파괴신', hp: 6, interval: 2.6, speed: 25.5, shots: 4, aim: 0.9, stun: 1.3, lethal: true },
 ]);
 export const UNIT_CHARS = Object.freeze(['J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'T', 'U']);
 export const UNIT_GRACE = 2.5; // seconds after serving before units open fire

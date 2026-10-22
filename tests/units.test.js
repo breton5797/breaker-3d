@@ -68,7 +68,7 @@ describe('unit behaviour', () => {
     w.broken = 5;
     run(w, 15);
     expect(w.shells).toHaveLength(0);
-    addBall(w.balls, 30, 55, 30, 0, 0); // rallying above the floor: inside
+    addBall(w.balls, 30, ROWS - 3, 30, 0, 0); // rallying above the floor: inside
     run(w, UNIT_TIERS[2].interval * 2);
     expect(drainEvents(w).some((e) => e.t === 'fire-shell')).toBe(true);
   });

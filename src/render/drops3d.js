@@ -57,7 +57,7 @@ export function createDrops3d(scene) {
       s.visible = Boolean(d);
       if (!d) return;
       s.material = materials[d.mult] ?? materials[5];
-      const size = 2.2 + Math.log10(d.mult) * 0.9 + Math.sin(time * 10 + k) * 0.15;
+      const size = 3.8 + Math.log10(d.mult) * 1.5 + Math.sin(time * 10 + k) * 0.25;
       s.scale.set(size, size, 1);
       s.position.set(toWorldX(d.x), toWorldY(d.y), 2.2);
     });
@@ -91,8 +91,8 @@ export function createBeacon(scene) {
     }
     beam.visible = Boolean(hole);
     if (!hole) return;
-    beam.position.set(toWorldX(hole.c + hole.w / 2), toWorldY(hole.r - 2.5), 0.08);
-    beam.scale.set(hole.w, 6, 1);
+    beam.position.set(toWorldX(hole.c + hole.w / 2), toWorldY(hole.r - 6), 0.08);
+    beam.scale.set(hole.w, 12, 1);
   }
 
   function update(time) {

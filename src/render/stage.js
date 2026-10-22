@@ -58,7 +58,7 @@ function buildArena(scene) {
   scene.add(danger);
 
   const paddle = new THREE.Mesh(
-    new THREE.CapsuleGeometry(PADDLE_H / 2, 1, 6, 16),
+    new THREE.CapsuleGeometry(PADDLE_H / 2, 1, 6, 16), // length 1 + PADDLE_H, stretched to the paddle width
     new THREE.MeshStandardMaterial({ color: 0x9fb4ff, emissive: 0x4060ff, emissiveIntensity: 1.6, roughness: 0.25, metalness: 0.4 }),
   );
   paddle.rotation.z = Math.PI / 2;
@@ -76,20 +76,20 @@ export function createStage(canvas) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x05070f);
-  scene.fog = new THREE.Fog(0x05070f, 90, 190);
+  scene.fog = new THREE.Fog(0x05070f, 180, 400);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
   scene.add(new THREE.HemisphereLight(0xbfd2ff, 0x1a1030, 0.6));
   const key = new THREE.DirectionalLight(0xffffff, 1.2);
-  key.position.set(-20, -30, 60);
+  key.position.set(-40, -60, 120);
   scene.add(key);
-  const flash = new THREE.PointLight(0xffaa55, 0, 40, 1.5);
+  const flash = new THREE.PointLight(0xffaa55, 0, 80, 1.5);
   flash.position.z = 6;
   scene.add(flash);
 
   const arena = buildArena(scene);
-  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 400);
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 800);
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.75, 0.4, 1.05);

@@ -7,7 +7,7 @@ const FIRE = new THREE.Color(3.2, 1.3, 0.25);
 /** Instanced glowing balls fed straight from the sim's typed arrays. */
 export function createBalls3d(scene) {
   const mesh = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(BALL_R * 1.15, 10, 8),
+    new THREE.SphereGeometry(BALL_R * 1.8, 10, 8), // drawn larger than the hitbox so it reads on phones
     new THREE.MeshBasicMaterial({ toneMapped: false }),
     MAX_BALLS + 1,
   );

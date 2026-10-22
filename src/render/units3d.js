@@ -6,6 +6,7 @@ import { toWorldX, toWorldY } from './stage.js';
 export const TIER_COLORS = [
   0x46d16a, 0x8ad13c, 0xd8d23a, 0xf0a531, 0xf0702e, 0xe8433f, 0xd9338f, 0x9b3dff, 0x4b3cff, 0x1a1a1a,
 ];
+const UNIT_SCALE = 1.9; // drawn bigger than their one-cell hitbox so they read on phones
 const TELEGRAPH = 0.6; // seconds before a volley when the eye flares
 
 function badgeTexture(tier) {
@@ -78,6 +79,7 @@ export function createUnits3d(scene) {
     units.forEach((u) => {
       const v = makeUnit(u.tier, badges[u.tier - 1]);
       v.group.position.set(toWorldX(u.c + 0.5), toWorldY(u.r + 0.5), 0);
+      v.group.scale.setScalar(UNIT_SCALE);
       scene.add(v.group);
       views.set(`${u.c},${u.r}`, { ...v, flash: 0 });
     });

@@ -44,6 +44,14 @@ describe('parseLevel', () => {
     expect(grid.cells[idx(2, topRow(3))]).toBe(CELL.EMPTY);
   });
 
+  it('plain bricks can be made tougher per stage, steel and specials unaffected', () => {
+    const grid = parseLevel(['#aSB'], { brickHp: 2 });
+    expect(grid.hp[idx(0, topRow(0))]).toBe(2);
+    expect(grid.hp[idx(1, topRow(0))]).toBe(2);
+    expect(grid.hp[idx(3, topRow(0))]).toBe(1);
+    expect(getLevel(0).brickHp).toBeGreaterThanOrEqual(2);
+  });
+
   it('counts breakable cells (steel excluded)', () => {
     const grid = parseLevel(['#S#', 'SS2']);
     expect(grid.remaining).toBe(3);
