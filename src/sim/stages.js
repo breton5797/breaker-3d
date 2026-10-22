@@ -19,10 +19,10 @@ export function stageParams(i) {
   const armed = n >= UNITS_FROM;
   return {
     holeW: Math.max(2, Math.round(lerp(14, 2, Math.pow(d, 0.7)))), // fine cells
-    brickHp: Math.min(4, 1 + Math.floor(3.2 * Math.pow(d, 0.9))),
-    items: Math.round(lerp(60, 22, d)),
-    bigItemShare: lerp(0.6, 0.1, d), // chance an item is x20 or more
-    releaseRate: Math.round(lerp(15, 5, d) * 2) / 2, // balls per second
+    brickHp: Math.min(3, 1 + Math.floor(2.5 * Math.pow(d, 1.2))),
+    items: Math.round(lerp(80, 55, d)),
+    bigItemShare: lerp(0.6, 0.3, d), // chance an item is x20 or more
+    releaseRate: Math.round(lerp(22, 18, d) * 2) / 2, // balls per second
     lives: n < 10 ? 5 : n < 50 ? 4 : 3,
     paddleW: Math.round(lerp(18, 10, d)),
     unitTop: armed ? Math.min(10, 1 + Math.floor((n - UNITS_FROM) / STAGES_PER_TIER)) : 0,

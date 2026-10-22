@@ -66,12 +66,17 @@ export function parseLevel(lines, { brickHp = 1 } = {}) {
   return { cells, hp, color, tier, remaining, total: remaining, floorRow: findFloorRow(cells) };
 }
 
-/** Lowest row that is (almost) all steel: the sealed floor, or -1 when there is none. */
+/**
+ * Lowest row that is mostly steel: the sealed floor, or -1 when there is none.
+ * "Mostly" (3/4) because beginner stages cut a hole up to 14 cells wide.
+ */
+const FLOOR_STEEL = Math.ceil(GRID_COLS * 0.75);
+
 function findFloorRow(cells) {
   for (let r = 0; r < ROWS; r++) {
     let steel = 0;
     for (let c = 0; c < GRID_COLS; c++) if (cells[r * GRID_COLS + c] === CELL.STEEL) steel++;
-    if (steel >= GRID_COLS - 3) return r;
+    if (steel >= FLOOR_STEEL) return r;
   }
   return -1;
 }
@@ -375,7 +380,7 @@ const PALETTES = {
 
 export const LEVELS = [
   { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
-  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs },
+  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, itemBoost: 1.6 },
   { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
   { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
   { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction },
@@ -400,7 +405,9 @@ export function getLevel(i) {
   const keys = Object.keys(PALETTES);
   const crafted = n < LEVELS.length ? LEVELS[n] : n % 3 === 0 ? LEVELS[(n / 3) % LEVELS.length] : null;
   const coarse = crafted ? crafted.build() : procedural(n, d);
-  const seeded = seedUnits(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
+  // Open-chamber layouts leak balls back out of the hole, so they get more items.
+  const items = Math.round(p.items * (crafted?.itemBoost ?? 1));
+  const seeded = seedUnits(seedItems(coarse, items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
   return {
     index: n,
     name: crafted ? crafted.name : `${PROC_NAMES[n % PROC_NAMES.length]} ${n + 1}`,

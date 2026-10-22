@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL, COLS, ROWS, ITEM_MULT } from '../sim/constants.js';
+import { CELL, COLS, ITEM_MULT } from '../sim/constants.js';
 import { SPECIALS } from './bricks.js';
 import { toWorldX, toWorldY } from './stage.js';
 
@@ -72,18 +72,14 @@ export function createBeacon(scene) {
   scene.add(beam);
   let hole = null;
 
-  /** Finds the entrance: the gap in the lowest steel row. */
+  /** Finds the entrance: the gap in the sealed floor row the sim detected. */
   function setLevel(grid) {
     hole = null;
-    for (let r = 0; r < ROWS && !hole; r++) {
-      let steel = 0;
+    const r = grid.floorRow;
+    if (r >= 0) {
       const gaps = [];
-      for (let c = 0; c < COLS; c++) {
-        const t = grid.cells[r * COLS + c];
-        if (t === CELL.STEEL) steel++;
-        else gaps.push(c);
-      }
-      if (steel >= COLS - 3 && gaps.length) hole = { c: gaps[0], w: gaps.length, r };
+      for (let c = 0; c < COLS; c++) if (grid.cells[r * COLS + c] !== CELL.STEEL) gaps.push(c);
+      if (gaps.length) hole = { c: gaps[0], w: gaps.length, r };
     }
     beam.visible = Boolean(hole);
     if (!hole) return;

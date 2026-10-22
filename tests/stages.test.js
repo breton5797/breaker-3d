@@ -56,7 +56,7 @@ describe('200-stage difficulty curve', () => {
     expect(easy.lives).toBeGreaterThanOrEqual(5);
     const hard = stageParams(199);
     expect(hard.holeW).toBeLessThanOrEqual(3);
-    expect(hard.brickHp).toBeGreaterThanOrEqual(4);
+    expect(hard.brickHp).toBe(3);
     expect(hard.unitTop).toBe(10);
     expect(hard.lives).toBe(3);
   });
@@ -85,6 +85,9 @@ describe('200-stage difficulty curve', () => {
       expect(units).toBe(p.unitCount);
       expect(topTier).toBe(p.unitTop);
       expect(lvl.name.length).toBeGreaterThan(0);
+      // The sim must find the sealed floor even when the beginner hole is wide.
+      const g = parseLevel(lvl.lines, { brickHp: p.brickHp });
+      expect(g.floorRow).toBe(ROWS - lvl.lines.length);
     });
   }
 
