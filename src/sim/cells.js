@@ -56,6 +56,7 @@ export function breakCell(w, c, r, ball = -1) {
   const i = r * COLS + c;
   const type = g.cells[i];
   if (type === CELL.EMPTY || type === CELL.STEEL) return;
+  const tier = g.tier[i];
   g.cells[i] = CELL.EMPTY;
   g.hp[i] = 0;
   g.remaining--;
@@ -67,6 +68,17 @@ export function breakCell(w, c, r, ball = -1) {
   w.score += 10 * (1 + Math.floor(w.combo / 25));
   w.events.push({ t: 'break', c, r, type, color: g.color[i] });
 
+  if (type === CELL.UNIT) {
+    g.tier[i] = 0;
+    w.score += 200 * tier;
+    w.events.push({ t: 'unit-down', c, r, tier });
+    // Veterans (tier 5+) leave a multiplier behind.
+    if (tier >= 5) {
+      const mult = tier >= 9 ? 20 : tier >= 7 ? 10 : 5;
+      w.drops = [...w.drops, { x: c + 0.5, y: r + 0.5, mult }];
+      w.events.push({ t: 'drop', c, r, mult });
+    }
+  }
   if (ITEM_MULT[type]) {
     w.drops = [...w.drops, { x: c + 0.5, y: r + 0.5, mult: ITEM_MULT[type] }];
     w.events.push({ t: 'drop', c, r, mult: ITEM_MULT[type] });
@@ -114,9 +126,9 @@ export function hitCell(w, c, r, ball) {
     if (--w.grid.hp[i] <= 0) breakCell(w, c, r, ball);
     return false;
   }
-  if (type === CELL.BRICK && w.grid.hp[i] > 1 && !onFire) {
+  if ((type === CELL.BRICK || type === CELL.UNIT) && w.grid.hp[i] > 1 && !onFire) {
     w.grid.hp[i]--;
-    w.events.push({ t: 'hit', c, r });
+    w.events.push({ t: type === CELL.UNIT ? 'unit-hit' : 'hit', c, r });
     return true;
   }
   breakCell(w, c, r, ball);

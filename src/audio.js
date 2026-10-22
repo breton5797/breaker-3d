@@ -89,6 +89,8 @@ export function createAudio() {
       }
       burst(0.35, 5000, 0.25);
     },
+    shoot() { tone(520, 0.18, 'square', 0.05, 160); },
+    stunned() { burst(0.4, 900, 0.5); tone(140, 0.45, 'sawtooth', 0.2, 60); },
     launch() { tone(330, 0.15, 'sine', 0.2, 660); },
     lost() { tone(300, 0.5, 'sawtooth', 0.12, 80); },
     skill() { burst(0.3, 4000, 0.3); tone(440, 0.35, 'square', 0.1, 1760); },

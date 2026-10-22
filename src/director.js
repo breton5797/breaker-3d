@@ -13,7 +13,7 @@ const STEEL_HEX = 0x6c7a96;
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
  */
-export function createDirector({ stage, bricks, fx, audio, ui }) {
+export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
   let slow = { scale: 1, until: 0 };
   let ballMark = 0;
   let comboMark = 0;
@@ -67,6 +67,21 @@ export function createDirector({ stage, bricks, fx, audio, ui }) {
           audio.collect(e.mult);
           ui.toast(`×${e.mult}!  →  ${ui.fmt(e.n)} BALLS`, e.mult >= 20 ? 'mega' : '');
           if (e.mult >= 50) { slowMo(0.4, 0.5); stage.setBloom(1.5); setTimeout(() => stage.setBloom(0.75), 700); }
+          break;
+        case 'fire-shell': audio.shoot(); break;
+        case 'unit-hit': units3d.hit(e.c, e.r); audio.pop(0); break;
+        case 'unit-down':
+          fx.boom(e.c, e.r);
+          for (let k = 0; k < 24; k++) fx.shards(e.c + 0.5, e.r + 0.5, 0xff6a4a, 1.4);
+          stage.shake(0.3 + e.tier * 0.05);
+          audio.boom();
+          ui.toast(`Lv.${e.tier} 유닛 격파! +${ui.fmt(200 * e.tier)}`, 'small');
+          break;
+        case 'paddle-hit':
+          stage.shake(e.lethal ? 1.4 : 0.7);
+          stage.flashAt(e.x, 3, 1.2);
+          audio.stunned();
+          ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
         case 'miss': ui.toast(`×${e.mult} 놓침`, 'small danger'); break;
         case 'paddle': audio.paddle(); break;

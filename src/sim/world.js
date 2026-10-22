@@ -6,6 +6,7 @@ import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
 import { updateDrops } from './items.js';
+import { buildUnits, updateUnits, updateShells } from './units.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
@@ -14,10 +15,15 @@ const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
  * @param {{ rng?: () => number, lives?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
+  const grid = parseLevel(lines);
+  const rng = opts.rng ?? Math.random;
   return {
-    grid: parseLevel(lines),
+    grid,
     balls: createBalls(),
-    rng: opts.rng ?? Math.random,
+    rng,
+    units: buildUnits(grid, rng), // enemy units { c, r, tier, cd }
+    shells: [], // enemy bombs { x, y, vx, vy, tier }
+    stun: 0, // seconds the paddle stays frozen after a bomb hit
     paddle: { x: COLS / 2, w: PADDLE_W, prevX: COLS / 2 },
     state: 'ready', // ready | play | clear | over
     lives: opts.lives ?? START_LIVES,
@@ -46,6 +52,7 @@ export function drainEvents(w) {
 }
 
 export function setPaddleX(w, x) {
+  if (w.stun > 0) return; // stunned by a unit bomb
   const half = w.paddle.w / 2;
   w.paddle = { ...w.paddle, x: Math.max(half, Math.min(COLS - half, x)) };
 }
@@ -160,6 +167,8 @@ export function stepWorld(w, dt) {
   if (w.state === 'play') {
     updateBalls(w, dt);
     updateDrops(w, dt);
+    updateUnits(w, dt);
+    updateShells(w, dt);
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;
@@ -177,6 +186,7 @@ export function stepWorld(w, dt) {
   if (w.state === 'play' && w.balls.n === 0 && !zapsLeft) {
     w.lives--;
     w.drops = [];
+    w.shells = [];
     w.events.push({ t: 'lost' });
     w.state = w.lives > 0 ? 'ready' : 'over';
     if (w.state === 'over') w.events.push({ t: 'over' });

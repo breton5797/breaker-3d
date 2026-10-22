@@ -2,11 +2,13 @@ import * as THREE from 'three';
 import { COLS, PADDLE_Y, PADDLE_H, BALL_R, START_LIVES } from './sim/constants.js';
 import { getLevel, LEVELS } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
+import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
 import { createBricks } from './render/bricks.js';
 import { createBalls3d } from './render/balls3d.js';
 import { createFx } from './render/fx.js';
 import { createDrops3d, createBeacon } from './render/drops3d.js';
+import { createUnits3d } from './render/units3d.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
@@ -21,6 +23,7 @@ const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
 const beacon = createBeacon(stage.scene);
+const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 
 let save = loadSave();
@@ -48,18 +51,23 @@ const ui = createUI({
   onPause: () => togglePause(),
   onResume: () => togglePause(),
 });
-const director = createDirector({ stage, bricks, fx, audio, ui });
+const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 
 function startLevel(i) {
   level = getLevel(i);
   world = createWorld(level.lines);
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
+  units3d.setLevel(world.units);
   director.reset();
   stage.setZoom(1);
   elapsed = 0;
   mode = 'play';
   ui.startStage(level);
+  if (world.units.length) {
+    const top = Math.max(...world.units.map((u) => u.tier));
+    setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
+  }
 }
 
 function togglePause() {
@@ -172,6 +180,10 @@ function frame(now) {
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
     balls3d.update(world.balls, resting);
     drops3d.update(world.drops, now / 1000);
+    units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
+    // A stunned paddle flickers red.
+    const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
+    stage.paddle.material.emissive.setHex(stunned ? 0xff2030 : 0x4060ff);
     stage.paddle.position.x = toWorldX(world.paddle.x);
     stage.paddle.scale.y = world.paddle.w / 1.7;
     hudTimer -= dt;
@@ -192,6 +204,8 @@ function showMenu() {
   bricks.setLevel(backdrop.grid, preview.palette);
   beacon.setLevel(backdrop.grid);
   drops3d.update([], 0);
+  units3d.setLevel(backdrop.units);
+  units3d.update(backdrop.units, [], false, 0, 0);
   balls3d.update(backdrop.balls, null);
   ui.showTitle(save);
 }

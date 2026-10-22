@@ -1,4 +1,4 @@
-import { COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES } from './constants.js';
+import { COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 import { mulberry32 } from './rng.js';
 
 const CHAR_CELL = {
@@ -32,6 +32,7 @@ export function parseLevel(lines) {
   const cells = new Uint8Array(size);
   const hp = new Uint8Array(size);
   const color = new Uint8Array(size);
+  const tier = new Uint8Array(size); // unit tier 1-10 for UNIT cells
   let remaining = 0;
   lines.forEach((line, li) => {
     const r = ROWS - 1 - li;
@@ -40,16 +41,28 @@ export function parseLevel(lines) {
       const ch = line[c];
       const code = ch.charCodeAt(0);
       const isLetter = code >= 97 && code <= 104; // a-h
-      const type = isLetter ? CELL.BRICK : CHAR_CELL[ch];
+      const unitTier = UNIT_CHARS.indexOf(ch) + 1;
+      const type = isLetter ? CELL.BRICK : unitTier ? CELL.UNIT : CHAR_CELL[ch];
       if (!type) continue;
       const i = r * COLS + c;
       cells[i] = type;
-      hp[i] = SPLIT_COUNT[type] ? SPLIT_USES : ch === 'H' ? 2 : 1;
+      hp[i] = unitTier ? UNIT_TIERS[unitTier - 1].hp : SPLIT_COUNT[type] ? SPLIT_USES : ch === 'H' ? 2 : 1;
+      tier[i] = unitTier;
       color[i] = isLetter ? code - 97 : Math.floor(li / 5) % 8;
       if (type !== CELL.STEEL) remaining++;
     }
   });
-  return { cells, hp, color, remaining, total: remaining };
+  return { cells, hp, color, tier, remaining, total: remaining, floorRow: findFloorRow(cells) };
+}
+
+/** Lowest row that is (almost) all steel: the sealed floor, or -1 when there is none. */
+function findFloorRow(cells) {
+  for (let r = 0; r < ROWS; r++) {
+    let steel = 0;
+    for (let c = 0; c < COLS; c++) if (cells[r * COLS + c] === CELL.STEEL) steel++;
+    if (steel >= COLS - 3) return r;
+  }
+  return -1;
 }
 
 // ---------- tiny drawing kit for building levels as char canvases ----------
@@ -123,6 +136,28 @@ function seedItems(lines, count, seed) {
       g[y][x] = pickItem(rng);
       placed++;
     }
+  }
+  return toLines(g);
+}
+
+/**
+ * Hides enemy units inside the wall. Stage i fields one unit of tier
+ * min(10, i + 1) plus a growing squad within three tiers below it.
+ */
+function seedUnits(lines, stage, seed) {
+  const rng = mulberry32(seed);
+  const top = Math.min(10, stage + 1);
+  const count = Math.min(10, 3 + Math.floor(stage * 0.8));
+  const g = lines.map((l) => [...l]);
+  const deepest = g.length - 4; // keep clear of the sealed floor
+  let placed = 0;
+  for (let tries = 0; placed < count && tries < 8000; tries++) {
+    const x = Math.floor(rng() * COLS);
+    const y = Math.floor(rng() * deepest);
+    if (!isPlainBrick(g[y][x])) continue;
+    const tier = placed === 0 ? top : Math.max(1, top - Math.floor(rng() * 4));
+    g[y][x] = UNIT_CHARS[tier - 1];
+    placed++;
   }
   return toLines(g);
 }
@@ -323,7 +358,7 @@ export const LEVELS = [
 export function getLevel(i) {
   if (i < LEVELS.length) {
     const l = LEVELS[i];
-    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, lines: withGutter(sealFloor(seedItems(l.build(), l.items ?? 10, i + 101), l.holeW ?? 2)) };
+    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, lines: withGutter(sealFloor(seedUnits(seedItems(l.build(), l.items ?? 10, i + 101), i, i + 701), l.holeW ?? 2)) };
   }
   const keys = Object.keys(PALETTES);
   return {
@@ -331,6 +366,6 @@ export function getLevel(i) {
     name: `무한 ${i - LEVELS.length + 1}`,
     subtitle: '끝없는 벽',
     palette: PALETTES[keys[i % keys.length]],
-    lines: withGutter(sealFloor(seedItems(procedural(i), 10, i + 101), 2)),
+    lines: withGutter(sealFloor(seedUnits(seedItems(procedural(i), 10, i + 101), i, i + 701), 2)),
   };
 }

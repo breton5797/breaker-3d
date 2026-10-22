@@ -44,6 +44,7 @@ export const CELL = Object.freeze({
   ITEM30: 14,
   ITEM50: 15,
   ITEM100: 16,
+  UNIT: 17,
 });
 
 // Item bricks drop a capsule; catching it with the paddle multiplies the ball count.
@@ -63,3 +64,23 @@ export const SPLIT_COUNT = Object.freeze({
   [CELL.SPLIT3]: 3,
   [CELL.SPLIT5]: 5,
 });
+
+// Enemy units hide inside the wall and drop bombs on the paddle. Ten tiers,
+// each one tougher, faster, more accurate and more punishing than the last.
+// aim: 0 = straight down, 1 = leads the paddle. lethal: a hit also costs a life.
+export const UNIT_TIERS = Object.freeze([
+  { name: '정찰병', hp: 1, interval: 7.0, speed: 6, shots: 1, aim: 0, stun: 0.35, lethal: false },
+  { name: '보병', hp: 1, interval: 6.3, speed: 7, shots: 1, aim: 0.1, stun: 0.4, lethal: false },
+  { name: '척탄병', hp: 2, interval: 5.7, speed: 8, shots: 1, aim: 0.2, stun: 0.45, lethal: false },
+  { name: '포병', hp: 2, interval: 5.1, speed: 9, shots: 1, aim: 0.3, stun: 0.5, lethal: false },
+  { name: '저격수', hp: 3, interval: 4.6, speed: 10, shots: 2, aim: 0.45, stun: 0.6, lethal: false },
+  { name: '폭격수', hp: 3, interval: 4.1, speed: 11, shots: 2, aim: 0.5, stun: 0.7, lethal: false },
+  { name: '중장갑', hp: 4, interval: 3.7, speed: 12, shots: 2, aim: 0.6, stun: 0.8, lethal: false },
+  { name: '엘리트', hp: 4, interval: 3.3, speed: 13, shots: 3, aim: 0.7, stun: 0.95, lethal: false },
+  { name: '지휘관', hp: 5, interval: 2.9, speed: 14, shots: 3, aim: 0.8, stun: 1.1, lethal: false },
+  { name: '파괴신', hp: 6, interval: 2.6, speed: 15, shots: 4, aim: 0.9, stun: 1.3, lethal: true },
+]);
+export const UNIT_CHARS = Object.freeze(['J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'T', 'U']);
+export const UNIT_GRACE = 2.5; // seconds after serving before units open fire
+export const STUN_SHRINK = 0.6; // paddle width factor while stunned
+export const MAX_SHELLS = 80;
