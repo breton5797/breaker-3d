@@ -1,0 +1,33 @@
+// Headless balance check: a bot paddle follows the lowest descending ball.
+// Usage: node scripts/autoplay.mjs
+import { getLevel, LEVELS } from '../src/sim/levels.js';
+import { createWorld, stepWorld, launch, setPaddleX, useSkill } from '../src/sim/world.js';
+import { mulberry32 } from '../src/sim/rng.js';
+
+for (let li = 0; li < LEVELS.length + 2; li++) {
+  const lvl = getLevel(li);
+  const w = createWorld(lvl.lines, { rng: mulberry32(li + 1) });
+  const total = w.grid.remaining;
+  const dt = 1 / 60;
+  let t = 0;
+  let worst = 0;
+  while (t < 240 && w.state !== 'clear' && w.state !== 'over') {
+    if (w.state === 'ready') launch(w);
+    if (t > 1 && w.charges.meteor > 0 && w.balls.n < 10) useSkill(w, 'meteor');
+    let target = w.paddle.x;
+    let low = Infinity;
+    for (let i = 0; i < w.balls.n; i++) {
+      if (w.balls.vy[i] < 0 && w.balls.y[i] < low) { low = w.balls.y[i]; target = w.balls.x[i]; }
+    }
+    // Aim off-centre so returns fan out like a human player's would.
+    const aim = target + Math.sin(t * 1.7) * 2.5;
+    setPaddleX(w, w.paddle.x + Math.max(-1.2, Math.min(1.2, aim - w.paddle.x)));
+    if (t > 20 && w.charges.split > 0) useSkill(w, 'split');
+    const s = performance.now();
+    stepWorld(w, dt);
+    worst = Math.max(worst, performance.now() - s);
+    w.events = [];
+    t += dt;
+  }
+  console.log(`${String(li + 1).padStart(2)} ${lvl.name.padEnd(10)} bricks=${total} state=${w.state} t=${t.toFixed(1)}s left=${w.grid.remaining} peak=${w.peakBalls} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
+}
