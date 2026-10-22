@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { COLS, ROWS, CELL } from '../sim/constants.js';
 import { toWorldX, toWorldY } from './stage.js';
 
-// Glow tint (HDR, > 1 blooms) and label for each special cell.
+// Icon label/background per special cell; tint (scaled down) colours its debris.
 export const SPECIALS = {
   [CELL.SPLIT2]: { tint: [0.4, 1.6, 2.6], label: '×2', bg: '#1e7bff' },
   [CELL.SPLIT3]: { tint: [0.3, 2.4, 1.6], label: '×3', bg: '#10c27a' },
@@ -55,16 +55,14 @@ const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 export function createBricks(scene) {
   const total = COLS * ROWS;
   const geo = new THREE.BoxGeometry(0.9, 0.9, 1);
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.05, envMapIntensity: 0.35 });
+  const mat = new THREE.MeshLambertMaterial();
   const mesh = new THREE.InstancedMesh(geo, mat, total);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   scene.add(mesh);
 
   const iconGeo = new THREE.BoxGeometry(0.92, 0.92, 1.1);
   const specialMeshes = Object.fromEntries(Object.entries(SPECIALS).map(([type, spec]) => {
-    const m = new THREE.InstancedMesh(iconGeo, new THREE.MeshBasicMaterial({
-      map: iconTexture(spec), color: new THREE.Color(...spec.tint).multiplyScalar(0.3).addScalar(0.75), toneMapped: false,
-    }), total);
+    const m = new THREE.InstancedMesh(iconGeo, new THREE.MeshLambertMaterial({ map: iconTexture(spec) }), total);
     m.count = 0;
     scene.add(m);
     return [type, m];

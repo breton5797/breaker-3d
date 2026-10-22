@@ -35,15 +35,12 @@ function makeUnit(tier, badge) {
   const group = new THREE.Group();
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(0.95, 0.95, 1.5),
-    new THREE.MeshStandardMaterial({
-      color: TIER_COLORS[tier - 1], roughness: 0.3, metalness: tier >= 8 ? 0.7 : 0.25,
-      emissive: TIER_COLORS[tier - 1], emissiveIntensity: 0.15,
-    }),
+    new THREE.MeshLambertMaterial({ color: TIER_COLORS[tier - 1] }),
   );
   body.position.z = 0.75;
   const eye = new THREE.Mesh(
     new THREE.SphereGeometry(0.22, 12, 10),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 0.2, 0.2), toneMapped: false }),
+    new THREE.MeshBasicMaterial({ color: 0x7a1010 }),
   );
   eye.position.set(0, -0.35, 1.25);
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: badge, depthWrite: false }));
@@ -60,7 +57,7 @@ export function createUnits3d(scene) {
 
   const shellMesh = new THREE.InstancedMesh(
     new THREE.SphereGeometry(0.7, 14, 12),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 0.45, 0.2), toneMapped: false }),
+    new THREE.MeshLambertMaterial({ color: 0xe0301e }),
     MAX_SHELLS,
   );
   shellMesh.frustumCulled = false;
@@ -81,7 +78,7 @@ export function createUnits3d(scene) {
       v.group.position.set(toWorldX(u.c + 0.5), toWorldY(u.r + 0.5), 0);
       v.group.scale.setScalar(UNIT_SCALE);
       scene.add(v.group);
-      views.set(`${u.c},${u.r}`, { ...v, flash: 0 });
+      views.set(`${u.c},${u.r}`, { ...v, tier: u.tier, flash: 0 });
     });
   }
 
@@ -104,11 +101,12 @@ export function createUnits3d(scene) {
       const v = views.get(`${u.c},${u.r}`);
       if (!v) return;
       const warn = awake && u.cd < TELEGRAPH;
-      const pulse = warn ? 3 + Math.sin(time * 40) * 1.5 : awake ? 1.2 : 0.4;
-      v.eye.material.color.setRGB(pulse, 0.25 * pulse * 0.3, 0.2);
+      // Telegraph: the eye turns bright yellow and blinks before a volley.
+      if (warn) v.eye.material.color.setHex(Math.sin(time * 40) > 0 ? 0xffe14a : 0xff3b1f);
+      else v.eye.material.color.setHex(awake ? 0xe02020 : 0x5a1010);
       v.eye.scale.setScalar(warn ? 1.5 : 1);
       v.flash = Math.max(0, v.flash - dt);
-      v.body.material.emissiveIntensity = v.flash > 0 ? 2 : 0.15;
+      v.body.material.color.setHex(v.flash > 0 ? 0xffffff : TIER_COLORS[v.tier - 1]);
       v.group.position.z = Math.sin(time * 3 + k) * 0.12;
     });
     shellMesh.count = shells.length;

@@ -1,4 +1,4 @@
-import { COLS, CELL, PADDLE_Y, PADDLE_H, PADDLE_W, UNIT_TIERS, UNIT_GRACE, STUN_SHRINK, MAX_SHELLS } from './constants.js';
+import { COLS, CELL, PADDLE_Y, PADDLE_H, UNIT_TIERS, UNIT_GRACE, STUN_SHRINK, MAX_SHELLS } from './constants.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const SPREAD = 4.4; // sideways speed between bombs of one volley
@@ -52,7 +52,7 @@ export function updateUnits(w, dt) {
 function stunPaddle(w, tier) {
   const spec = UNIT_TIERS[tier - 1];
   w.stun = Math.max(w.stun, spec.stun);
-  w.paddle = { ...w.paddle, w: PADDLE_W * STUN_SHRINK };
+  w.paddle = { ...w.paddle, w: w.basePaddleW * STUN_SHRINK };
   w.events.push({ t: 'paddle-hit', x: w.paddle.x, tier, lethal: spec.lethal });
   if (spec.lethal) {
     w.lives--;
@@ -67,7 +67,7 @@ function stunPaddle(w, tier) {
 export function updateShells(w, dt) {
   if (w.stun > 0) {
     w.stun = Math.max(0, w.stun - dt);
-    if (w.stun === 0) w.paddle = { ...w.paddle, w: PADDLE_W };
+    if (w.stun === 0) w.paddle = { ...w.paddle, w: w.basePaddleW };
   }
   if (!w.shells.length) return;
   const p = w.paddle;

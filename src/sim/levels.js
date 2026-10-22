@@ -4,6 +4,9 @@ import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNI
 const COLS = 48;
 const SCALE = GRID_COLS / COLS;
 import { mulberry32 } from './rng.js';
+import { stageParams, STAGE_COUNT } from './stages.js';
+
+export { stageParams, STAGE_COUNT };
 
 const CHAR_CELL = {
   '#': CELL.BRICK,
@@ -130,25 +133,28 @@ function upscale(lines) {
     Array.from({ length: SCALE }, (_, dx) => (SINGLE.has(ch) && (dx || dy) ? '#' : ch))).join('')));
 }
 
-// Multiplier items by weight: small ones are common, x100 is a rare jackpot.
-const ITEM_TABLE = [['A', 30], ['C', 25], ['D', 18], ['E', 12], ['I', 10], ['M', 5]];
+// Multiplier items: small ones (x5, x10) and big ones (x20..x100). The share of
+// big ones shrinks as stages get harder.
+const SMALL_ITEMS = [['A', 55], ['C', 45]];
+const BIG_ITEMS = [['D', 45], ['E', 27], ['I', 20], ['M', 8]];
 const GATE_TO_ITEM = { 2: 'A', 3: 'C', 5: 'D' };
 const isPlainBrick = (c) => c === '#' || (c >= 'a' && c <= 'h');
 
-function pickItem(rng) {
-  let roll = rng() * ITEM_TABLE.reduce((sum, [, wt]) => sum + wt, 0);
-  for (const [ch, wt] of ITEM_TABLE) {
+function pickWeighted(rng, table) {
+  let roll = rng() * table.reduce((sum, [, wt]) => sum + wt, 0);
+  for (const [ch, wt] of table) {
     roll -= wt;
     if (roll < 0) return ch;
   }
-  return 'A';
+  return table[0][0];
 }
+const pickItem = (rng, bigShare) => pickWeighted(rng, rng() < bigShare ? BIG_ITEMS : SMALL_ITEMS);
 
 /**
  * Turns pass-through gates into item bricks and scatters extra items, so balls
  * multiply only when the player catches what falls out.
  */
-function seedItems(lines, count, seed) {
+function seedItems(lines, count, bigShare, seed) {
   const rng = mulberry32(seed);
   const g = lines.map((l) => [...l].map((ch) => GATE_TO_ITEM[ch] ?? ch));
   let placed = 0;
@@ -156,7 +162,7 @@ function seedItems(lines, count, seed) {
     const x = Math.floor(rng() * COLS);
     const y = Math.floor(rng() * g.length);
     if (isPlainBrick(g[y][x])) {
-      g[y][x] = pickItem(rng);
+      g[y][x] = pickItem(rng, bigShare);
       placed++;
     }
   }
@@ -164,17 +170,15 @@ function seedItems(lines, count, seed) {
 }
 
 /**
- * Hides enemy units inside the wall. Stage i fields one unit of tier
- * min(10, i + 1) plus a growing squad within three tiers below it.
+ * Hides `count` enemy units inside the wall: one of tier `top`, the rest within
+ * three tiers below it.
  */
-function seedUnits(lines, stage, seed) {
+function seedUnits(lines, top, count, seed) {
   const rng = mulberry32(seed);
-  const top = Math.min(10, stage + 1);
-  const count = Math.min(10, 3 + Math.floor(stage * 0.8));
   const g = lines.map((l) => [...l]);
   const deepest = g.length - 4; // keep clear of the sealed floor
   let placed = 0;
-  for (let tries = 0; placed < count && tries < 8000; tries++) {
+  for (let tries = 0; placed < count && tries < 20000; tries++) {
     const x = Math.floor(rng() * COLS);
     const y = Math.floor(rng() * deepest);
     if (!isPlainBrick(g[y][x])) continue;
@@ -188,8 +192,9 @@ function seedUnits(lines, stage, seed) {
 const CAVITY = 8; // empty cells needed above the hole so an entering ball keeps going
 
 /**
- * Seals the bottom of the stage with steel, leaving one narrow hole under the
- * most central column that has open space above it (a shaft or a chamber).
+ * Seals the bottom of the stage with steel, leaving one hole `holeW` wide under
+ * the window with the most open space above it (a shaft or a chamber),
+ * preferring the centre.
  */
 function sealFloor(lines, holeW) {
   const g = lines.map((l) => [...l]);
@@ -199,12 +204,14 @@ function sealFloor(lines, holeW) {
     for (let y = floor - 1; y >= 0 && g[y][x] === '.' && n < CAVITY; y--) n++;
     return n;
   };
-  let best = -1;
+  const off = (x) => Math.abs(x + holeW / 2 - GRID_COLS / 2);
+  let best = Math.floor((GRID_COLS - holeW) / 2);
+  let bestOpen = -1;
   for (let x = 0; x + holeW <= GRID_COLS; x++) {
-    const open = Array.from({ length: holeW }, (_, k) => run(x + k)).every((n) => n >= CAVITY);
-    if (open && (best < 0 || Math.abs(x + holeW / 2 - GRID_COLS / 2) < Math.abs(best + holeW / 2 - GRID_COLS / 2))) best = x;
+    let open = 0;
+    for (let k = 0; k < holeW; k++) if (run(x + k) >= CAVITY) open++;
+    if (open > bestOpen || (open === bestOpen && off(x) < off(best))) { best = x; bestOpen = open; }
   }
-  if (best < 0) best = Math.floor((GRID_COLS - holeW) / 2);
   g[floor] = Array.from({ length: GRID_COLS }, (_, x) => (x >= best && x < best + holeW ? '.' : 'S'));
   return toLines(g);
 }
@@ -336,11 +343,11 @@ function theWall() {
   return toLines(g);
 }
 
-function procedural(seed) {
+function procedural(seed, d = 0) {
   const rng = mulberry32(seed * 7919 + 13);
   const h = 34 + Math.floor(rng() * 12);
   const g = canvas(h, '#');
-  for (let k = 0; k < 3 + Math.floor(rng() * 5); k++) {
+  for (let k = 0; k < 3 + Math.floor(rng() * 5 + d * 8); k++) {
     const w = 3 + Math.floor(rng() * 14);
     rect(g, Math.floor(rng() * COLS), Math.floor(rng() * h), w, 1 + Math.floor(rng() * 3), rng() < 0.5 ? 'S' : '.');
   }
@@ -367,35 +374,40 @@ const PALETTES = {
 };
 
 export const LEVELS = [
-  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT, hp: 3 },
-  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, hp: 3 },
-  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley, hp: 4 },
-  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid, hp: 4 },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, items: 36, hp: 3 },
+  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
+  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs },
+  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
+  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction },
   { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow },
   { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
   { name: '더 월', subtitle: '구멍 하나, 벽돌 7,000개', palette: PALETTES.mint, build: theWall },
 ];
 
-// Hits a plain fine brick takes; small stages override it (`hp`) so every stage
-// takes roughly 2-3 minutes once the swarm starts growing.
-const BRICK_HP = 2;
-const HOLE_W = 3; // fine cells: a narrow slit, about 5 ball widths
-const finish = (coarse) => withGutter(sealFloor(upscale(coarse), HOLE_W));
+const PROC_NAMES = ['미궁', '요새', '성벽', '협곡', '탑', '동굴', '벌집', '격자', '광산', '방벽'];
+const finish = (coarse, holeW) => withGutter(sealFloor(upscale(coarse), holeW));
 
-/** @param {number} i zero-based stage index; beyond the handcrafted list stages are procedural */
+/**
+ * Builds stage i (0..199). Stages 1-8 are the handcrafted set; after that every
+ * third stage revisits a handcrafted layout and the rest are procedural. All
+ * difficulty knobs come from stageParams(i).
+ * @param {number} i
+ */
 export function getLevel(i) {
-  if (i < LEVELS.length) {
-    const l = LEVELS[i];
-    return { index: i, name: l.name, subtitle: l.subtitle, palette: l.palette, brickHp: l.hp ?? BRICK_HP, lines: finish(seedUnits(seedItems(l.build(), l.items ?? 28, i + 101), i, i + 701)) };
-  }
+  const n = Math.max(0, Math.min(STAGE_COUNT - 1, i));
+  const p = stageParams(n);
+  const d = n / (STAGE_COUNT - 1);
   const keys = Object.keys(PALETTES);
+  const crafted = n < LEVELS.length ? LEVELS[n] : n % 3 === 0 ? LEVELS[(n / 3) % LEVELS.length] : null;
+  const coarse = crafted ? crafted.build() : procedural(n, d);
+  const seeded = seedUnits(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
   return {
-    index: i,
-    name: `무한 ${i - LEVELS.length + 1}`,
-    subtitle: '끝없는 벽',
-    brickHp: BRICK_HP,
-    palette: PALETTES[keys[i % keys.length]],
-    lines: finish(seedUnits(seedItems(procedural(i), 28, i + 101), i, i + 701)),
+    index: n,
+    name: crafted ? crafted.name : `${PROC_NAMES[n % PROC_NAMES.length]} ${n + 1}`,
+    subtitle: crafted ? crafted.subtitle : '벽 속 아이템을 노려라',
+    palette: crafted ? crafted.palette : PALETTES[keys[n % keys.length]],
+    brickHp: p.brickHp,
+    params: p,
+    lines: finish(seeded, p.holeW),
   };
 }

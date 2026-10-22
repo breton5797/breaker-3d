@@ -1,12 +1,16 @@
 // Headless balance check: a bot paddle follows the lowest descending ball.
 // Usage: node scripts/autoplay.mjs [seedOffset]
-import { getLevel, LEVELS } from '../src/sim/levels.js';
+import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, launch, setPaddleX, useSkill } from '../src/sim/world.js';
 import { mulberry32 } from '../src/sim/rng.js';
 
-for (let li = 0; li < LEVELS.length + 2; li++) {
+// Sampled stage numbers (1-based) across the 200-stage curve.
+const STAGES = [1, 2, 3, 5, 10, 20, 40, 60, 80, 100, 130, 160, 200];
+for (const stage of STAGES) {
+  const li = stage - 1;
   const lvl = getLevel(li);
-  const w = createWorld(lvl.lines, { brickHp: lvl.brickHp, rng: mulberry32(li + 1 + Number(process.argv[2] ?? 0) * 1000) });
+  const p = lvl.params;
+  const w = createWorld(lvl.lines, { brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate, rng: mulberry32(li + 1 + Number(process.argv[2] ?? 0) * 1000) });
   const total = w.grid.remaining;
   const dt = 1 / 60;
   let t = 0;
@@ -39,5 +43,5 @@ for (let li = 0; li < LEVELS.length + 2; li++) {
     w.events = [];
     t += dt;
   }
-  console.log(`${String(li + 1).padStart(2)} ${lvl.name.padEnd(10)} bricks=${total} state=${w.state} t=${t.toFixed(0)}s afterCatch=${firstCatch === null ? '-' : (t - firstCatch).toFixed(0)}s left=${w.grid.remaining} peak=${w.peakBalls} items=${w.collected} hits=${hits} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
+  console.log(`${String(stage).padStart(3)} ${lvl.name.padEnd(8)} hole=${p.holeW} hp=${p.brickHp} lv=${p.unitTop}x${p.unitCount} bricks=${total} state=${w.state} t=${t.toFixed(0)}s afterCatch=${firstCatch === null ? '-' : (t - firstCatch).toFixed(0)}s left=${w.grid.remaining} peak=${w.peakBalls} items=${w.collected} hits=${hits} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
 }

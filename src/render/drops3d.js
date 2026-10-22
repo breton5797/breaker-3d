@@ -10,12 +10,11 @@ function tokenTexture(label, bg) {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d');
-  const grad = g.createRadialGradient(64, 54, 10, 64, 64, 62);
-  grad.addColorStop(0, '#ffffff');
-  grad.addColorStop(0.35, bg);
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = grad;
+  // Flat coin: solid disc with a dark rim, no glow halo.
+  g.fillStyle = '#10131f';
   g.beginPath(); g.arc(64, 64, 62, 0, Math.PI * 2); g.fill();
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill();
   g.lineWidth = 6;
   g.strokeStyle = 'rgba(255,255,255,0.9)';
   g.beginPath(); g.arc(64, 64, 46, 0, Math.PI * 2); g.stroke();
@@ -38,8 +37,6 @@ export function createDrops3d(scene) {
     const spec = SPECIALS[type];
     return [mult, new THREE.SpriteMaterial({
       map: tokenTexture(`×${mult}`, spec.bg),
-      color: new THREE.Color(1.5, 1.5, 1.5),
-      toneMapped: false,
       depthWrite: false,
     })];
   }));
@@ -69,8 +66,7 @@ export function createDrops3d(scene) {
 /** Pulsing light-pillar under the entrance hole so players know where to aim. */
 export function createBeacon(scene) {
   const mat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(0.4, 2.2, 2.6), toneMapped: false, transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false,
+    color: 0x2fc6e0, transparent: true, depthWrite: false,
   });
   const beam = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
   scene.add(beam);

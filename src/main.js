@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { COLS, PADDLE_Y, PADDLE_H, BALL_R, START_LIVES } from './sim/constants.js';
-import { getLevel, LEVELS } from './sim/levels.js';
+import { COLS, PADDLE_Y, PADDLE_H, BALL_R } from './sim/constants.js';
+import { getLevel, LEVELS, STAGE_COUNT } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -55,7 +55,8 @@ const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 
 function startLevel(i) {
   level = getLevel(i);
-  world = createWorld(level.lines, { brickHp: level.brickHp });
+  const p = level.params;
+  world = createWorld(level.lines, { brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate });
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   units3d.setLevel(world.units);
@@ -86,11 +87,12 @@ function finishLevel(cleared) {
     w.balls.n = 0;
     save = recordClear(save, level.index, w.score);
     writeSave(save);
-    const stars = w.lives >= START_LIVES ? 3 : w.lives >= 2 ? 2 : 1;
+    const full = level.params.lives; // stars are relative to this stage's starting lives
+    const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
     setTimeout(() => ui.showClear({
       score: w.score,
       stars,
-      hasNext: true,
+      hasNext: level.index + 1 < STAGE_COUNT,
       stats: [
         ['클리어 시간', `${elapsed.toFixed(1)}초`],
         ['최대 공 개수', ui.fmt(w.peakBalls)],
@@ -183,7 +185,7 @@ function frame(now) {
     units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
     // A stunned paddle flickers red.
     const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
-    stage.paddle.material.emissive.setHex(stunned ? 0xff2030 : 0x4060ff);
+    stage.paddle.material.color.setHex(stunned ? 0xff3040 : 0xc4d2ff);
     stage.paddle.position.x = toWorldX(world.paddle.x);
     stage.paddle.scale.y = world.paddle.w / (1 + PADDLE_H);
     hudTimer -= dt;
@@ -200,7 +202,7 @@ function frame(now) {
 function showMenu() {
   mode = 'title';
   const preview = getLevel(Math.min(save.unlocked - 1, LEVELS.length - 1));
-  const backdrop = createWorld(preview.lines, { brickHp: preview.brickHp });
+  const backdrop = createWorld(preview.lines, { brickHp: preview.brickHp, paddleW: preview.params.paddleW });
   bricks.setLevel(backdrop.grid, preview.palette);
   beacon.setLevel(backdrop.grid);
   drops3d.update([], 0);

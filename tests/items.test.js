@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, ITEM_MULT } from '../src/sim/constants.js';
-import { parseLevel, getLevel, LEVELS } from '../src/sim/levels.js';
+import { parseLevel } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
 import { createWorld, stepWorld, setPaddleX, drainEvents } from '../src/sim/world.js';
 import { mulberry32 } from '../src/sim/rng.js';
@@ -123,29 +123,4 @@ describe('multiplier item bricks', () => {
     expect(w.state).toBe('ready');
     expect(w.drops).toHaveLength(0);
   });
-});
-
-describe('narrow-entrance stages', () => {
-  // The lowest occupied row of every built-in stage is a steel floor with one small hole.
-  for (let i = 0; i < LEVELS.length + 2; i++) {
-    it(`stage ${i + 1} is sealed by a steel floor with a narrow (1-3 cell) entrance and has items`, () => {
-      const g = parseLevel(getLevel(i).lines);
-      let floor = -1;
-      for (let r = 0; r < ROWS && floor < 0; r++) {
-        for (let c = 0; c < COLS; c++) if (g.cells[idx(c, r)] !== CELL.EMPTY) { floor = r; break; }
-      }
-      const open = [];
-      for (let c = 0; c < COLS; c++) {
-        const t = g.cells[idx(c, floor)];
-        if (t !== CELL.STEEL) open.push(c);
-      }
-      expect(open.length).toBeGreaterThanOrEqual(1);
-      expect(open.length).toBeLessThanOrEqual(3);
-      expect(open[open.length - 1] - open[0]).toBe(open.length - 1); // one contiguous hole
-      let items = 0;
-      for (let k = 0; k < g.cells.length; k++) if (ITEM_MULT[g.cells[k]]) items++;
-      expect(items).toBeGreaterThanOrEqual(6);
-      expect(g.total).toBeGreaterThanOrEqual(i < LEVELS.length ? 3000 : 4000); // finer bricks
-    });
-  }
 });

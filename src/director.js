@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL, COLS, PADDLE_Y } from './sim/constants.js';
+import { CELL, COLS } from './sim/constants.js';
 import { SPECIALS } from './render/bricks.js';
 
 const SHARD_BUDGET = 260; // debris spawned per frame at most
@@ -50,7 +50,6 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
         case 'boom':
           booms++;
           fx.boom(e.c, e.r);
-          stage.flashAt(e.c, e.r, 1);
           stage.shake(0.45);
           audio.boom();
           break;
@@ -63,10 +62,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
         case 'collect':
           fx.catchBurst(e.x, e.mult);
           stage.shake(Math.min(1.5, 0.3 + e.mult / 60));
-          stage.flashAt(e.x, PADDLE_Y, 1.5);
           audio.collect(e.mult);
           ui.toast(`×${e.mult}!  →  ${ui.fmt(e.n)} BALLS`, e.mult >= 20 ? 'mega' : '');
-          if (e.mult >= 50) { slowMo(0.4, 0.5); stage.setBloom(1.5); setTimeout(() => stage.setBloom(0.75), 700); }
+          if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
         case 'fire-shell': audio.shoot(); break;
         case 'unit-hit': units3d.hit(e.c, e.r); audio.pop(0); break;
@@ -79,7 +77,6 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           break;
         case 'paddle-hit':
           stage.shake(e.lethal ? 1.4 : 0.7);
-          stage.flashAt(e.x, PADDLE_Y, 1.2);
           audio.stunned();
           ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
@@ -109,7 +106,6 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
     const n = w.balls.n;
     while (ballMark < BALL_MILESTONES.length && n >= BALL_MILESTONES[ballMark]) {
       ui.toast(`${ui.fmt(BALL_MILESTONES[ballMark])} BALLS!`, ballMark >= 4 ? 'mega' : '');
-      if (ballMark >= 4) { stage.setBloom(1.4); setTimeout(() => stage.setBloom(0.75), 600); }
       ballMark++;
     }
     while (comboMark < COMBO_MILESTONES.length && w.combo >= COMBO_MILESTONES[comboMark]) {

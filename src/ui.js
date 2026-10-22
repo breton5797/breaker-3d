@@ -1,4 +1,4 @@
-import { LEVELS } from './sim/levels.js';
+import { LEVELS, STAGE_COUNT } from './sim/levels.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
@@ -45,32 +45,36 @@ export function createUI(h) {
     playing(false);
     const grid = $('stage-grid');
     grid.replaceChildren();
-    const count = Math.max(LEVELS.length + 1, Math.min(save.unlocked, 99));
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < STAGE_COUNT; i++) {
       const b = document.createElement('button');
       b.className = 'stage-btn';
       b.disabled = i >= save.unlocked;
+      b.title = i < LEVELS.length ? LEVELS[i].name : `STAGE ${i + 1}`;
+      b.setAttribute('aria-label', `스테이지 ${i + 1}${b.disabled ? ' (잠김)' : ''}`);
       const num = document.createElement('b');
-      num.textContent = i < LEVELS.length ? `STAGE ${i + 1}` : `∞ ${i - LEVELS.length + 1}`;
-      const name = document.createElement('span');
-      name.textContent = i < LEVELS.length ? LEVELS[i].name : '무한 모드';
-      b.append(num, name);
+      num.textContent = String(i + 1);
+      b.append(num);
       if (save.best[i]) {
         const best = document.createElement('small');
-        best.textContent = `★ ${fmt(save.best[i])}`;
+        best.textContent = '★';
         b.append(best);
       }
       b.addEventListener('click', (e) => { e.stopPropagation(); h.onPlay(i); });
       grid.append(b);
     }
-    $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, save.unlocked - 1)); };
+    // Keep the newest unlocked stage in view inside the scrolling grid.
+    const current = grid.children[Math.min(STAGE_COUNT, save.unlocked) - 1];
+    if (current) grid.scrollTop = current.offsetTop - grid.offsetTop - grid.clientHeight / 2;
+    const next = Math.min(STAGE_COUNT, save.unlocked) - 1;
+    $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
+    $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
     show('screen-title');
   }
 
   function startStage(level) {
     show(null);
     playing(true);
-    $('stage-name').textContent = `${level.index + 1}. ${level.name}`;
+    $('stage-name').textContent = `${level.index + 1}/${STAGE_COUNT} · ${level.name}`;
     lastBalls = 0;
     toast(level.name, 'mega');
     setTimeout(() => toast(level.subtitle, 'small'), 250);

@@ -1,4 +1,4 @@
-import { PADDLE_Y, PADDLE_H, DROP_SPEED, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_RATE } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_SPEED, DROP_CATCH, BALL_SPEED, BALL_R } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 
@@ -18,12 +18,12 @@ export function multiplyBalls(w, mult) {
 }
 
 /**
- * Releases queued balls at RELEASE_RATE. New balls are born where existing
+ * Releases queued balls at the stage's release rate. New balls are born where existing
  * balls are, so a swarm trapped inside the wall keeps swelling in place.
  */
 export function releaseQueued(w, dt) {
   if (w.queued <= 0) return;
-  w.releaseAcc += RELEASE_RATE * dt;
+  w.releaseAcc += w.releaseRate * dt;
   const b = w.balls;
   while (w.releaseAcc >= 1 && w.queued > 0) {
     w.releaseAcc -= 1;

@@ -11,7 +11,7 @@ const color = new THREE.Color();
 function createDebris(scene) {
   const mesh = new THREE.InstancedMesh(
     new THREE.BoxGeometry(0.42, 0.42, 0.42),
-    new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1 }),
+    new THREE.MeshLambertMaterial(),
     DEBRIS,
   );
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -98,15 +98,16 @@ function createPool(scene, size, makeMesh) {
   };
 }
 
-const glow = (r, g, b) => new THREE.MeshBasicMaterial({
-  color: new THREE.Color(r, g, b), toneMapped: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+// Flat, non-glowing translucent shapes for rings and beams.
+const flat = (r, g, b) => new THREE.MeshBasicMaterial({
+  color: new THREE.Color(r, g, b), transparent: true, depthWrite: false,
 });
 
 export function createFx(scene) {
   const debris = createDebris(scene);
   const ringGeo = new THREE.RingGeometry(0.8, 1, 48);
-  const rings = createPool(scene, 32, () => new THREE.Mesh(ringGeo, glow(3, 1.4, 0.4)));
-  const beams = createPool(scene, 24, () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), glow(3, 0.6, 1)));
+  const rings = createPool(scene, 32, () => new THREE.Mesh(ringGeo, flat(1, 0.55, 0.15)));
+  const beams = createPool(scene, 24, () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), flat(1, 0.3, 0.45)));
 
   function ring(x, y, radius, rgb, dur = 0.5) {
     rings.fire(dur, (m, u) => {
@@ -129,22 +130,22 @@ export function createFx(scene) {
 
   return {
     shards: debris.spawn,
-    boom: (c, r) => ring(c + 0.5, r + 0.5, BOMB_RADIUS * 1.3, [3, 1.3, 0.3], 0.55),
-    split: (c, r, n) => ring(c + 0.5, r + 0.5, 2 + n * 0.5, n >= 5 ? [2.6, 0.6, 2.4] : [0.4, 2.2, 2.6], 0.35),
-    gold: (c, r) => ring(c + 0.5, r + 0.5, 5, [3, 2.2, 0.4], 0.6),
+    boom: (c, r) => ring(c + 0.5, r + 0.5, BOMB_RADIUS * 1.3, [1, 0.45, 0.1], 0.55),
+    split: (c, r, n) => ring(c + 0.5, r + 0.5, 2 + n * 0.5, n >= 5 ? [0.85, 0.2, 0.8] : [0.15, 0.75, 0.9], 0.35),
+    gold: (c, r) => ring(c + 0.5, r + 0.5, 5, [1, 0.75, 0.15], 0.6),
     catchBurst: (x, mult) => {
       const size = 5 + Math.log10(mult) * 7;
-      ring(x, PADDLE_Y, size, [0.6, 2.6, 3], 0.6);
-      ring(x, PADDLE_Y, size * 1.6, [3, 2.2, 0.5], 0.9);
+      ring(x, PADDLE_Y, size, [0.2, 0.85, 1], 0.6);
+      ring(x, PADDLE_Y, size * 1.6, [1, 0.75, 0.2], 0.9);
       for (let k = 0; k < Math.min(120, mult * 2); k++) debris.spawn(x, PADDLE_Y, 0xfff1a8, 1.5);
     },
     laser: (axis, c, r) => (axis === 'h'
-      ? beam(COLS / 2, r + 0.5, COLS, 1, [3, 0.5, 0.9])
-      : beam(c + 0.5, ROWS / 2, 1, ROWS, [3, 0.5, 0.9])),
+      ? beam(COLS / 2, r + 0.5, COLS, 1, [1, 0.2, 0.3])
+      : beam(c + 0.5, ROWS / 2, 1, ROWS, [1, 0.2, 0.3])),
     zap: (c, r) => {
       const top = ROWS;
-      beam(c + 0.5, (r + 0.5 + top) / 2, 0.3, top - r, [1.4, 2.2, 3.5], 0.25);
-      ring(c + 0.5, r + 0.5, 1.6, [1.4, 2.2, 3.5], 0.3);
+      beam(c + 0.5, (r + 0.5 + top) / 2, 0.3, top - r, [0.5, 0.75, 1], 0.25);
+      ring(c + 0.5, r + 0.5, 1.6, [0.5, 0.75, 1], 0.3);
     },
     update(dt) {
       debris.update(dt);

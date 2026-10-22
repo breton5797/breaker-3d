@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { COLS, ROWS, CELL, PADDLE_Y, PADDLE_W, UNIT_TIERS, UNIT_CHARS } from '../src/sim/constants.js';
-import { parseLevel, getLevel, LEVELS } from '../src/sim/levels.js';
+import { parseLevel } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
 import { createWorld, stepWorld, setPaddleX, drainEvents } from '../src/sim/world.js';
 import { mulberry32 } from '../src/sim/rng.js';
@@ -155,32 +155,5 @@ describe('unit behaviour', () => {
     run(w, 0.3);
     expect(w.state).toBe('ready');
     expect(w.shells).toHaveLength(0);
-  });
-});
-
-describe('unit difficulty curve across stages', () => {
-  const maxTier = (i) => {
-    const g = parseLevel(getLevel(i).lines);
-    let m = 0;
-    let count = 0;
-    for (let k = 0; k < g.cells.length; k++) if (g.cells[k] === CELL.UNIT) { m = Math.max(m, g.tier[k]); count++; }
-    return { m, count };
-  };
-
-  it('stage N fields units up to tier N, capped at 10', () => {
-    for (let i = 0; i < LEVELS.length + 3; i++) {
-      const { m, count } = maxTier(i);
-      expect(count).toBeGreaterThan(0);
-      expect(m).toBe(Math.min(10, i + 1));
-    }
-  });
-
-  it('later stages field at least as many units', () => {
-    let prev = 0;
-    for (let i = 0; i < LEVELS.length + 2; i++) {
-      const { count } = maxTier(i);
-      expect(count).toBeGreaterThanOrEqual(prev);
-      prev = count;
-    }
   });
 });

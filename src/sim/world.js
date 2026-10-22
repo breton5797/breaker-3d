@@ -1,6 +1,6 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W,
-  PADDLE_MAX_ANGLE, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
+  PADDLE_MAX_ANGLE, RELEASE_RATE, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
@@ -13,7 +13,8 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
 
 /**
  * @param {string[]} lines level text
- * @param {{ rng?: () => number, lives?: number, brickHp?: number, charges?: {split:number, meteor:number} }} [opts]
+ * @param {{ rng?: () => number, lives?: number, brickHp?: number, paddleW?: number, releaseRate?: number,
+ *   charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
   const grid = parseLevel(lines, { brickHp: opts.brickHp });
@@ -25,7 +26,9 @@ export function createWorld(lines, opts = {}) {
     units: buildUnits(grid, rng), // enemy units { c, r, tier, cd }
     shells: [], // enemy bombs { x, y, vx, vy, tier }
     stun: 0, // seconds the paddle stays frozen after a bomb hit
-    paddle: { x: COLS / 2, w: PADDLE_W, prevX: COLS / 2 },
+    paddle: { x: COLS / 2, w: opts.paddleW ?? PADDLE_W, prevX: COLS / 2 },
+    basePaddleW: opts.paddleW ?? PADDLE_W,
+    releaseRate: opts.releaseRate ?? RELEASE_RATE,
     state: 'ready', // ready | play | clear | over
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }

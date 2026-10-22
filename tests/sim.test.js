@@ -49,7 +49,8 @@ describe('parseLevel', () => {
     expect(grid.hp[idx(0, topRow(0))]).toBe(2);
     expect(grid.hp[idx(1, topRow(0))]).toBe(2);
     expect(grid.hp[idx(3, topRow(0))]).toBe(1);
-    expect(getLevel(0).brickHp).toBeGreaterThanOrEqual(2);
+    expect(getLevel(0).brickHp).toBe(1); // beginner stage
+    expect(getLevel(199).brickHp).toBeGreaterThanOrEqual(2);
   });
 
   it('counts breakable cells (steel excluded)', () => {
