@@ -1,8 +1,11 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAIN } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
+
+/** @returns {number} how much a fruit (identified by its ITEM_MULT) multiplies the swarm */
+export const fruitGain = (mult) => mult * FRUIT_GAIN;
 
 /**
  * Queues enough balls to multiply the current count by `mult` (capped by the
@@ -12,7 +15,7 @@ const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 export function multiplyBalls(w, mult) {
   const b = w.balls;
   const have = b.n + w.queued;
-  const target = Math.min(b.cap, Math.max(have, 1) * mult);
+  const target = Math.min(b.cap, Math.round(Math.max(have, 1) * mult));
   w.queued += Math.max(0, target - have);
   return target;
 }
@@ -60,12 +63,13 @@ export function updateDrops(w, dt) {
     const y = d.y - w.dropSpeed * dt;
     const overPaddle = Math.abs(d.x - p.x) <= p.w / 2 + DROP_CATCH;
     if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && overPaddle) {
-      const n = multiplyBalls(w, d.mult);
+      const gain = fruitGain(d.mult);
+      const n = multiplyBalls(w, gain);
       w.collected++;
       w.catchStreak++;
       w.bestStreak = Math.max(w.bestStreak, w.catchStreak);
       w.bestFruit = Math.max(w.bestFruit, d.mult);
-      w.events.push({ t: 'collect', x: d.x, mult: d.mult, n, streak: w.catchStreak });
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak });
     } else if (y < -1) {
       w.catchStreak = 0; // a dropped fruit breaks the catch combo
       w.events.push({ t: 'miss', x: d.x, mult: d.mult });
