@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CELL, COLS } from './sim/constants.js';
 import { SPECIALS } from './render/bricks.js';
+import { fruitFor } from './fruits.js';
 
 const SHARD_BUDGET = 260; // debris spawned per frame at most
 const BALL_MILESTONES = [50, 100, 250, 500, 1000, 2000, 3000];
@@ -63,7 +64,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           fx.catchBurst(e.x, e.mult);
           stage.shake(Math.min(1.5, 0.3 + e.mult / 60));
           audio.collect(e.mult);
-          ui.toast(`×${e.mult}!  →  ${ui.fmt(e.n)} BALLS`, e.mult >= 20 ? 'mega' : '');
+          ui.toast(`${fruitFor(e.mult).emoji} ${fruitFor(e.mult).name}!  →  ${ui.fmt(e.n)} BALLS`, e.mult >= 20 ? 'mega' : '');
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
         case 'fire-shell': audio.shoot(); break;
@@ -80,7 +81,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           audio.stunned();
           ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
-        case 'miss': ui.toast(`×${e.mult} 놓침`, 'small danger'); break;
+        case 'miss': ui.toast(`${fruitFor(e.mult).emoji} ${fruitFor(e.mult).name} 놓침`, 'small danger'); break;
         case 'paddle': audio.paddle(); break;
         case 'launch': audio.launch(); break;
         case 'skill':

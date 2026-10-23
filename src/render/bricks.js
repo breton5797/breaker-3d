@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import { COLS, ROWS, CELL } from '../sim/constants.js';
 import { toWorldX, toWorldY } from './stage.js';
+import { fruitFor, EMOJI_FONT } from '../fruits.js';
+
+/** Icon spec for a fruit item: fruit colour tile, no number. */
+function fruitSpec(mult) {
+  const f = fruitFor(mult);
+  const c = new THREE.Color(f.color);
+  return { tint: [c.r * 2, c.g * 2, c.b * 2], label: '', fruit: f.emoji, bg: f.color };
+}
 
 // Icon label/background per special cell; tint (scaled down) colours its debris.
 export const SPECIALS = {
@@ -12,19 +20,22 @@ export const SPECIALS = {
   [CELL.LASER_V]: { tint: [2.4, 0.4, 0.6], label: '↕', bg: '#e02a5a' },
   [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c' },
   [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00' },
-  [CELL.ITEM5]: { tint: [0.6, 2.4, 1.2], label: '×5', bg: '#12b85a' },
-  [CELL.ITEM10]: { tint: [0.5, 1.6, 2.8], label: '×10', bg: '#1a7cff' },
-  [CELL.ITEM20]: { tint: [1.8, 0.7, 2.8], label: '×20', bg: '#9b3dff' },
-  [CELL.ITEM30]: { tint: [2.8, 0.6, 1.6], label: '×30', bg: '#ff2f8e' },
-  [CELL.ITEM50]: { tint: [2.8, 1.2, 0.3], label: '×50', bg: '#ff7a00' },
-  [CELL.ITEM100]: { tint: [3.0, 2.4, 0.5], label: '×100', bg: '#ffc400' },
+  // Multiplier items are drawn as fruit (see src/fruits.js), never as numbers.
+  [CELL.ITEM5]: fruitSpec(5),
+  [CELL.ITEM10]: fruitSpec(10),
+  [CELL.ITEM20]: fruitSpec(20),
+  [CELL.ITEM30]: fruitSpec(30),
+  [CELL.ITEM50]: fruitSpec(50),
+  [CELL.ITEM100]: fruitSpec(100),
 };
 
 const STEEL = new THREE.Color(0x6c7a96);
 const ICON_SCALE = 1.8; // special blocks are drawn bigger than one fine cell so icons stay legible
+const FRUIT_SCALE = 2.8; // fruit items are the thing to hunt for, so they stand out most
+const iconScale = (type) => (SPECIALS[type]?.fruit ? FRUIT_SCALE : ICON_SCALE);
 const HARD_SHINE = new THREE.Color(0xffffff);
 
-function iconTexture({ label, bg }) {
+function iconTexture({ label, bg, fruit }) {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
   const g = c.getContext('2d');
@@ -36,7 +47,13 @@ function iconTexture({ label, bg }) {
   g.fillStyle = '#fff';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  if (label === 'bomb') {
+  if (fruit) {
+    // Pale tile so the fruit reads clearly on top.
+    g.fillStyle = '#fff6e8';
+    g.fillRect(6, 6, 52, 52);
+    g.font = `44px ${EMOJI_FONT}`;
+    g.fillText(fruit, 32, 36);
+  } else if (label === 'bomb') {
     g.beginPath(); g.arc(30, 36, 17, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#ffd34d';
     g.beginPath(); g.arc(46, 14, 7, 0, Math.PI * 2); g.fill();
@@ -110,7 +127,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       const cells = specialCells[type];
       m.count = cells.length;
-      cells.forEach((i, slot) => place(m, slot, i, ICON_SCALE));
+      cells.forEach((i, slot) => place(m, slot, i, iconScale(type)));
       m.instanceMatrix.needsUpdate = true;
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -144,7 +161,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       if (!m.count) continue;
       const cells = specialCells[type];
-      const s = ICON_SCALE * (1 + Math.sin(time * 6 + Number(type)) * 0.07);
+      const s = iconScale(type) * (1 + Math.sin(time * 6 + Number(type)) * 0.07);
       for (let slot = 0; slot < m.count; slot++) {
         if (slotOf[cells[slot]] === slot) place(m, slot, cells[slot], s);
       }

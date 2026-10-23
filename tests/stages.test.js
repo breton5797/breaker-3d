@@ -39,12 +39,30 @@ describe('200-stage difficulty curve', () => {
       expect(p.brickHp).toBeGreaterThanOrEqual(prev.brickHp);
       expect(p.items).toBeLessThanOrEqual(prev.items);
       expect(p.bigItemShare).toBeLessThanOrEqual(prev.bigItemShare);
-      expect(p.releaseRate).toBeLessThanOrEqual(prev.releaseRate);
       expect(p.lives).toBeLessThanOrEqual(prev.lives);
       expect(p.paddleW).toBeLessThanOrEqual(prev.paddleW);
       expect(p.unitTop).toBeGreaterThanOrEqual(prev.unitTop);
       expect(p.unitCount).toBeGreaterThanOrEqual(prev.unitCount);
       prev = p;
+    }
+  });
+
+  it('release speed is a pacing knob scaled to how much wall a stage has', () => {
+    const work = (i) => {
+      const lvl = getLevel(i);
+      const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp });
+      let hits = 0;
+      for (let k = 0; k < g.cells.length; k++) if (g.cells[k] === CELL.BRICK) hits += g.hp[k];
+      return { hits, rate: lvl.params.releaseRate };
+    };
+    const small = work(1); // heart: small wall
+    const big = work(0); // T tunnel: big wall
+    expect(small.hits).toBeLessThan(big.hits);
+    expect(small.rate).toBeLessThan(big.rate);
+    for (const i of [0, 1, 50, 120, 199]) {
+      const { rate } = work(i);
+      expect(rate).toBeGreaterThanOrEqual(0.5);
+      expect(rate).toBeLessThanOrEqual(8);
     }
   });
 

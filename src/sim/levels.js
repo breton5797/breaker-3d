@@ -4,7 +4,7 @@ import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNI
 const COLS = 48;
 const SCALE = GRID_COLS / COLS;
 import { mulberry32 } from './rng.js';
-import { stageParams, STAGE_COUNT } from './stages.js';
+import { stageParams, STAGE_COUNT, BASE_RATE, PACE_WORK } from './stages.js';
 
 export { stageParams, STAGE_COUNT };
 
@@ -379,15 +379,33 @@ const PALETTES = {
 };
 
 export const LEVELS = [
-  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
+  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT, pace: 0.75 },
   { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, itemBoost: 1.6 },
-  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
-  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction },
-  { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow },
+  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley, pace: 0.35 },
+  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid, pace: 0.45, hpBonus: 1 },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, pace: 0.7 },
+  { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow, pace: 1.3 },
   { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
   { name: '더 월', subtitle: '구멍 하나, 벽돌 7,000개', palette: PALETTES.mint, build: theWall },
 ];
+
+/** Brick-hits needed to grind the whole wall (plain bricks x hp, 'H' one more). */
+function wallWork(lines, brickHp) {
+  let work = 0;
+  for (const line of lines) {
+    for (const ch of line) {
+      if (ch === 'H') work += brickHp + 1;
+      else if (isPlainBrick(ch)) work += brickHp;
+    }
+  }
+  return work;
+}
+
+/** Release speed scaled to the wall so small and big stages pace alike. */
+// `pace` corrects for layout shape: open, compact walls (smiley, pyramid) are
+// mown much faster than mazes of letters, so they release balls more slowly.
+const paceRate = (work, pace) => Math.round(Math.min(8, Math.max(0.5, BASE_RATE * pace * Math.pow(work / PACE_WORK, 1.3))) * 2) / 2;
+const PROC_PACE = 0.8;
 
 const PROC_NAMES = ['미궁', '요새', '성벽', '협곡', '탑', '동굴', '벌집', '격자', '광산', '방벽'];
 const finish = (coarse, holeW) => withGutter(sealFloor(upscale(coarse), holeW));
@@ -405,16 +423,21 @@ export function getLevel(i) {
   const keys = Object.keys(PALETTES);
   const crafted = n < LEVELS.length ? LEVELS[n] : n % 3 === 0 ? LEVELS[(n / 3) % LEVELS.length] : null;
   const coarse = crafted ? crafted.build() : procedural(n, d);
-  // Open-chamber layouts leak balls back out of the hole, so they get more items.
-  const items = Math.round(p.items * (crafted?.itemBoost ?? 1));
+  // Fruit count follows the wall size (small walls need fewer to finish on
+  // time); open-chamber layouts leak balls back out of the hole, so they get more.
+  // Tiny open walls (the pyramid) take an extra hit per brick to last as long as the rest.
+  const brickHp = p.brickHp + (crafted?.hpBonus ?? 0);
+  const size = Math.min(1.2, Math.max(0.3, Math.pow(wallWork(upscale(coarse), brickHp) / PACE_WORK, 1.5)));
+  const items = Math.round(p.items * size * (crafted?.itemBoost ?? 1));
   const seeded = seedUnits(seedItems(coarse, items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
+  const lines = finish(seeded, p.holeW);
   return {
     index: n,
     name: crafted ? crafted.name : `${PROC_NAMES[n % PROC_NAMES.length]} ${n + 1}`,
     subtitle: crafted ? crafted.subtitle : '벽 속 아이템을 노려라',
     palette: crafted ? crafted.palette : PALETTES[keys[n % keys.length]],
-    brickHp: p.brickHp,
-    params: p,
-    lines: finish(seeded, p.holeW),
+    brickHp,
+    params: { ...p, brickHp, items, releaseRate: paceRate(wallWork(lines, brickHp), crafted ? crafted.pace ?? 1 : PROC_PACE) },
+    lines,
   };
 }
