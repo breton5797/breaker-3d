@@ -1,5 +1,4 @@
 import { LEVELS } from './sim/levels.js';
-import { FEVER_STREAK, FEVER_TIME } from './sim/constants.js';
 import { ACHIEVEMENTS } from './achievements.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
@@ -49,7 +48,7 @@ export function createUI(h) {
     $('hud').hidden = !on;
     if (!on) setFinale(null);
     $('skills').hidden = !on;
-    if (!on) { $('hint').hidden = true; $('fever').hidden = true; }
+    if (!on) $('hint').hidden = true;
   }
 
   function showTitle(save) {
@@ -114,19 +113,7 @@ export function createUI(h) {
     show('screen-achv');
   }
 
-  /** Streak meter (fruits toward the next fever) or, during fever, the time left. */
-  function setFever(fever, streak) {
-    const el = $('fever');
-    const toGo = FEVER_STREAK - (streak % FEVER_STREAK);
-    el.hidden = fever <= 0 && streak === 0;
-    if (el.hidden) return;
-    el.classList.toggle('on', fever > 0);
-    $('fever-label').textContent = fever > 0 ? `🔥 FEVER ${fever.toFixed(1)}s` : `피버까지 🍒 ${toGo}`;
-    const fill = fever > 0 ? fever / FEVER_TIME : (streak % FEVER_STREAK) / FEVER_STREAK;
-    $('fever-bar').style.width = `${Math.round(fill * 100)}%`;
-  }
-
-  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean, fever:number, streak:number}} s */
+  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean}} s */
   function setHud(s) {
     $('score').textContent = fmt(s.score);
     const ballEl = $('ball-count');
@@ -145,7 +132,6 @@ export function createUI(h) {
     $('skill-meteor').disabled = s.charges.meteor <= 0;
     $('hint').hidden = !s.ready;
     $('btn-mute').textContent = s.muted ? '🔇' : '🔊';
-    setFever(s.fever, s.streak);
   }
 
   /**

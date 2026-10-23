@@ -1,7 +1,6 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FEVER_MAGNET, FEVER_BONUS } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
-import { feverOnCatch } from './fever.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
@@ -56,27 +55,22 @@ export function updateDrops(w, dt) {
   releaseQueued(w, dt);
   if (!w.drops.length) return;
   const p = w.paddle;
-  const pull = w.fever > 0 ? FEVER_MAGNET * dt : 0; // fever magnet: fruit drifts toward the paddle
   const kept = [];
   for (const d of w.drops) {
     const y = d.y - w.dropSpeed * dt;
-    const x = d.x + Math.max(-pull, Math.min(pull, p.x - d.x));
-    const overPaddle = Math.abs(x - p.x) <= p.w / 2 + DROP_CATCH;
+    const overPaddle = Math.abs(d.x - p.x) <= p.w / 2 + DROP_CATCH;
     if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && overPaddle) {
-      const fever = w.fever > 0;
-      const mult = fever ? d.mult * FEVER_BONUS : d.mult;
-      const n = multiplyBalls(w, mult);
+      const n = multiplyBalls(w, d.mult);
       w.collected++;
       w.catchStreak++;
       w.bestStreak = Math.max(w.bestStreak, w.catchStreak);
       w.bestFruit = Math.max(w.bestFruit, d.mult);
-      w.events.push({ t: 'collect', x, mult, fruit: d.mult, fever, n, streak: w.catchStreak });
-      feverOnCatch(w);
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, n, streak: w.catchStreak });
     } else if (y < -1) {
       w.catchStreak = 0; // a dropped fruit breaks the catch combo
-      w.events.push({ t: 'miss', x, mult: d.mult });
+      w.events.push({ t: 'miss', x: d.x, mult: d.mult });
     } else {
-      kept.push({ ...d, x, y });
+      kept.push({ ...d, y });
     }
   }
   w.drops = kept;

@@ -1,5 +1,5 @@
 import { COLS, CELL, PADDLE_Y, PADDLE_H, UNIT_TIERS, UNIT_GRACE, MAX_SHELLS } from './constants.js';
-import { refreshPaddle, endFever } from './fever.js';
+import { refreshPaddle } from './paddle.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const SPREAD = 4.4; // sideways speed between bombs of one volley
@@ -58,7 +58,6 @@ function stunPaddle(w, tier) {
   w.events.push({ t: 'paddle-hit', x: w.paddle.x, tier, lethal: spec.lethal });
   if (spec.lethal) {
     w.lives--;
-    if (w.fever > 0) endFever(w);
     if (w.lives <= 0) {
       w.state = 'over';
       w.events.push({ t: 'over' });
