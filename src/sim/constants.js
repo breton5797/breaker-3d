@@ -4,7 +4,7 @@ export const ROWS = 128;
 
 export const BALL_R = 0.28;
 export const BALL_SPEED = 36;
-export const MAX_BALLS = 1500;
+export const MAX_BALLS = 4000;
 export const MAX_SUBSTEP = 0.4; // max distance a ball travels per substep (cells)
 
 export const PADDLE_Y = 6;
@@ -59,9 +59,11 @@ export const ITEM_MULT = Object.freeze({
 });
 export const DROP_SPEED = 16; // cells per second an item capsule falls
 export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
-// Caught multipliers queue their balls and release them at this rate, so the
-// swarm swells over a minute or two instead of appearing all at once.
-export const RELEASE_RATE = 5; // balls per second
+// Caught multipliers queue their balls; each second about RELEASE_DRAIN of
+// the queue (at least RELEASE_RATE balls) pours out, so every catch visibly
+// multiplies the swarm within a few seconds.
+export const RELEASE_RATE = 20; // minimum balls per second while any are queued
+export const RELEASE_DRAIN = 0.6; // fraction of the queue released per second
 
 export const SPLIT_COUNT = Object.freeze({
   [CELL.SPLIT2]: 2,

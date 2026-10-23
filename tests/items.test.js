@@ -78,13 +78,28 @@ describe('multiplier item bricks', () => {
     run(w, 0.3);
     const early = w.balls.n;
     expect(early).toBeGreaterThan(2);
-    expect(early).toBeLessThan(60);
-    run(w, 2);
-    const mid = w.balls.n;
-    expect(mid).toBeGreaterThan(early);
-    run(w, 45);
+    expect(early).toBeLessThan(150); // a visible burst, not an instant pop
+    run(w, 6);
+    // ...and the whole catch has arrived within a few seconds.
     expect(w.balls.n).toBe(200);
     expect(w.queued).toBe(0);
+  });
+
+  it('every fruit caught keeps growing the swarm (no plateau)', () => {
+    const w = sealed();
+    addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
+    setPaddleX(w, 20);
+    const counts = [];
+    for (const mult of [5, 5, 5, 5]) {
+      w.drops = [{ x: 20, y: PADDLE_Y + 1, mult }];
+      run(w, 8, 1 / 60);
+      counts.push(w.balls.n);
+    }
+    expect(counts).toEqual([5, 25, 125, 625]);
+  });
+
+  it('the ball cap is high enough for thousands of balls', () => {
+    expect(MAX_BALLS).toBeGreaterThanOrEqual(4000);
   });
 
   it('consecutive catches build a catch combo that a miss resets', () => {

@@ -7,7 +7,7 @@ const SCALE = GRID_COLS / COLS;
 
 export { LEVELS };
 import { mulberry32 } from './rng.js';
-import { stageParams, BASE_RATE, PACE_WORK } from './stages.js';
+import { stageParams } from './stages.js';
 
 export { stageParams };
 
@@ -181,24 +181,6 @@ function sealFloor(lines, holeW) {
   return toLines(g);
 }
 
-/** Brick-hits needed to grind the whole wall (plain bricks x hp, 'H' one more). */
-function wallWork(lines, brickHp) {
-  let work = 0;
-  for (const line of lines) {
-    for (const ch of line) {
-      if (ch === 'H') work += brickHp + 1;
-      else if (isPlainBrick(ch)) work += brickHp;
-    }
-  }
-  return work;
-}
-
-/** Release speed scaled to the wall so small and big stages pace alike. */
-// `pace` corrects for layout shape: open, compact walls (smiley, pyramid) are
-// mown much faster than mazes of letters, so they release balls more slowly.
-const paceRate = (work, pace) => Math.round(Math.min(8, Math.max(0.5, BASE_RATE * pace * Math.pow(work / PACE_WORK, 1.3))) * 2) / 2;
-const PROC_PACE = 0.8;
-
 const PROC_NAMES = ['미궁', '요새', '성벽', '협곡', '탑', '동굴', '벌집', '격자', '광산', '방벽'];
 const finish = (coarse, holeW) => withGutter(sealFloor(upscale(coarse), holeW));
 
@@ -216,12 +198,8 @@ export function getLevel(i) {
   // Handcrafted maps first (in order), then every other stage revisits one.
   const crafted = n < LEVELS.length ? LEVELS[n] : n % 2 === 0 ? LEVELS[(n / 2) % LEVELS.length] : null;
   const coarse = crafted ? crafted.build() : procedural(n, d);
-  // Fruit count follows the wall size (small walls need fewer to finish on
-  // time); open-chamber layouts leak balls back out of the hole, so they get more.
-  // Tiny open walls (the pyramid) take an extra hit per brick to last as long as the rest.
-  const brickHp = p.brickHp + (crafted?.hpBonus ?? 0);
-  const size = Math.min(1.2, Math.max(0.3, Math.pow(wallWork(upscale(coarse), brickHp) / PACE_WORK, 1.5)));
-  const items = Math.round(p.items * size * (crafted?.itemBoost ?? 1));
+  // Open-chamber and maze layouts leak or trap balls, so they get extra fruit.
+  const items = Math.round(p.items * (crafted?.itemBoost ?? 1));
   const seeded = seedUnits(seedItems(coarse, items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
   const lines = finish(seeded, p.holeW);
   return {
@@ -229,8 +207,8 @@ export function getLevel(i) {
     name: crafted ? crafted.name : `${PROC_NAMES[Math.floor(n / 2) % PROC_NAMES.length]} ${n + 1}`,
     subtitle: crafted ? crafted.subtitle : '벽 속 아이템을 노려라',
     palette: crafted ? crafted.palette : PALETTES[keys[n % keys.length]],
-    brickHp,
-    params: { ...p, brickHp, items, releaseRate: paceRate(wallWork(lines, brickHp), crafted ? crafted.pace ?? 1 : PROC_PACE) },
+    brickHp: p.brickHp,
+    params: { ...p, items },
     lines,
   };
 }

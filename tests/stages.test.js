@@ -52,25 +52,6 @@ describe('endless difficulty curve', () => {
     }
   });
 
-  it('release speed is a pacing knob scaled to how much wall a stage has', () => {
-    const work = (i) => {
-      const lvl = getLevel(i);
-      const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp });
-      let hits = 0;
-      for (let k = 0; k < g.cells.length; k++) if (g.cells[k] === CELL.BRICK) hits += g.hp[k];
-      return { hits, rate: lvl.params.releaseRate };
-    };
-    const small = work(1); // heart: small wall
-    const big = work(0); // T tunnel: big wall
-    expect(small.hits).toBeLessThan(big.hits);
-    expect(small.rate).toBeLessThan(big.rate);
-    for (const i of [0, 1, 50, 120, 199]) {
-      const { rate } = work(i);
-      expect(rate).toBeGreaterThanOrEqual(0.5);
-      expect(rate).toBeLessThanOrEqual(8);
-    }
-  });
-
   it('stage 1 is a beginner stage; by stage 200 the step knobs are at their hardest', () => {
     const easy = stageParams(0);
     expect(easy.holeW).toBeGreaterThanOrEqual(12);
