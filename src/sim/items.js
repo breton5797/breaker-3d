@@ -56,8 +56,10 @@ export function updateDrops(w, dt) {
     if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && overPaddle) {
       const n = multiplyBalls(w, d.mult);
       w.collected++;
-      w.events.push({ t: 'collect', x: d.x, mult: d.mult, n });
+      w.catchStreak++;
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, n, streak: w.catchStreak });
     } else if (y < -1) {
+      w.catchStreak = 0; // a dropped fruit breaks the catch combo
       w.events.push({ t: 'miss', x: d.x, mult: d.mult });
     } else {
       kept.push({ ...d, y });

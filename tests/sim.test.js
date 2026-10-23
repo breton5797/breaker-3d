@@ -305,6 +305,18 @@ describe('paddle, lives and flow', () => {
     expect(w.state).toBe('clear');
   });
 
+  it('finale zaps sweep from the top of the wall down', () => {
+    const p = [];
+    for (let line = 5; line < 25; line += 3) p.push([3 + line, line, '#'], [40 - line, line, '#']);
+    const w = world(p);
+    w.grid.total = 1000;
+    addBall(w.balls, 30, 30, 30, 0, 0);
+    run(w, 3);
+    const rows = drainEvents(w).filter((e) => e.t === 'zap').map((e) => e.r);
+    expect(rows.length).toBe(p.length);
+    for (let k = 1; k < rows.length; k++) expect(rows[k]).toBeLessThanOrEqual(rows[k - 1]);
+  });
+
   it('finale also starts when play stalls near the end', () => {
     // Four stragglers sealed in a steel box: nothing can ever reach them.
     const p = [[2, 10, '#'], [3, 10, '#'], [4, 10, '#'], [5, 10, '#'], [1, 10, 'S'], [6, 10, 'S']];

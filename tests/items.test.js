@@ -87,6 +87,25 @@ describe('multiplier item bricks', () => {
     expect(w.queued).toBe(0);
   });
 
+  it('consecutive catches build a catch combo that a miss resets', () => {
+    const w = sealed();
+    addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
+    setPaddleX(w, 20);
+    const catchOne = (x, mult) => {
+      w.drops = [{ x, y: PADDLE_Y + 1, mult }];
+      run(w, 0.3);
+      return drainEvents(w);
+    };
+    expect(catchOne(20, 5).find((e) => e.t === 'collect').streak).toBe(1);
+    expect(catchOne(20, 10).find((e) => e.t === 'collect').streak).toBe(2);
+    expect(catchOne(20, 5).find((e) => e.t === 'collect').streak).toBe(3);
+    expect(w.catchStreak).toBe(3);
+    w.drops = [{ x: 80, y: PADDLE_Y + 1, mult: 5 }]; // far from the paddle
+    run(w, 1);
+    expect(w.catchStreak).toBe(0);
+    expect(catchOne(20, 5).find((e) => e.t === 'collect').streak).toBe(1);
+  });
+
   it('a missed item falls away without multiplying', () => {
     const w = world([[0, 0, '#']]);
     addBall(w.balls, 30, 40, 0, 30, 0);

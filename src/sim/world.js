@@ -33,6 +33,7 @@ export function createWorld(lines, opts = {}) {
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
     collected: 0,
+    catchStreak: 0, // fruits caught in a row without missing one
     queued: 0, // balls owed by caught multipliers, released gradually
     releaseAcc: 0,
     score: 0,

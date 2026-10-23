@@ -95,6 +95,44 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .toast.mega { font-size: clamp(26px, 6.5vw, 50px); background-image: linear-gradient(180deg, #fff6c2, var(--gold), #ff7a3c); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
 .toast.small { font-size: clamp(15px, 3.6vw, 20px); }
+/* Floating labels over the board (combo at the paddle). */
+#floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.floater {
+  position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap;
+  font-weight: 900; color: #fff; text-shadow: 0 2px 3px rgba(0, 0, 0, 0.7);
+  animation: floatUp 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.floater-big { font-size: 26px; letter-spacing: -0.01em; color: var(--gold); }
+.floater.hot .floater-big { font-size: 34px; color: #ff9a3c; }
+.floater-small {
+  display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 7px; vertical-align: middle;
+  font-size: 12px; font-weight: 800; background: rgba(10, 14, 30, 0.75);
+}
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, -60%) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -100%) scale(1.15); }
+  30% { transform: translate(-50%, -100%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -260%) scale(1); }
+}
+
+/* Finale banner: a bold ribbon with a live countdown of bricks left. */
+#finale-banner {
+  position: fixed; left: 50%; top: 18%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none;
+  padding: 10px 28px 12px; border-radius: 18px; border: 1px solid rgba(255, 207, 74, 0.6);
+  background: linear-gradient(180deg, rgba(40, 24, 70, 0.9), rgba(14, 19, 44, 0.92)); box-shadow: var(--shadow);
+  animation: bannerIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#finale-banner b {
+  font-size: clamp(30px, 8vw, 54px); font-weight: 900; letter-spacing: 0.18em;
+  background: linear-gradient(90deg, #ff5c8a, #ffcf4a, #39e6ff, #8a5cff, #ff5c8a); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: ribbon 1.2s linear infinite;
+}
+#finale-banner span { font-size: 14px; color: var(--muted); }
+#finale-banner em { font-style: normal; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+@keyframes bannerIn { from { transform: translateX(-50%) scale(0.3); opacity: 0; } }
+@keyframes ribbon { to { background-position: 200% 0; } }
+
 /* Emoji keep their own colours; the gradient text fill would paint them flat. */
 .toast-emoji { display: inline-block; -webkit-text-fill-color: initial; color: initial; background: none; }
 /* Small multiplier badge next to a caught fruit (the toast text itself is gradient-clipped). */

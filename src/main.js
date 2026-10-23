@@ -13,6 +13,7 @@ import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
 import { loadSave, writeSave, recordClear } from './storage.js';
+import { fruitFor } from './fruits.js';
 
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
@@ -85,6 +86,9 @@ function finishLevel(cleared) {
     // Every surviving ball pops into confetti.
     for (let i = 0; i < Math.min(w.balls.n, 400); i++) fx.shards(w.balls.x[i], w.balls.y[i], 0xfff1a8, 1.4);
     w.balls.n = 0;
+    // Fruit still in the air pops too, instead of freezing mid-fall.
+    for (const d of w.drops) for (let k = 0; k < 24; k++) fx.shards(d.x, d.y, fruitFor(d.mult).color, 1.6);
+    w.drops = [];
     save = recordClear(save, level.index, w.score);
     writeSave(save);
     const full = level.params.lives; // stars are relative to this stage's starting lives
@@ -100,7 +104,7 @@ function finishLevel(cleared) {
         ['부순 벽돌', ui.fmt(w.broken)],
         ['남은 목숨', '♥'.repeat(w.lives)],
       ],
-    }), 1600);
+    }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
     setTimeout(() => ui.showOver(w.score), 900);
   }

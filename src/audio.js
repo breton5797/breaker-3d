@@ -78,7 +78,9 @@ export function createAudio() {
     split(n) { tone(n >= 5 ? 1046 : 784, 0.18, 'sine', 0.14, n >= 5 ? 2093 : 1568); },
     boom() { burst(0.5, 1800, 0.7); tone(90, 0.4, 'sine', 0.4, 40); },
     laser() { tone(1400, 0.3, 'sawtooth', 0.08, 200); },
-    zap() { tone(2200, 0.08, 'square', 0.05, 900); },
+    /** Finale zap; `k` climbs the scale so the sweep sounds like a rising run. */
+    zap(k = 0) { tone(note(8 + (k % 16)), 0.12, 'triangle', 0.09, note(8 + (k % 16)) * 0.5); },
+    firework() { burst(0.45, 2600, 0.35); tone(note(14), 0.25, 'sine', 0.1, note(19)); },
     gold() { [0, 4, 7].forEach((s, k) => setTimeout(() => tone(note(10 + s), 0.15, 'sine', 0.12), k * 60)); },
     drop() { tone(1568, 0.12, 'sine', 0.1, 2093); },
     /** Bigger multipliers climb higher and longer. */

@@ -109,6 +109,38 @@ export function createFx(scene) {
   const ringGeo = new THREE.RingGeometry(0.8, 1, 48);
   const rings = createPool(scene, 32, () => new THREE.Mesh(ringGeo, flat(1, 0.55, 0.15)));
   const beams = createPool(scene, 24, () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), flat(1, 0.3, 0.45)));
+  // Lightning: each bolt is a zig-zag chain of thin flat segments (no glow).
+  const BOLT_SEGMENTS = 7;
+  const segGeo = new THREE.BoxGeometry(1, 1, 1);
+  const bolts = createPool(scene, 28, () => {
+    const g = new THREE.Group();
+    for (let k = 0; k < BOLT_SEGMENTS; k++) g.add(new THREE.Mesh(segGeo, flat(0.75, 0.9, 1)));
+    return g;
+  });
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+
+  /** Zig-zag bolt from the top rail down to (x, y) in sim coords. */
+  function bolt(x, y) {
+    const pts = [];
+    for (let k = 0; k <= BOLT_SEGMENTS; k++) {
+      const t = k / BOLT_SEGMENTS;
+      const jitter = k === 0 || k === BOLT_SEGMENTS ? 0 : (Math.random() - 0.5) * 6;
+      pts.push(new THREE.Vector3(toWorldX(x + jitter), toWorldY(ROWS + (y - ROWS) * t), 1.2 + (1 - t) * 6));
+    }
+    bolts.fire(0.28, (g, u) => {
+      g.children.forEach((seg, k) => {
+        a.copy(pts[k]);
+        b.copy(pts[k + 1]);
+        seg.position.copy(a).add(b).multiplyScalar(0.5);
+        seg.lookAt(b);
+        const w = 0.45 * (1 - u);
+        seg.scale.set(w, w, a.distanceTo(b));
+        seg.material.opacity = 1 - u * u;
+        seg.material.color.setRGB(0.75 + 0.25 * (1 - u), 0.9, 1);
+      });
+    });
+  }
 
   function ring(x, y, radius, rgb, dur = 0.5) {
     rings.fire(dur, (m, u) => {
@@ -143,15 +175,22 @@ export function createFx(scene) {
     laser: (axis, c, r) => (axis === 'h'
       ? beam(COLS / 2, r + 0.5, COLS, 1, [1, 0.2, 0.3])
       : beam(c + 0.5, ROWS / 2, 1, ROWS, [1, 0.2, 0.3])),
-    zap: (c, r) => {
-      const top = ROWS;
-      beam(c + 0.5, (r + 0.5 + top) / 2, 0.3, top - r, [0.5, 0.75, 1], 0.25);
-      ring(c + 0.5, r + 0.5, 1.6, [0.5, 0.75, 1], 0.3);
+    zap: (c, r, hex) => {
+      bolt(c + 0.5, r + 0.5);
+      ring(c + 0.5, r + 0.5, 2.4, [0.55, 0.8, 1], 0.35);
+      for (let k = 0; k < 8; k++) debris.spawn(c + 0.5, r + 0.5, hex, 1.7);
+    },
+    /** A burst of coloured shards and two rings, for the finale fireworks. */
+    firework: (x, y, hex, rgb) => {
+      ring(x, y, 7, rgb, 0.7);
+      ring(x, y, 11, [1, 1, 1], 0.9);
+      for (let k = 0; k < 70; k++) debris.spawn(x, y, hex, 2.2);
     },
     update(dt) {
       debris.update(dt);
       rings.update(dt);
       beams.update(dt);
+      bolts.update(dt);
     },
   };
 }

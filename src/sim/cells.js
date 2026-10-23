@@ -159,13 +159,17 @@ function zap(w, c, r) {
   breakCell(w, c, r, -1);
 }
 
-/** Schedules a lightning zap on every remaining breakable cell, one after another. */
+/** Schedules a lightning zap on every remaining breakable cell, top row first. */
 export function startFinale(w) {
   const g = w.grid;
   const targets = [];
   for (let i = 0; i < g.cells.length; i++) {
     if (g.cells[i] !== CELL.EMPTY && g.cells[i] !== CELL.STEEL) targets.push(i);
   }
+  // Sweep from the top of the wall down, centre-out within a row.
+  const row = (i) => Math.floor(i / COLS);
+  const off = (i) => Math.abs((i % COLS) - COLS / 2);
+  targets.sort((a, b) => row(b) - row(a) || off(a) - off(b));
   w.finale = true;
   w.events.push({ t: 'finale', n: targets.length });
   const gap = Math.min(FINALE_GAP, 2 / Math.max(1, targets.length));

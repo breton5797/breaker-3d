@@ -37,6 +37,7 @@ export function createUI(h) {
 
   function playing(on) {
     $('hud').hidden = !on;
+    if (!on) setFinale(null);
     $('skills').hidden = !on;
     if (!on) $('hint').hidden = true;
   }
@@ -124,6 +125,33 @@ export function createUI(h) {
     if (all.length > 4) all[0].remove();
   }
 
+  /** Small label that pops up at a screen point and floats away (e.g. over the paddle). */
+  function floatAt(x, y, lines, cls = '') {
+    const el = document.createElement('div');
+    el.className = `floater ${cls}`;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    lines.forEach((parts) => {
+      const row = document.createElement('div');
+      parts.forEach((part) => {
+        if (typeof part === 'string') { row.append(document.createTextNode(part)); return; }
+        const span = document.createElement('span');
+        span.className = part.emoji ? 'toast-emoji' : part.small ? 'floater-small' : 'floater-big';
+        span.textContent = part.emoji ?? part.small ?? part.big;
+        row.append(span);
+      });
+      el.append(row);
+    });
+    $('floaters').append(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+
+  /** Finale banner with a live brick countdown; pass null to hide it. */
+  function setFinale(left) {
+    $('finale-banner').hidden = left === null;
+    if (left !== null) $('finale-left').textContent = fmt(left);
+  }
+
   function showClear({ score, stars, stats, hasNext }) {
     playing(false);
     $('clear-score').textContent = fmt(score);
@@ -160,6 +188,8 @@ export function createUI(h) {
     showClear,
     showOver,
     showPause: (on) => show(on ? 'screen-pause' : null),
+    floatAt,
+    setFinale,
     fmt,
   };
 }
