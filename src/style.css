@@ -80,6 +80,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .toast.mega { font-size: clamp(34px, 10vw, 72px); background-image: linear-gradient(180deg, #fff6c2, var(--gold), #ff7a3c); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
 .toast.small { font-size: clamp(16px, 4vw, 22px); }
+/* Emoji keep their own colours; the gradient text fill would paint them flat. */
+.toast-emoji { display: inline-block; -webkit-text-fill-color: initial; color: initial; background: none; }
+/* Small multiplier badge next to a caught fruit (the toast text itself is gradient-clipped). */
+.toast-badge {
+  display: inline-block; margin: 0 2px; padding: 1px 6px; border-radius: 8px; vertical-align: middle;
+  font-size: 0.42em; font-weight: 800; letter-spacing: 0;
+  background: rgba(10, 14, 30, 0.75); color: #fff; -webkit-text-fill-color: #fff;
+}
 .toast.danger { background-image: linear-gradient(180deg, #ffd0dc, var(--hot)); }
 @keyframes toast {
   0% { transform: scale(0.4) translateY(20px); opacity: 0; }

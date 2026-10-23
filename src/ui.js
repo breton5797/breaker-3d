@@ -102,10 +102,22 @@ export function createUI(h) {
     $('btn-mute').textContent = s.muted ? '🔇' : '🔊';
   }
 
-  function toast(text, cls = '') {
+  /**
+   * @param {string | (string | { small: string } | { emoji: string })[]} content plain
+   *   text, or parts: `{ small }` is a little badge (a fruit's multiplier) and
+   *   `{ emoji }` keeps its own colours instead of the toast's gradient fill
+   */
+  function toast(content, cls = '') {
     const el = document.createElement('div');
     el.className = `toast ${cls}`;
-    el.textContent = text;
+    const parts = Array.isArray(content) ? content : [content];
+    el.append(...parts.map((part) => {
+      if (typeof part === 'string') return document.createTextNode(part);
+      const span = document.createElement(part.small ? 'small' : 'span');
+      span.className = part.small ? 'toast-badge' : 'toast-emoji';
+      span.textContent = part.small ?? part.emoji;
+      return span;
+    }));
     $('toasts').append(el);
     setTimeout(() => el.remove(), 1400);
     const all = $('toasts').children;
