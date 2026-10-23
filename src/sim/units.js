@@ -19,11 +19,12 @@ function volley(w, u) {
   const x = u.c + 0.5;
   const y = u.r;
   // Lead the paddle: aim 1 lands on the paddle's current spot.
-  const fall = Math.max(0.5, (y - PADDLE_Y) / spec.speed);
+  const speed = spec.speed * (1 + (w.aggression - 1) * 0.5);
+  const fall = Math.max(0.5, (y - PADDLE_Y) / speed);
   const lead = (spec.aim * (w.paddle.x - x)) / fall;
   const shells = [];
   for (let k = 0; k < spec.shots; k++) {
-    shells.push({ x, y, vx: lead + (k - (spec.shots - 1) / 2) * SPREAD, vy: -spec.speed, tier: u.tier });
+    shells.push({ x, y, vx: lead + (k - (spec.shots - 1) / 2) * SPREAD, vy: -speed, tier: u.tier });
   }
   w.shells = [...w.shells, ...shells].slice(-MAX_SHELLS);
   w.events.push({ t: 'fire-shell', c: u.c, r: u.r, tier: u.tier });
@@ -45,7 +46,7 @@ export function updateUnits(w, dt) {
     const cd = u.cd - dt;
     if (cd > 0) return { ...u, cd };
     volley(w, u);
-    return { ...u, cd: UNIT_TIERS[u.tier - 1].interval * (0.75 + w.rng() * 0.5) };
+    return { ...u, cd: (UNIT_TIERS[u.tier - 1].interval / w.aggression) * (0.75 + w.rng() * 0.5) };
   });
 }
 
@@ -76,7 +77,8 @@ export function updateShells(w, dt) {
     const x = s.x + s.vx * dt;
     const y = s.y + s.vy * dt;
     const onPaddle = y <= PADDLE_TOP + 0.3 && y >= PADDLE_Y - PADDLE_H && Math.abs(x - p.x) <= p.w / 2 + 0.3;
-    if (onPaddle && w.state === 'play') stunPaddle(w, s.tier);
+    // While stunned the paddle is invulnerable: bombs pass through it.
+    if (onPaddle && w.state === 'play' && w.stun <= 0) stunPaddle(w, s.tier);
     else if (y > -1 && x > -2 && x < COLS + 2) kept.push({ ...s, x, y });
   }
   w.shells = kept;

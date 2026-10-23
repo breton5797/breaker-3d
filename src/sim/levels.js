@@ -7,9 +7,9 @@ const SCALE = GRID_COLS / COLS;
 
 export { LEVELS };
 import { mulberry32 } from './rng.js';
-import { stageParams, STAGE_COUNT, BASE_RATE, PACE_WORK } from './stages.js';
+import { stageParams, BASE_RATE, PACE_WORK } from './stages.js';
 
-export { stageParams, STAGE_COUNT };
+export { stageParams };
 
 const CHAR_CELL = {
   '#': CELL.BRICK,
@@ -133,8 +133,8 @@ function seedItems(lines, count, bigShare, seed) {
 }
 
 /**
- * Hides `count` enemy units inside the wall: one of tier `top`, the rest within
- * three tiers below it.
+ * Hides `count` enemy units inside the wall: one commander of tier `top`, the
+ * rest one to three tiers below it.
  */
 function seedUnits(lines, top, count, seed) {
   const rng = mulberry32(seed);
@@ -145,7 +145,9 @@ function seedUnits(lines, top, count, seed) {
     const x = Math.floor(rng() * COLS);
     const y = Math.floor(rng() * deepest);
     if (!isPlainBrick(g[y][x])) continue;
-    const tier = placed === 0 ? top : Math.max(1, top - Math.floor(rng() * 4));
+    // One commander at the top tier; the squad is 1-3 tiers below, so at most
+    // one unit per stage fires the deadliest (life-costing) bombs.
+    const tier = placed === 0 ? top : Math.max(1, top - 1 - Math.floor(rng() * 3));
     g[y][x] = UNIT_CHARS[tier - 1];
     placed++;
   }
@@ -201,17 +203,18 @@ const PROC_NAMES = ['미궁', '요새', '성벽', '협곡', '탑', '동굴', '�
 const finish = (coarse, holeW) => withGutter(sealFloor(upscale(coarse), holeW));
 
 /**
- * Builds stage i (0..199). Stages 1-8 are the handcrafted set; after that every
- * third stage revisits a handcrafted layout and the rest are procedural. All
+ * Builds stage i (0, 1, 2, ... endless). The handcrafted maps come first; after
+ * that every other stage revisits one and the rest are procedural. All
  * difficulty knobs come from stageParams(i).
  * @param {number} i
  */
 export function getLevel(i) {
-  const n = Math.max(0, Math.min(STAGE_COUNT - 1, i));
+  const n = Math.max(0, Math.floor(i));
   const p = stageParams(n);
-  const d = n / (STAGE_COUNT - 1);
+  const d = Math.min(1, n / 199); // obstacle density for procedural walls
   const keys = Object.keys(PALETTES);
-  const crafted = n < LEVELS.length ? LEVELS[n] : n % 3 === 0 ? LEVELS[(n / 3) % LEVELS.length] : null;
+  // Handcrafted maps first (in order), then every other stage revisits one.
+  const crafted = n < LEVELS.length ? LEVELS[n] : n % 2 === 0 ? LEVELS[(n / 2) % LEVELS.length] : null;
   const coarse = crafted ? crafted.build() : procedural(n, d);
   // Fruit count follows the wall size (small walls need fewer to finish on
   // time); open-chamber layouts leak balls back out of the hole, so they get more.
@@ -223,7 +226,7 @@ export function getLevel(i) {
   const lines = finish(seeded, p.holeW);
   return {
     index: n,
-    name: crafted ? crafted.name : `${PROC_NAMES[n % PROC_NAMES.length]} ${n + 1}`,
+    name: crafted ? crafted.name : `${PROC_NAMES[Math.floor(n / 2) % PROC_NAMES.length]} ${n + 1}`,
     subtitle: crafted ? crafted.subtitle : '벽 속 아이템을 노려라',
     palette: crafted ? crafted.palette : PALETTES[keys[n % keys.length]],
     brickHp,

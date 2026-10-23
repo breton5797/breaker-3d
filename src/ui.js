@@ -1,4 +1,6 @@
-import { LEVELS, STAGE_COUNT } from './sim/levels.js';
+import { LEVELS } from './sim/levels.js';
+
+const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
@@ -46,7 +48,8 @@ export function createUI(h) {
     playing(false);
     const grid = $('stage-grid');
     grid.replaceChildren();
-    for (let i = 0; i < STAGE_COUNT; i++) {
+    const shown = Math.max(30, save.unlocked + GRID_AHEAD);
+    for (let i = 0; i < shown; i++) {
       const b = document.createElement('button');
       b.className = 'stage-btn';
       b.disabled = i >= save.unlocked;
@@ -64,9 +67,9 @@ export function createUI(h) {
       grid.append(b);
     }
     // Keep the newest unlocked stage in view inside the scrolling grid.
-    const current = grid.children[Math.min(STAGE_COUNT, save.unlocked) - 1];
+    const current = grid.children[save.unlocked - 1];
     if (current) grid.scrollTop = current.offsetTop - grid.offsetTop - grid.clientHeight / 2;
-    const next = Math.min(STAGE_COUNT, save.unlocked) - 1;
+    const next = save.unlocked - 1;
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
     show('screen-title');
@@ -75,7 +78,7 @@ export function createUI(h) {
   function startStage(level) {
     show(null);
     playing(true);
-    $('stage-name').textContent = `${level.index + 1}/${STAGE_COUNT} · ${level.name}`;
+    $('stage-name').textContent = `STAGE ${level.index + 1} · ${level.name}`;
     lastBalls = 0;
     toast(level.name, 'mega');
     setTimeout(() => toast(level.subtitle, 'small'), 250);

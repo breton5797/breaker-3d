@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { COLS, ROWS, CELL, ITEM_MULT, PADDLE_Y } from '../src/sim/constants.js';
-import { parseLevel, getLevel, stageParams, STAGE_COUNT } from '../src/sim/levels.js';
+import { parseLevel, getLevel, stageParams, LEVELS } from '../src/sim/levels.js';
 import { createWorld, stepWorld, setPaddleX, drainEvents } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
 
@@ -25,15 +25,17 @@ function inspect(i) {
   return { lvl, g, hole, items, units, topTier };
 }
 
-describe('200-stage difficulty curve', () => {
-  it('has exactly 200 stages', () => {
-    expect(STAGE_COUNT).toBe(200);
-    expect(() => getLevel(199)).not.toThrow();
+describe('endless difficulty curve', () => {
+  it('stages never run out', () => {
+    for (const i of [199, 200, 999, 4999]) {
+      expect(() => getLevel(i)).not.toThrow();
+      expect(getLevel(i).index).toBe(i);
+    }
   });
 
-  it('every knob moves only toward "harder" as the stage number rises', () => {
+  it('every stage is harder than the one before (continuous knobs) and never easier (step knobs)', () => {
     let prev = stageParams(0);
-    for (let i = 1; i < STAGE_COUNT; i++) {
+    for (let i = 1; i < 1000; i++) {
       const p = stageParams(i);
       expect(p.holeW).toBeLessThanOrEqual(prev.holeW);
       expect(p.brickHp).toBeGreaterThanOrEqual(prev.brickHp);
@@ -43,6 +45,9 @@ describe('200-stage difficulty curve', () => {
       expect(p.paddleW).toBeLessThanOrEqual(prev.paddleW);
       expect(p.unitTop).toBeGreaterThanOrEqual(prev.unitTop);
       expect(p.unitCount).toBeGreaterThanOrEqual(prev.unitCount);
+      // These two rise on every single stage, forever.
+      expect(p.dropSpeed).toBeGreaterThan(prev.dropSpeed);
+      expect(p.aggression).toBeGreaterThan(prev.aggression);
       prev = p;
     }
   });
@@ -66,7 +71,7 @@ describe('200-stage difficulty curve', () => {
     }
   });
 
-  it('stage 1 is a beginner stage and stage 200 is the hardest', () => {
+  it('stage 1 is a beginner stage; by stage 200 the step knobs are at their hardest', () => {
     const easy = stageParams(0);
     expect(easy.holeW).toBeGreaterThanOrEqual(12);
     expect(easy.brickHp).toBe(1);
@@ -77,11 +82,24 @@ describe('200-stage difficulty curve', () => {
     expect(hard.brickHp).toBe(3);
     expect(hard.unitTop).toBe(10);
     expect(hard.lives).toBe(3);
+    // ...and the continuous knobs keep climbing past it, within playable limits.
+    const later = stageParams(999);
+    expect(later.dropSpeed).toBeGreaterThan(hard.dropSpeed);
+    expect(later.aggression).toBeGreaterThan(hard.aggression);
+    expect(stageParams(1e6).dropSpeed).toBeLessThan(30);
+    expect(stageParams(1e6).aggression).toBeLessThan(3);
+  });
+
+  it('every handcrafted map appears within the first 60 stages', () => {
+    expect(LEVELS.length).toBeGreaterThanOrEqual(18);
+    const seen = new Set();
+    for (let i = 0; i < 60; i++) seen.add(getLevel(i).name.replace(/\s\d+$/, ''));
+    for (const m of LEVELS) expect(seen.has(m.name)).toBe(true);
   });
 
   it('the 10 unit tiers are spread evenly across the 200 stages', () => {
     const firstStageOfTier = new Map();
-    for (let i = 0; i < STAGE_COUNT; i++) {
+    for (let i = 0; i < 200; i++) {
       const t = stageParams(i).unitTop;
       if (t && !firstStageOfTier.has(t)) firstStageOfTier.set(t, i + 1);
     }
@@ -89,8 +107,8 @@ describe('200-stage difficulty curve', () => {
     expect(firstStageOfTier.get(10)).toBeGreaterThan(150);
   });
 
-  // Building all 200 is cheap enough; sample densely to keep the run fast.
-  const sample = [0, 1, 2, 4, 7, 8, 9, 10, 19, 33, 49, 74, 99, 124, 149, 174, 198, 199];
+  // Every handcrafted map (stages 1-18), then a sample of later stages.
+  const sample = [...Array(18).keys(), 19, 33, 49, 74, 99, 124, 149, 174, 199, 299, 999];
   for (const i of sample) {
     it(`stage ${i + 1} is built to its parameters`, () => {
       const { lvl, hole, items, units, topTier } = inspect(i);
@@ -111,7 +129,9 @@ describe('200-stage difficulty curve', () => {
 
   it('a world honours its stage lives, paddle width and release rate', () => {
     // The lone brick is caged in steel so released balls can never clear the stage.
-    const w = createWorld(['S#S', '.S.'], { lives: 5, paddleW: 18, releaseRate: 15 });
+    const w = createWorld(['S#S', '.S.'], { lives: 5, paddleW: 18, releaseRate: 15, dropSpeed: 20, aggression: 2 });
+    expect(w.dropSpeed).toBe(20);
+    expect(w.aggression).toBe(2);
     expect(w.lives).toBe(5);
     expect(w.paddle.w).toBe(18);
     setPaddleX(w, 0);

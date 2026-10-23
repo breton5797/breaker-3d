@@ -1,4 +1,4 @@
-import { PADDLE_Y, PADDLE_H, DROP_SPEED, DROP_CATCH, BALL_SPEED, BALL_R } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 
@@ -19,12 +19,18 @@ export function multiplyBalls(w, mult) {
 
 /**
  * Releases queued balls at the stage's release rate. New balls are born where existing
- * balls are, so a swarm trapped inside the wall keeps swelling in place.
+ * balls are (preferring ones inside the wall), so the trapped swarm keeps swelling.
  */
 export function releaseQueued(w, dt) {
   if (w.queued <= 0) return;
   w.releaseAcc += w.releaseRate * dt;
+  if (w.releaseAcc < 1) return;
   const b = w.balls;
+  // Prefer parents inside the wall (above the sealed floor): a ball born
+  // outside usually just drops away, so the swarm would not really grow.
+  const line = w.grid.floorRow + 1;
+  const inside = [];
+  for (let i = 0; i < b.n; i++) if (b.y[i] > line) inside.push(i);
   while (w.releaseAcc >= 1 && w.queued > 0) {
     w.releaseAcc -= 1;
     w.queued--;
@@ -34,7 +40,7 @@ export function releaseQueued(w, dt) {
       : addBall(b, 0, 0, 0, 0, 0);
     if (!ok) { w.queued = 0; break; }
     if (n0 > 0) {
-      const src = Math.floor(w.rng() * n0);
+      const src = inside.length ? inside[Math.floor(w.rng() * inside.length)] : Math.floor(w.rng() * n0);
       b.x[b.n - 1] = b.x[src];
       b.y[b.n - 1] = b.y[src];
       b.lastCell[b.n - 1] = b.lastCell[src];
@@ -51,7 +57,7 @@ export function updateDrops(w, dt) {
   const p = w.paddle;
   const kept = [];
   for (const d of w.drops) {
-    const y = d.y - DROP_SPEED * dt;
+    const y = d.y - w.dropSpeed * dt;
     const overPaddle = Math.abs(d.x - p.x) <= p.w / 2 + DROP_CATCH;
     if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && overPaddle) {
       const n = multiplyBalls(w, d.mult);

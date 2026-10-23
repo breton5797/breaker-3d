@@ -13,7 +13,7 @@ for (const stage of STAGES) {
   const li = stage - 1;
   const lvl = getLevel(li);
   const p = lvl.params;
-  const w = createWorld(lvl.lines, { brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate, rng: mulberry32(li + 1 + Number(process.argv[2] ?? 0) * 1000) });
+  const w = createWorld(lvl.lines, { brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate, dropSpeed: p.dropSpeed, aggression: p.aggression, rng: mulberry32(li + 1 + Number(process.argv[2] ?? 0) * 1000) });
   const total = w.grid.remaining;
   const dt = 1 / 60;
   let t = 0;

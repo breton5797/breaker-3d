@@ -6,7 +6,7 @@ export function loadSave() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null');
     if (!raw || typeof raw !== 'object') return { ...EMPTY };
-    const unlocked = Number.isInteger(raw.unlocked) && raw.unlocked > 0 ? Math.min(raw.unlocked, 999) : 1;
+    const unlocked = Number.isInteger(raw.unlocked) && raw.unlocked > 0 ? Math.min(raw.unlocked, 1_000_000) : 1;
     const best = {};
     if (raw.best && typeof raw.best === 'object') {
       for (const [k, v] of Object.entries(raw.best)) {

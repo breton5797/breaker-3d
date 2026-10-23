@@ -1,52 +1,8 @@
 import { mulberry32 } from './rng.js';
+import { COLS, canvas, put, rect, stamp, channel, sprinkle, toLines } from './mapkit.js';
+import { rocket, invaders, vault, hourglass, zigzag, honeycomb, donut, cat, checker, staircase } from './maps2.js';
 
-// Stages are designed on a coarse 48-wide grid (levels.js upscales them x2).
-export const COLS = 48;
-
-// ---------- tiny drawing kit for building levels as char canvases ----------
-
-const MAX_LINES = 48;
-
-function canvas(h = MAX_LINES, ch = '.') {
-  return Array.from({ length: h }, () => Array(COLS).fill(ch));
-}
-function put(g, x, y, ch) {
-  if (y >= 0 && y < g.length && x >= 0 && x < COLS) g[y][x] = ch;
-}
-function rect(g, x, y, w, h, ch) {
-  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) put(g, i, j, ch);
-}
-function stamp(g, pattern, ox, oy, scale, map, scaleY = scale) {
-  pattern.forEach((row, j) => {
-    [...row].forEach((p, i) => {
-      const ch = map[p];
-      if (ch) rect(g, ox + i * scale, oy + j * scaleY, scale, scaleY, ch);
-    });
-  });
-}
-/** Steel-lined vertical shaft from the bottom of the wall to the ceiling gutter. */
-const SHAFT_MOUTH = 4; // top rows where the shaft is flanked by bricks, not steel
-
-/**
- * Vertical shaft from the bottom of the wall to the ceiling gutter. Its steel
- * lining stops short of the top so balls leaving the mouth bite into bricks.
- */
-function channel(g, x, w = 3) {
-  rect(g, x - 1, SHAFT_MOUTH, w + 2, g.length - SHAFT_MOUTH, 'S');
-  rect(g, x, 0, w, g.length, '.');
-}
-function sprinkle(g, rng, count, ch, where = (c) => c !== 'S') {
-  let placed = 0;
-  for (let tries = 0; placed < count && tries < count * 50; tries++) {
-    const x = Math.floor(rng() * COLS);
-    const y = Math.floor(rng() * g.length);
-    if (where(g[y][x])) {
-      g[y][x] = ch;
-      placed++;
-    }
-  }
-}
-export const toLines = (g) => g.map((r) => r.join(''));
+export { COLS, toLines };
 
 // ---------- handcrafted stages ----------
 
@@ -93,12 +49,18 @@ function spiral() {
     rect(g, x0, y1, x1 - x0 + 1, 1, 'S');
     rect(g, x0, y0, 1, y1 - y0 + 1, 'S');
     rect(g, x1, y0, 1, y1 - y0 + 1, 'S');
-    const gapX = k % 2 === 0 ? 22 : (k % 4 === 1 ? x1 - 7 : x0 + 2);
-    rect(g, gapX, k % 2 === 0 ? y1 : y0, 6, 1, '#');
+    const gapX = k % 2 === 0 ? 19 : (k % 4 === 1 ? x1 - 11 : x0 + 2);
+    rect(g, gapX, k % 2 === 0 ? y1 : y0, 10, 1, '#');
     x0 += 5; y0 += 5; x1 -= 5; y1 -= 5;
+  }
+  // Air lanes through every corridor so a swarm can skate along and mow.
+  for (let y = 0; y < g.length; y++) {
+    for (let x = 0; x < COLS; x++) if (g[y][x] === '#' && (y % 5 === 3 || x % 5 === 3)) g[y][x] = '.';
   }
   const rng = mulberry32(5);
   sprinkle(g, rng, 16, '3', (c) => c === '#');
+  sprinkle(g, rng, 22, 'B', (c) => c === '#');
+  sprinkle(g, rng, 4, '-', (c) => c === '#');
   sprinkle(g, rng, 6, 'F', (c) => c === '#');
   sprinkle(g, rng, 6, 'B', (c) => c === '#');
   return toLines(g);
@@ -203,15 +165,34 @@ export const PALETTES = {
   neon: ['#b388ff', '#7c4dff', '#ea80fc', '#651fff', '#d500f9', '#9575cd', '#e040fb', '#8c9eff'],
   rainbow: ['#ff4d4d', '#ff9f43', '#feca57', '#1dd1a1', '#48dbfb', '#2e86de', '#a55eea', '#ff6b81'],
   mint: ['#00d2a0', '#1de9b6', '#00bfa5', '#64ffda', '#26a69a', '#00e5ff', '#18ffff', '#4db6ac'],
+  candy: ['#f2b5d4', '#ff5c8a', '#ffd23f', '#39e6ff', '#7bdff2', '#b388ff', '#1dd1a1', '#ff9f43'],
+  space: ['#e8ecf5', '#ff4d4d', '#3d7bff', '#ffd23f', '#9aa6c4', '#ff9f43', '#c0c8dc', '#7c4dff'],
+  cat: ['#f4a259', '#ffb7c5', '#e8ecf5', '#ffd166', '#f08a4b', '#ffcf9e', '#e07a3f', '#ffe0b5'],
+  chess: ['#f5ead6', '#3b3f58', '#ff6b81', '#48dbfb', '#ffd23f', '#1dd1a1', '#a55eea', '#ff9f43'],
+  arcade: ['#39e6ff', '#ff5c8a', '#ffd23f', '#1dd1a1', '#ff4d4d', '#7cff6b', '#ff7bf0', '#ffa94d'],
+  honey: ['#ffc300', '#ffb000', '#f7a400', '#ffd447', '#e89a00', '#ffcf3a', '#f2b705', '#ffdd66'],
+  sand: ['#e9c46a', '#f4a261', '#e76f51', '#f6d186', '#d4a373', '#faedcd', '#e5989b', '#ccd5ae'],
+  gold: ['#ffd700', '#f5c542', '#e6b422', '#ffe066', '#d4a017', '#fff1a8', '#c99700', '#ffcf40'],
 };
 
+// Ordered roughly from open, forgiving layouts to tight mazes.
 export const LEVELS = [
   { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT, pace: 0.75 },
   { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, itemBoost: 1.6 },
+  { name: '도넛', subtitle: '스프링클은 레이저, 가운데엔 과일', palette: PALETTES.candy, build: donut, pace: 0.6 },
   { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley, pace: 0.35 },
+  { name: '로켓', subtitle: '불꽃을 타고 창문 속 잭팟으로', palette: PALETTES.space, build: rocket, pace: 0.35, hpBonus: 1 },
+  { name: '고양이', subtitle: '불꽃 눈, 폭탄 코, 레이저 수염', palette: PALETTES.cat, build: cat, pace: 0.55 },
   { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid, pace: 0.45, hpBonus: 1 },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, pace: 0.7 },
+  { name: '체스판', subtitle: '모서리마다 강철 못', palette: PALETTES.chess, build: checker },
+  { name: '인베이더', subtitle: '외계인 눈은 폭탄이다', palette: PALETTES.arcade, build: invaders, pace: 0.45 },
+  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction, pace: 0.6 },
+  { name: '벌집', subtitle: '방마다 숨은 과일을 찾아라', palette: PALETTES.honey, build: honeycomb },
+  { name: '계단 폭포', subtitle: '층층이 떨어지는 레이저', palette: PALETTES.ocean, build: staircase, pace: 1.15 },
+  { name: '모래시계', subtitle: '좁은 목을 지나야 위로 간다', palette: PALETTES.sand, build: hourglass, pace: 2, itemBoost: 1.4 },
   { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow, pace: 1.3 },
-  { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral },
+  { name: '지그재그', subtitle: '층마다 반대편 출구', palette: PALETTES.neon, build: zigzag, pace: 3, itemBoost: 1.3 },
+  { name: '금고', subtitle: '옆 갱도로 올라가 위에서 금고를 열어라', palette: PALETTES.gold, build: vault, pace: 1.4 },
+  { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral, pace: 3, itemBoost: 1.4 },
   { name: '더 월', subtitle: '구멍 하나, 벽돌 7,000개', palette: PALETTES.mint, build: theWall },
 ];

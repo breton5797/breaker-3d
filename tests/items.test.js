@@ -117,6 +117,23 @@ describe('multiplier item bricks', () => {
     expect(drainEvents(w).some((e) => e.t === 'miss')).toBe(true);
   });
 
+  it('released balls are born inside the wall when any ball is in there', () => {
+    // Steel floor on text line 20 with a hole; one ball inside, many outside.
+    const p = [[0, 29, '#']];
+    for (let c = 0; c < COLS; c++) if (c < 40 || c > 42) p.push([c, 20, 'S']);
+    const w = world(p);
+    const floorY = ROWS - 1 - 20;
+    addBall(w.balls, 30, ROWS - 3, 30, 0, 0); // inside, rallying under the ceiling
+    for (let i = 0; i < 30; i++) addBall(w.balls, 10 + i, floorY - 20, 30, 0, 0); // outside, below the floor
+    w.queued = 40;
+    w.releaseRate = 40;
+    run(w, 0.5);
+    let insideBorn = 0;
+    for (let i = 31; i < w.balls.n; i++) if (w.balls.y[i] > floorY) insideBorn++;
+    expect(w.balls.n).toBeGreaterThan(40);
+    expect(insideBorn).toBe(w.balls.n - 31);
+  });
+
   it('multiplication never exceeds MAX_BALLS', () => {
     const w = sealed();
     for (let i = 0; i < MAX_BALLS - 40; i++) addBall(w.balls, 30, CHAMBER_Y - (i % 12), 30, 0, 0);
