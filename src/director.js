@@ -95,7 +95,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           buzz(audio, e.mult >= 50 ? [20, 30, 20] : 15);
           {
             const f = fruitFor(e.mult);
-            const badge = { small: `×${e.mult}` };
+            const badge = { small: `×${e.gain}` };
             ui.toast([{ emoji: f.emoji }, ` ${f.name} `, badge, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
