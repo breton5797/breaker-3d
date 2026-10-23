@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#05070f" />
+    <title>BREAKER 3D</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070f'/%3E%3Crect x='5' y='6' width='10' height='6' rx='1' fill='%23ff5c8a'/%3E%3Crect x='17' y='6' width='10' height='6' rx='1' fill='%236c8cff'/%3E%3Ccircle cx='16' cy='19' r='3' fill='%23fff'/%3E%3Crect x='9' y='25' width='14' height='3' rx='1.5' fill='%2339e6ff'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="game" aria-label="게임 화면"></canvas>
+
+    <header id="hud" hidden>
+      <div class="hud-left">
+        <div id="stage-name" class="stage-name"></div>
+        <div class="progress"><div id="progress-bar"></div></div>
+      </div>
+      <div class="hud-center">
+        <div id="score" class="score">0</div>
+        <div class="balls"><span id="ball-count">1</span><small>BALLS</small></div>
+      </div>
+      <div class="hud-right">
+        <div id="lives" class="lives" aria-label="남은 목숨"></div>
+        <button id="btn-mute" class="icon-btn" aria-label="소리 켜기/끄기">🔊</button>
+        <button id="btn-pause" class="icon-btn" aria-label="일시정지">⏸</button>
+      </div>
+    </header>
+
+    <div id="skills" hidden>
+      <button id="skill-split" class="skill" data-skill="split" aria-label="전체 분열 스킬 (1)">
+        <span class="skill-icon">×3</span><span class="skill-name">분열</span><span class="skill-count" id="count-split">0</span>
+      </button>
+      <button id="skill-meteor" class="skill" data-skill="meteor" aria-label="메테오 스킬 (2)">
+        <span class="skill-icon">☄</span><span class="skill-name">메테오</span><span class="skill-count" id="count-meteor">0</span>
+      </button>
+    </div>
+
+    <div id="hint" class="hint" hidden>탭 / 클릭 / Space 로 발사</div>
+    <div id="toasts" aria-live="polite"></div>
+    <div id="floaters" aria-hidden="true"></div>
+    <div id="finale-banner" hidden>
+      <b>FINALE</b>
+      <span>남은 벽돌 <em id="finale-left">0</em></span>
+    </div>
+
+    <section id="overlay" class="overlay">
+      <div id="screen-title" class="panel">
+        <h1 class="logo">BREAKER<span>3D</span></h1>
+        <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
+        <button id="btn-start" class="primary">시작하기</button>
+        <div id="stage-grid" class="stage-grid"></div>
+        <ul class="legend">
+          <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>
+          <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 바닥의 좁은 틈으로 진입</li>
+          <li><b class="chip c-unit">Lv.1~10</b> 벽 속 적 유닛: 폭탄 투하 (피하라!)</li>
+          <li><b class="chip c-bomb">●</b> 연쇄 폭발</li>
+          <li><b class="chip c-laser">⟷ ↕</b> 한 줄 레이저</li>
+          <li><b class="chip c-fire">🔥</b> 관통하는 화염공</li>
+          <li><b class="chip c-gold">★</b> 스킬 충전</li>
+        </ul>
+        <p class="controls">마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지</p>
+      </div>
+
+      <div id="screen-clear" class="panel" hidden>
+        <p class="eyebrow">STAGE CLEAR</p>
+        <div id="stars" class="stars"></div>
+        <h2 id="clear-score" class="big-score"></h2>
+        <dl id="clear-stats" class="stats"></dl>
+        <div class="row">
+          <button id="btn-retry" class="ghost">다시</button>
+          <button id="btn-next" class="primary">다음 스테이지</button>
+        </div>
+        <button id="btn-menu" class="link">스테이지 선택</button>
+      </div>
+
+      <div id="screen-over" class="panel" hidden>
+        <p class="eyebrow danger">GAME OVER</p>
+        <h2 id="over-score" class="big-score"></h2>
+        <div class="row">
+          <button id="btn-over-menu" class="ghost">메뉴</button>
+          <button id="btn-over-retry" class="primary">다시 도전</button>
+        </div>
+      </div>
+
+      <div id="screen-pause" class="panel" hidden>
+        <p class="eyebrow">일시정지</p>
+        <div class="row">
+          <button id="btn-pause-menu" class="ghost">메뉴</button>
+          <button id="btn-resume" class="primary">계속하기</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
