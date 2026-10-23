@@ -1,61 +1,55 @@
 import * as THREE from 'three';
 import { CELL, COLS, ITEM_MULT } from '../sim/constants.js';
-import { SPECIALS } from './bricks.js';
-import { fruitFor, EMOJI_FONT } from '../fruits.js';
+import { fruitTexture } from './bricks.js';
+import { fruitFor } from '../fruits.js';
 import { toWorldX, toWorldY } from './stage.js';
 
 const POOL = 64;
 
-/** Round glowing token with the multiplier written on it. */
-function tokenTexture(fruit, bg) {
+/** Soft dark ellipse painted on the table under a falling fruit. */
+function shadowTexture() {
   const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  c.width = c.height = 64;
   const g = c.getContext('2d');
-  // Flat coin: solid disc with a dark rim, no glow halo.
-  g.fillStyle = '#10131f';
-  g.beginPath(); g.arc(64, 64, 62, 0, Math.PI * 2); g.fill();
-  g.fillStyle = bg;
-  g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill();
-  g.lineWidth = 6;
-  g.strokeStyle = 'rgba(255,255,255,0.9)';
-  g.beginPath(); g.arc(64, 64, 46, 0, Math.PI * 2); g.stroke();
-  g.fillStyle = '#fff6e8';
-  g.beginPath(); g.arc(64, 64, 44, 0, Math.PI * 2); g.fill();
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.font = `70px ${EMOJI_FONT}`;
-  g.fillText(fruit, 64, 70);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
 }
 
-/** Falling fruit items, drawn as camera-facing coins. */
+/** Falling fruit: the fruit alone (no coin), spinning gently, with its shadow on the table. */
 export function createDrops3d(scene) {
-  const materials = Object.fromEntries(Object.entries(ITEM_MULT).map(([type, mult]) => {
-    const spec = SPECIALS[type];
-    return [mult, new THREE.SpriteMaterial({
-      map: tokenTexture(fruitFor(mult).emoji, spec.bg),
-      depthWrite: false,
-    })];
-  }));
-  const sprites = Array.from({ length: POOL }, () => {
-    const s = new THREE.Sprite(materials[5]);
-    s.visible = false;
-    scene.add(s);
-    return s;
+  const materials = Object.fromEntries(Object.values(ITEM_MULT).map((mult) => [
+    mult,
+    new THREE.SpriteMaterial({ map: fruitTexture(fruitFor(mult).emoji, 128, false), depthWrite: false }),
+  ]));
+  const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false });
+  const shadowGeo = new THREE.PlaneGeometry(1, 1);
+  const items = Array.from({ length: POOL }, () => {
+    const sprite = new THREE.Sprite(materials[5]);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    sprite.visible = false;
+    shadow.visible = false;
+    sprite.renderOrder = 3;
+    scene.add(sprite, shadow);
+    return { sprite, shadow };
   });
 
   /** @param {{x:number,y:number,mult:number}[]} drops */
   function update(drops, time) {
-    sprites.forEach((s, k) => {
+    items.forEach(({ sprite, shadow }, k) => {
       const d = drops[k];
-      s.visible = Boolean(d);
+      sprite.visible = shadow.visible = Boolean(d);
       if (!d) return;
-      s.material = materials[d.mult] ?? materials[5];
-      const size = 5.5 + Math.log10(d.mult) * 2 + Math.sin(time * 10 + k) * 0.3;
-      s.scale.set(size, size, 1);
-      s.position.set(toWorldX(d.x), toWorldY(d.y), 2.2);
+      sprite.material = materials[d.mult] ?? materials[5];
+      const size = 5 + Math.log10(d.mult) * 1.8;
+      sprite.scale.set(size, size, 1);
+      sprite.material.rotation = Math.sin(time * 4) * 0.25; // shared per fruit type, so all wobble together
+      sprite.position.set(toWorldX(d.x), toWorldY(d.y), 4 + Math.sin(time * 6 + k) * 0.4);
+      shadow.position.set(toWorldX(d.x) + 1.2, toWorldY(d.y) + 1.6, 0.04);
+      shadow.scale.set(size * 0.8, size * 0.5, 1);
     });
   }
 

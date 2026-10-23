@@ -13,6 +13,7 @@ export function createBalls3d(scene) {
   );
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.frustumCulled = false;
+  mesh.castShadow = true;
   for (let i = 0; i <= MAX_BALLS; i++) mesh.setColorAt(i, WHITE);
   scene.add(mesh);
   const m = mesh.instanceMatrix.array;

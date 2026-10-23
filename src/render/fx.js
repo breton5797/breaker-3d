@@ -16,6 +16,7 @@ function createDebris(scene) {
   );
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.frustumCulled = false;
+  mesh.castShadow = true;
   mesh.count = DEBRIS;
   for (let i = 0; i < DEBRIS; i++) {
     mesh.setMatrixAt(i, new THREE.Matrix4().makeScale(0, 0, 0));

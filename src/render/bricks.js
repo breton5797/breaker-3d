@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { COLS, ROWS, CELL } from '../sim/constants.js';
-import { toWorldX, toWorldY } from './stage.js';
+import { toWorldX, toWorldY, TILT } from './stage.js';
 import { fruitFor, EMOJI_FONT } from '../fruits.js';
 
-/** Icon spec for a fruit item: fruit colour tile, no number. */
+/** Icon spec for a fruit item: the fruit itself, no tile and no number. */
 function fruitSpec(mult) {
   const f = fruitFor(mult);
   const c = new THREE.Color(f.color);
@@ -29,13 +29,30 @@ export const SPECIALS = {
   [CELL.ITEM100]: fruitSpec(100),
 };
 
-const STEEL = new THREE.Color(0x6c7a96);
+const STEEL = new THREE.Color(0x7a869e);
 const ICON_SCALE = 1.8; // special blocks are drawn bigger than one fine cell so icons stay legible
-const FRUIT_SCALE = 2.8; // fruit items are the thing to hunt for, so they stand out most
-const iconScale = (type) => (SPECIALS[type]?.fruit ? FRUIT_SCALE : ICON_SCALE);
+const FRUIT_SCALE = 3.2; // fruit items are the thing to hunt for, so they stand out most
 const HARD_SHINE = new THREE.Color(0xffffff);
 
-function iconTexture({ label, bg, fruit }) {
+/** Bevel shading baked into a texture: lit top-left edge, shaded bottom-right edge. */
+function bevelTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ebebeb';
+  g.fillRect(0, 0, 32, 32);
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, 32, 3);
+  g.fillRect(0, 0, 3, 32);
+  g.fillStyle = '#9a9a9a';
+  g.fillRect(0, 29, 32, 3);
+  g.fillRect(29, 0, 3, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function iconTexture({ label, bg }) {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
   const g = c.getContext('2d');
@@ -47,22 +64,40 @@ function iconTexture({ label, bg, fruit }) {
   g.fillStyle = '#fff';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  if (fruit) {
-    // Pale tile so the fruit reads clearly on top.
-    g.fillStyle = '#fff6e8';
-    g.fillRect(6, 6, 52, 52);
-    g.font = `44px ${EMOJI_FONT}`;
-    g.fillText(fruit, 32, 36);
-  } else if (label === 'bomb') {
+  if (label === 'bomb') {
     g.beginPath(); g.arc(30, 36, 17, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#ffd34d';
     g.beginPath(); g.arc(46, 14, 7, 0, Math.PI * 2); g.fill();
   } else {
-    g.font = `900 ${label[0] === '×' ? (label.length > 3 ? 22 : label.length > 2 ? 28 : 34) : 40}px system-ui, sans-serif`;
+    g.font = `900 ${label[0] === '×' ? 34 : 40}px system-ui, sans-serif`;
     g.fillText(label, 32, 35);
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Fruit cut-out on a transparent background, optionally with a soft contact shadow at its feet. */
+export function fruitTexture(emoji, size = 128, contactShadow = true) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  if (contactShadow) {
+    const shadow = g.createRadialGradient(size / 2, size * 0.88, 2, size / 2, size * 0.88, size * 0.34);
+    shadow.addColorStop(0, 'rgba(0,0,0,0.45)');
+    shadow.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = shadow;
+    g.beginPath();
+    g.ellipse(size / 2, size * 0.88, size * 0.34, size * 0.09, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = `${Math.round(size * 0.72)}px ${EMOJI_FONT}`;
+  g.fillText(emoji, size / 2, size * 0.46);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
   return tex;
 }
 
@@ -71,16 +106,25 @@ const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 
 export function createBricks(scene) {
   const total = COLS * ROWS;
-  const geo = new THREE.BoxGeometry(0.9, 0.9, 1);
-  const mat = new THREE.MeshLambertMaterial();
+  const geo = new THREE.BoxGeometry(0.92, 0.92, 1);
+  const mat = new THREE.MeshLambertMaterial({ map: bevelTexture() });
   const mesh = new THREE.InstancedMesh(geo, mat, total);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   scene.add(mesh);
 
   const iconGeo = new THREE.BoxGeometry(0.92, 0.92, 1.1);
+  // Fruit stands upright on its cell, turned to face the tilted camera.
+  const fruitGeo = new THREE.PlaneGeometry(1, 1).rotateX(TILT).translate(0, 0, 0.45);
   const specialMeshes = Object.fromEntries(Object.entries(SPECIALS).map(([type, spec]) => {
-    const m = new THREE.InstancedMesh(iconGeo, new THREE.MeshLambertMaterial({ map: iconTexture(spec) }), total);
+    const material = spec.fruit
+      ? new THREE.MeshBasicMaterial({ map: fruitTexture(spec.fruit), transparent: true, depthWrite: false })
+      : new THREE.MeshLambertMaterial({ map: iconTexture(spec) });
+    const m = new THREE.InstancedMesh(spec.fruit ? fruitGeo : iconGeo, material, total);
     m.count = 0;
+    m.castShadow = !spec.fruit;
+    m.renderOrder = spec.fruit ? 2 : 0;
     scene.add(m);
     return [type, m];
   }));
@@ -97,13 +141,16 @@ export function createBricks(scene) {
     return grid.hp[i] > 1 ? baseColor.clone().lerp(HARD_SHINE, Math.min(0.15, 0.05 * (grid.hp[i] - 1))) : baseColor;
   }
 
-  function place(m, slot, i, scale = 1) {
-    tmp.position.set(toWorldX((i % COLS) + 0.5), toWorldY(Math.floor(i / COLS) + 0.5), 0.5);
+  function place(m, slot, i, scale = 1, lift = 0) {
+    tmp.position.set(toWorldX((i % COLS) + 0.5), toWorldY(Math.floor(i / COLS) + 0.5), 0.5 + lift);
     tmp.rotation.set(0, 0, 0);
     tmp.scale.setScalar(scale);
     tmp.updateMatrix();
     m.setMatrixAt(slot, tmp.matrix);
   }
+
+  const isFruit = (type) => Boolean(SPECIALS[type]?.fruit);
+  const scaleOf = (type) => (isFruit(type) ? FRUIT_SCALE : ICON_SCALE);
 
   /** Rebuilds every instance for a new level. */
   function setLevel(grid, pal) {
@@ -127,7 +174,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       const cells = specialCells[type];
       m.count = cells.length;
-      cells.forEach((i, slot) => place(m, slot, i, iconScale(type)));
+      cells.forEach((i, slot) => place(m, slot, i, scaleOf(type)));
       m.instanceMatrix.needsUpdate = true;
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -156,14 +203,17 @@ export function createBricks(scene) {
     mesh.instanceColor.needsUpdate = true;
   }
 
-  /** Specials breathe so they read as "something will happen". */
+  /** Specials breathe and fruit bob gently, so they read as "something will happen". */
   function update(time) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       if (!m.count) continue;
       const cells = specialCells[type];
-      const s = iconScale(type) * (1 + Math.sin(time * 6 + Number(type)) * 0.07);
+      const fruit = isFruit(type);
       for (let slot = 0; slot < m.count; slot++) {
-        if (slotOf[cells[slot]] === slot) place(m, slot, cells[slot], s);
+        if (slotOf[cells[slot]] !== slot) continue;
+        const phase = time * (fruit ? 3 : 6) + slot * 0.7;
+        const s = scaleOf(type) * (1 + Math.sin(phase) * (fruit ? 0.04 : 0.07));
+        place(m, slot, cells[slot], s, fruit ? Math.abs(Math.sin(phase)) * 0.25 : 0);
       }
       m.instanceMatrix.needsUpdate = true;
     }

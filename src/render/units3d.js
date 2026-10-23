@@ -38,6 +38,7 @@ function makeUnit(tier, badge) {
     new THREE.MeshLambertMaterial({ color: TIER_COLORS[tier - 1] }),
   );
   body.position.z = 0.75;
+  body.castShadow = true;
   const eye = new THREE.Mesh(
     new THREE.SphereGeometry(0.22, 12, 10),
     new THREE.MeshBasicMaterial({ color: 0x7a1010 }),
