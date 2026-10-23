@@ -46,5 +46,5 @@ export function createBalls3d(scene) {
     mesh.instanceMatrix.needsUpdate = true;
   }
 
-  return { update };
+  return { update, setShadows: (on) => { mesh.castShadow = on; } };
 }

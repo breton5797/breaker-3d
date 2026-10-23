@@ -1,5 +1,6 @@
 const KEY = 'breaker3d.v1';
-const EMPTY = Object.freeze({ unlocked: 1, best: {}, muted: false });
+const EMPTY = Object.freeze({ unlocked: 1, best: {}, muted: false, achievements: [] });
+const ACHIEVEMENT_ID = /^[a-z0-9_]{1,40}$/;
 
 /** Reads saved progress; anything malformed falls back to a fresh save. */
 export function loadSave() {
@@ -13,7 +14,9 @@ export function loadSave() {
         if (/^\d+$/.test(k) && Number.isFinite(v) && v >= 0) best[k] = Math.floor(v);
       }
     }
-    return { unlocked, best, muted: raw.muted === true };
+    const ids = Array.isArray(raw.achievements) ? raw.achievements : [];
+    const achievements = [...new Set(ids.filter((id) => typeof id === 'string' && ACHIEVEMENT_ID.test(id)))];
+    return { unlocked, best, muted: raw.muted === true, achievements };
   } catch {
     return { ...EMPTY };
   }
@@ -36,4 +39,9 @@ export function recordClear(save, levelIndex, score) {
     unlocked: Math.max(save.unlocked, levelIndex + 2),
     best: { ...save.best, [levelIndex]: Math.max(prev, score) },
   };
+}
+
+/** @returns {object} a new save with the given achievement ids added (no duplicates) */
+export function unlockAchievements(save, ids) {
+  return { ...save, achievements: [...new Set([...save.achievements, ...ids])] };
 }

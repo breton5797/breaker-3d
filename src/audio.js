@@ -91,6 +91,14 @@ export function createAudio() {
       }
       burst(0.35, 5000, 0.25);
     },
+    /** Fever: a fast two-octave run up. */
+    fever() {
+      for (let k = 0; k < 10; k++) setTimeout(() => { voices = 0; tone(note(4 + k * 2), 0.14, 'square', 0.07); }, k * 40);
+      burst(0.5, 6000, 0.25);
+    },
+    achievement() {
+      [0, 4, 7, 12].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(12 + s), 0.25, 'sine', 0.14); }, k * 80));
+    },
     shoot() { tone(520, 0.18, 'square', 0.05, 160); },
     stunned() { burst(0.4, 900, 0.5); tone(140, 0.45, 'sawtooth', 0.2, 60); },
     launch() { tone(330, 0.15, 'sine', 0.2, 660); },

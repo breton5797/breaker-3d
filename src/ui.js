@@ -1,16 +1,22 @@
 import { LEVELS } from './sim/levels.js';
+import { FEVER_STREAK, FEVER_TIME } from './sim/constants.js';
+import { ACHIEVEMENTS } from './achievements.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
 
-const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause'];
+/** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
+const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;
+
+const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv'];
 
 /**
  * DOM layer. All dynamic text goes through textContent.
  * @param {{ onPlay:(i:number)=>void, onNext:()=>void, onRetry:()=>void, onMenu:()=>void,
- *   onSkill:(name:string)=>void, onMute:()=>void, onPause:()=>void, onResume:()=>void }} h
+ *   onSkill:(name:string)=>void, onMute:()=>void, onPause:()=>void, onResume:()=>void,
+ *   onAchievements:()=>void }} h
  */
 export function createUI(h) {
   const overlay = $('overlay');
@@ -24,6 +30,8 @@ export function createUI(h) {
   bind('btn-over-menu', h.onMenu);
   bind('btn-pause-menu', h.onMenu);
   bind('btn-resume', h.onResume);
+  bind('btn-achv', h.onAchievements);
+  bind('btn-achv-back', h.onMenu);
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('skill-split', () => h.onSkill('split'));
@@ -41,7 +49,7 @@ export function createUI(h) {
     $('hud').hidden = !on;
     if (!on) setFinale(null);
     $('skills').hidden = !on;
-    if (!on) $('hint').hidden = true;
+    if (!on) { $('hint').hidden = true; $('fever').hidden = true; }
   }
 
   function showTitle(save) {
@@ -72,6 +80,7 @@ export function createUI(h) {
     const next = save.unlocked - 1;
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
+    $('btn-achv').textContent = `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
     show('screen-title');
   }
 
@@ -85,7 +94,39 @@ export function createUI(h) {
     setTimeout(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1300);
   }
 
-  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean}} s */
+  /** Achievement collection: unlocked first in list order, locked ones greyed out. */
+  function showAchievements(save) {
+    const owned = new Set(save.achievements);
+    $('achv-count').textContent = `${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
+    $('achv-list').replaceChildren(...ACHIEVEMENTS.map((a) => {
+      const li = document.createElement('li');
+      li.className = owned.has(a.id) ? '' : 'locked';
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = a.icon;
+      const name = document.createElement('b');
+      name.textContent = a.name;
+      const desc = document.createElement('small');
+      desc.textContent = a.desc;
+      li.append(icon, name, desc);
+      return li;
+    }));
+    show('screen-achv');
+  }
+
+  /** Streak meter (fruits toward the next fever) or, during fever, the time left. */
+  function setFever(fever, streak) {
+    const el = $('fever');
+    const toGo = FEVER_STREAK - (streak % FEVER_STREAK);
+    el.hidden = fever <= 0 && streak === 0;
+    if (el.hidden) return;
+    el.classList.toggle('on', fever > 0);
+    $('fever-label').textContent = fever > 0 ? `🔥 FEVER ${fever.toFixed(1)}s` : `피버까지 🍒 ${toGo}`;
+    const fill = fever > 0 ? fever / FEVER_TIME : (streak % FEVER_STREAK) / FEVER_STREAK;
+    $('fever-bar').style.width = `${Math.round(fill * 100)}%`;
+  }
+
+  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean, fever:number, streak:number}} s */
   function setHud(s) {
     $('score').textContent = fmt(s.score);
     const ballEl = $('ball-count');
@@ -104,6 +145,7 @@ export function createUI(h) {
     $('skill-meteor').disabled = s.charges.meteor <= 0;
     $('hint').hidden = !s.ready;
     $('btn-mute').textContent = s.muted ? '🔇' : '🔊';
+    setFever(s.fever, s.streak);
   }
 
   /**
@@ -191,6 +233,7 @@ export function createUI(h) {
     showClear,
     showOver,
     showPause: (on) => show(on ? 'screen-pause' : null),
+    showAchievements,
     floatAt,
     setFinale,
     fmt,

@@ -38,6 +38,11 @@
       </button>
     </div>
 
+    <div id="fever" class="fever" hidden aria-live="polite">
+      <span id="fever-label" class="fever-label"></span>
+      <div class="fever-track"><div id="fever-bar"></div></div>
+    </div>
+
     <div id="hint" class="hint" hidden>탭 / 클릭 / Space 로 발사</div>
     <div id="toasts" aria-live="polite"></div>
     <div id="floaters" aria-hidden="true"></div>
@@ -52,8 +57,10 @@
         <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
         <button id="btn-start" class="primary">시작하기</button>
         <div id="stage-grid" class="stage-grid"></div>
+        <button id="btn-achv" class="ghost achv-btn"></button>
         <ul class="legend">
           <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>
+          <li><b class="chip c-fever">FEVER</b> 과일 5연속 → 패들 확대 · 과일 자석 · 배수 ×2</li>
           <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 바닥의 좁은 틈으로 진입</li>
           <li><b class="chip c-unit">Lv.1~10</b> 벽 속 적 유닛: 폭탄 투하 (피하라!)</li>
           <li><b class="chip c-bomb">●</b> 연쇄 폭발</li>
@@ -83,6 +90,13 @@
           <button id="btn-over-menu" class="ghost">메뉴</button>
           <button id="btn-over-retry" class="primary">다시 도전</button>
         </div>
+      </div>
+
+      <div id="screen-achv" class="panel" hidden>
+        <p class="eyebrow">ACHIEVEMENTS</p>
+        <h2 id="achv-count" class="achv-count"></h2>
+        <ul id="achv-list" class="achv-list"></ul>
+        <button id="btn-achv-back" class="primary">돌아가기</button>
       </div>
 
       <div id="screen-pause" class="panel" hidden>

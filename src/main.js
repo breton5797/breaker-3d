@@ -12,8 +12,10 @@ import { createUnits3d } from './render/units3d.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
-import { loadSave, writeSave, recordClear } from './storage.js';
+import { loadSave, writeSave, recordClear, unlockAchievements } from './storage.js';
 import { fruitFor } from './fruits.js';
+import { ACHIEVEMENTS, earned } from './achievements.js';
+import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
@@ -26,6 +28,10 @@ const drops3d = createDrops3d(stage.scene);
 const beacon = createBeacon(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
+const quality = createQualityGovernor();
+const PADDLE_HEX = 0xc4d2ff;
+const FEVER_HEX = 0xffa94d; // warm matte orange while fruit fever runs
+const STUN_HEX = 0xff3040;
 
 let save = loadSave();
 audio.setMuted(save.muted);
@@ -51,6 +57,7 @@ const ui = createUI({
   },
   onPause: () => togglePause(),
   onResume: () => togglePause(),
+  onAchievements: () => ui.showAchievements(save),
 });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 
@@ -67,12 +74,40 @@ function startLevel(i) {
   director.reset();
   stage.setZoom(1);
   elapsed = 0;
+  quality.reset();
   mode = 'play';
   ui.startStage(level);
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
     setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
   }
+}
+
+/** Unlocks any achievement this run has earned so far and announces it. */
+function checkAchievements(cleared) {
+  const w = world;
+  const stats = {
+    stage: level.index, cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
+    bestFruit: w.bestFruit, fevers: w.fevers, topKill: w.topKill,
+    livesLost: Math.max(0, level.params.lives - w.lives), elapsed,
+  };
+  const fresh = earned(stats, save.achievements);
+  if (!fresh.length) return;
+  save = unlockAchievements(save, fresh);
+  writeSave(save);
+  audio.achievement();
+  fresh.forEach((id, k) => {
+    const a = ACHIEVEMENTS.find((x) => x.id === id);
+    setTimeout(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name}`], 'small'), 400 + k * 700);
+  });
+}
+
+/** Drops one quality step when frames have stayed slow (see render/quality.js). */
+function applyQuality(levelIndex) {
+  const q = QUALITY_LEVELS[levelIndex];
+  balls3d.setShadows(q.ballShadows);
+  stage.setQuality(q);
+  ui.toast('화질 자동 조정', 'small');
 }
 
 function togglePause() {
@@ -94,6 +129,7 @@ function finishLevel(cleared) {
     w.drops = [];
     save = recordClear(save, level.index, w.score);
     writeSave(save);
+    checkAchievements(true);
     const full = level.params.lives; // stars are relative to this stage's starting lives
     const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
     setTimeout(() => ui.showClear({
@@ -109,6 +145,7 @@ function finishLevel(cleared) {
       ],
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
+    checkAchievements(false);
     setTimeout(() => ui.showOver(w.score), 900);
   }
 }
@@ -168,12 +205,15 @@ function hud() {
     charges: world.charges,
     ready: world.state === 'ready',
     muted: audio.isMuted(),
+    fever: world.fever,
+    streak: world.catchStreak,
   });
 }
 
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(MAX_DT, (now - last) / 1000);
+  const rawDt = (now - last) / 1000;
+  const dt = Math.min(MAX_DT, rawDt);
   last = now;
   audio.frame();
   const scale = director.tick(dt);
@@ -190,13 +230,18 @@ function frame(now) {
     balls3d.update(world.balls, resting);
     drops3d.update(world.drops, now / 1000);
     units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
-    // A stunned paddle flickers red.
+    // A stunned paddle flickers red; fever turns it warm orange.
     const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
-    stage.paddle.material.color.setHex(stunned ? 0xff3040 : 0xc4d2ff);
+    stage.paddle.material.color.setHex(stunned ? STUN_HEX : world.fever > 0 ? FEVER_HEX : PADDLE_HEX);
     stage.paddle.position.x = toWorldX(world.paddle.x);
     stage.paddle.scale.y = world.paddle.w / (1 + PADDLE_H);
     hudTimer -= dt;
-    if (hudTimer <= 0 && mode === 'play') { hud(); hudTimer = 0.08; }
+    if (hudTimer <= 0 && mode === 'play') { hud(); checkAchievements(false); hudTimer = 0.08; }
+    // Only real-time play frames judge performance (menus and slow-mo don't count).
+    if (mode === 'play' && scale === 1) {
+      const lv = quality.sample(rawDt);
+      if (lv !== null) applyQuality(lv);
+    } else quality.reset();
   }
   bricks.update(now / 1000);
   beacon.update(now / 1000);

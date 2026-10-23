@@ -71,6 +71,7 @@ export function breakCell(w, c, r, ball = -1) {
   if (type === CELL.UNIT) {
     g.tier[i] = 0;
     w.score += 200 * tier;
+    w.topKill = Math.max(w.topKill, tier);
     w.events.push({ t: 'unit-down', c, r, tier });
     // Veterans (tier 5+) leave a multiplier behind.
     if (tier >= 5) {

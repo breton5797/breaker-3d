@@ -7,6 +7,7 @@ import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells } from './units.js';
+import { updateFever, endFever } from './fever.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball by (min, max)
@@ -36,6 +37,11 @@ export function createWorld(lines, opts = {}) {
     drops: [], // falling multiplier items { x, y, mult }
     collected: 0,
     catchStreak: 0, // fruits caught in a row without missing one
+    bestStreak: 0,
+    bestFruit: 0, // biggest fruit multiplier caught (before the fever bonus)
+    fever: 0, // seconds of fruit fever left
+    fevers: 0, // fevers started this stage
+    topKill: 0, // highest unit tier destroyed
     queued: 0, // balls owed by caught multipliers, released gradually
     releaseAcc: 0,
     score: 0,
@@ -188,6 +194,7 @@ export function stepWorld(w, dt) {
     updateDrops(w, dt);
     updateUnits(w, dt);
     updateShells(w, dt);
+    updateFever(w, dt);
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;
@@ -207,6 +214,7 @@ export function stepWorld(w, dt) {
     w.drops = [];
     w.shells = [];
     w.queued = 0;
+    if (w.fever > 0) endFever(w);
     w.events.push({ t: 'lost' });
     w.state = w.lives > 0 ? 'ready' : 'over';
     if (w.state === 'over') w.events.push({ t: 'over' });
