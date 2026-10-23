@@ -133,20 +133,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes bannerIn { from { transform: translateX(-50%) scale(0.3); opacity: 0; } }
 @keyframes ribbon { to { background-position: 200% 0; } }
 
-/* Fruit fever: streak meter that turns into a draining fever gauge. */
-.fever {
-  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
-  display: flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 999px;
-  border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(10px); box-shadow: var(--shadow);
-}
-.fever-label { font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.fever-track { width: clamp(70px, 22vw, 140px); height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
-#fever-bar { height: 100%; width: 0; background: linear-gradient(90deg, #ff9f43, var(--gold)); transition: width 0.1s linear; }
-.fever.on { border-color: rgba(255, 159, 67, 0.7); background: linear-gradient(180deg, rgba(90, 40, 20, 0.92), rgba(40, 20, 30, 0.92)); }
-.fever.on .fever-label { color: #ffd59a; }
-.fever.on #fever-bar { background: linear-gradient(90deg, #ff5c8a, #ff9f43); }
-.c-fever { background: linear-gradient(90deg, #c2410c, #b45309); }
-
 /* Achievements */
 .achv-btn { width: 100%; margin-bottom: 14px; }
 .achv-count { margin: 0 0 14px; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }

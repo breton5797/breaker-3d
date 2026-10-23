@@ -4,7 +4,7 @@ import { MAX_BALLS } from '../src/sim/constants.js';
 
 const base = {
   stage: 0, cleared: false, peakBalls: 0, bestCombo: 0, bestStreak: 0, bestFruit: 0,
-  fevers: 0, topKill: 0, livesLost: 0, elapsed: 99,
+  topKill: 0, livesLost: 0, elapsed: 99,
 };
 const ids = (stats, have = []) => earned({ ...base, ...stats }, have);
 
@@ -35,10 +35,14 @@ describe('achievements', () => {
   });
 
   it('live stats unlock without clearing', () => {
-    const got = ids({ peakBalls: MAX_BALLS, bestStreak: 10, fevers: 3, topKill: 10, bestFruit: 100, bestCombo: 1000 });
+    const got = ids({ peakBalls: MAX_BALLS, bestStreak: 10, topKill: 10, bestFruit: 100, bestCombo: 1000 });
     expect(got).toEqual(expect.arrayContaining([
-      'balls_1000', 'balls_max', 'streak_10', 'fever_1', 'fever_3', 'kill_5', 'kill_10', 'pineapple', 'combo_1000',
+      'balls_1000', 'balls_max', 'streak_10', 'kill_5', 'kill_10', 'pineapple', 'combo_1000',
     ]));
+  });
+
+  it('fruit fever achievements are gone', () => {
+    expect(ACHIEVEMENTS.some((a) => a.id.startsWith('fever'))).toBe(false);
   });
 
   it('stage milestones count the stage number (1-based) on clear', () => {

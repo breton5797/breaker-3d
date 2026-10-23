@@ -30,7 +30,6 @@ const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const quality = createQualityGovernor();
 const PADDLE_HEX = 0xc4d2ff;
-const FEVER_HEX = 0xffa94d; // warm matte orange while fruit fever runs
 const STUN_HEX = 0xff3040;
 
 let save = loadSave();
@@ -88,7 +87,7 @@ function checkAchievements(cleared) {
   const w = world;
   const stats = {
     stage: level.index, cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
-    bestFruit: w.bestFruit, fevers: w.fevers, topKill: w.topKill,
+    bestFruit: w.bestFruit, topKill: w.topKill,
     livesLost: Math.max(0, level.params.lives - w.lives), elapsed,
   };
   const fresh = earned(stats, save.achievements);
@@ -205,8 +204,6 @@ function hud() {
     charges: world.charges,
     ready: world.state === 'ready',
     muted: audio.isMuted(),
-    fever: world.fever,
-    streak: world.catchStreak,
   });
 }
 
@@ -230,9 +227,9 @@ function frame(now) {
     balls3d.update(world.balls, resting);
     drops3d.update(world.drops, now / 1000);
     units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
-    // A stunned paddle flickers red; fever turns it warm orange.
+    // A stunned paddle flickers red.
     const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
-    stage.paddle.material.color.setHex(stunned ? STUN_HEX : world.fever > 0 ? FEVER_HEX : PADDLE_HEX);
+    stage.paddle.material.color.setHex(stunned ? STUN_HEX : PADDLE_HEX);
     stage.paddle.position.x = toWorldX(world.paddle.x);
     stage.paddle.scale.y = world.paddle.w / (1 + PADDLE_H);
     hudTimer -= dt;

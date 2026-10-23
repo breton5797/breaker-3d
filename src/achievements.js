@@ -2,7 +2,7 @@ import { MAX_BALLS } from './sim/constants.js';
 
 /**
  * Persistent badges. Each test reads one run's stats:
- * { stage (0-based), cleared, peakBalls, bestCombo, bestStreak, bestFruit, fevers, topKill, livesLost, elapsed }
+ * { stage (0-based), cleared, peakBalls, bestCombo, bestStreak, bestFruit, topKill, livesLost, elapsed }
  */
 export const ACHIEVEMENTS = Object.freeze([
   { id: 'first_clear', icon: '🏁', name: '첫 클리어', desc: '스테이지를 처음으로 클리어', test: (s) => s.cleared },
@@ -13,8 +13,6 @@ export const ACHIEVEMENTS = Object.freeze([
   { id: 'combo_1000', icon: '🔗', name: '콤보 장인', desc: '콤보 1,000 달성', test: (s) => s.bestCombo >= 1000 },
   { id: 'streak_10', icon: '🧺', name: '과일 바구니', desc: '과일 10개 연속 받기', test: (s) => s.bestStreak >= 10 },
   { id: 'pineapple', icon: '🍍', name: '황금 파인애플', desc: '파인애플(×100) 받기', test: (s) => s.bestFruit >= 100 },
-  { id: 'fever_1', icon: '🔥', name: '과일 피버', desc: '과일 피버 발동', test: (s) => s.fevers >= 1 },
-  { id: 'fever_3', icon: '🌋', name: '피버 중독', desc: '한 판에 과일 피버 3회', test: (s) => s.fevers >= 3 },
   { id: 'kill_5', icon: '🎯', name: '저격수 사냥', desc: 'Lv.5 이상 유닛 격파', test: (s) => s.topKill >= 5 },
   { id: 'kill_10', icon: '👑', name: '파괴신 처단', desc: 'Lv.10 파괴신 격파', test: (s) => s.topKill >= 10 },
   { id: 'stage_20', icon: '🥉', name: '20 스테이지', desc: '스테이지 20 클리어', test: (s) => s.cleared && s.stage + 1 >= 20 },

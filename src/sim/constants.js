@@ -90,11 +90,3 @@ export const UNIT_CHARS = Object.freeze(['J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R',
 export const UNIT_GRACE = 2.5; // seconds after serving before units open fire
 export const STUN_SHRINK = 0.6; // paddle width factor while stunned
 export const MAX_SHELLS = 80;
-
-// Fruit fever: catching FEVER_STREAK fruits in a row widens the paddle, pulls
-// falling fruit toward it and doubles every fruit caught, for FEVER_TIME seconds.
-export const FEVER_STREAK = 5;
-export const FEVER_TIME = 8;
-export const FEVER_WIDEN = 1.4;
-export const FEVER_MAGNET = 40; // cells per second fruit drifts sideways toward the paddle
-export const FEVER_BONUS = 2;
