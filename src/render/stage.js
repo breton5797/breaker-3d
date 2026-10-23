@@ -168,6 +168,12 @@ export function createStage(canvas) {
     resize,
     shake: (amount) => { shakeAmp = Math.min(2.5, shakeAmp + amount); },
     setZoom: (z) => { zoom = z; },
+    /** @param {{ shadows:boolean, pixelRatio:number }} q a QUALITY_LEVELS entry */
+    setQuality: (q) => {
+      key.castShadow = q.shadows;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pixelRatio));
+      resize();
+    },
     /** Screen position (CSS px) of a sim point at height z above the table. */
     project: (x, y, z = 1) => {
       const v = new THREE.Vector3(toWorldX(x), toWorldY(y), z).project(camera);

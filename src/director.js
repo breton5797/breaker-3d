@@ -12,6 +12,12 @@ const COMBO_MILESTONES = [100, 300, 1000];
 const specialHex = Object.fromEntries(Object.entries(SPECIALS).map(([t, s]) => [t, new THREE.Color(...s.tint).multiplyScalar(0.45).getHex()]));
 const STEEL_HEX = 0x6c7a96;
 
+/** Phone haptics; silent together with the sound (the mute button is "quiet mode"). */
+function buzz(audio, pattern) {
+  if (audio.isMuted() || typeof navigator === 'undefined' || !navigator.vibrate) return;
+  navigator.vibrate(pattern);
+}
+
 /**
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
@@ -86,15 +92,25 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           fx.catchBurst(e.x, e.mult);
           stage.shake(Math.min(1.5, 0.3 + e.mult / 60));
           audio.collect(e.mult);
+          buzz(audio, e.mult >= 50 ? [20, 30, 20] : 15);
           {
-            const f = fruitFor(e.mult);
-            ui.toast([{ emoji: f.emoji }, ` ${f.name} `, { small: `×${e.mult}` }, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
+            const f = fruitFor(e.fruit ?? e.mult);
+            const badge = { small: e.fever ? `🔥×${e.mult}` : `×${e.mult}` };
+            ui.toast([{ emoji: f.emoji }, ` ${f.name} `, badge, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
-            ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji }, { small: `×${e.mult}` }]], e.streak >= 5 ? 'hot' : '');
+            ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji }, badge]], e.streak >= 5 ? 'hot' : '');
           }
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
+        case 'fever':
+          audio.fever();
+          stage.shake(0.8);
+          buzz(audio, [30, 40, 30, 40, 60]);
+          ui.toast([{ emoji: '🔥' }, ' FRUIT FEVER! ', { emoji: '🔥' }], 'mega');
+          setTimeout(() => ui.toast('패들 확대 · 과일 자석 · 배수 ×2', 'small'), 300);
+          break;
+        case 'fever-end': ui.toast('피버 종료', 'small'); break;
         case 'fire-shell': audio.shoot(); break;
         case 'unit-hit': units3d.hit(e.c, e.r); audio.pop(0); break;
         case 'unit-down':
@@ -107,6 +123,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
         case 'paddle-hit':
           stage.shake(e.lethal ? 1.4 : 0.7);
           audio.stunned();
+          buzz(audio, e.lethal ? [80, 40, 120] : 60);
           ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
         case 'miss': ui.toast([{ emoji: fruitFor(e.mult).emoji }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger'); break;
@@ -117,7 +134,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           stage.shake(0.6);
           ui.toast(e.name === 'split' ? '전체 ×3 분열!' : '메테오!', 'mega');
           break;
-        case 'lost': audio.lost(); stage.shake(1); ui.toast('−1 ♥', 'danger'); break;
+        case 'lost': audio.lost(); stage.shake(1); buzz(audio, 150); ui.toast('−1 ♥', 'danger'); break;
         case 'finale':
           zapCount = 0;
           slowMo(0.45, 99);
