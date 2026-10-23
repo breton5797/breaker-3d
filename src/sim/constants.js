@@ -4,7 +4,7 @@ export const ROWS = 128;
 
 export const BALL_R = 0.28;
 export const BALL_SPEED = 36;
-export const MAX_BALLS = 1500;
+export const MAX_BALLS = 4000;
 export const MAX_SUBSTEP = 0.4; // max distance a ball travels per substep (cells)
 
 export const PADDLE_Y = 6;
@@ -19,6 +19,7 @@ export const BOMB_RADIUS = 5.5;
 export const BOMB_DELAY = 0.07; // chain reaction delay per hop
 export const COMBO_WINDOW = 0.6; // seconds without a break before combo resets
 export const METEOR_COUNT = 12;
+export const SPLIT_SKILL_MAX = 150; // most balls one split skill can add
 export const LAUNCH_BALLS = 3; // every serve is a small fan so openings are lively
 export const FINALE_FRACTION = 0.025; // bricks left (of total) that trigger the finale sweep
 export const STALL_TIME = 6; // seconds without a break that also trigger the finale...
@@ -58,9 +59,11 @@ export const ITEM_MULT = Object.freeze({
 });
 export const DROP_SPEED = 16; // cells per second an item capsule falls
 export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
-// Caught multipliers queue their balls and release them at this rate, so the
-// swarm swells over a minute or two instead of appearing all at once.
-export const RELEASE_RATE = 5; // balls per second
+// Caught multipliers queue their balls; each second about RELEASE_DRAIN of
+// the queue (at least RELEASE_RATE balls) pours out, so every catch visibly
+// multiplies the swarm within a few seconds.
+export const RELEASE_RATE = 20; // minimum balls per second while any are queued
+export const RELEASE_DRAIN = 0.6; // fraction of the queue released per second
 
 export const SPLIT_COUNT = Object.freeze({
   [CELL.SPLIT2]: 2,

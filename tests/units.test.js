@@ -115,6 +115,17 @@ describe('unit behaviour', () => {
     expect(high.lives).toBe(2);
   });
 
+  it('a stunned paddle cannot be hit again until it recovers', () => {
+    const w = world([[0, 0, '#']]);
+    park(w);
+    setPaddleX(w, 20);
+    // Three lethal bombs arriving one right after another.
+    w.shells = [0, 0.4, 0.8].map((dy) => ({ x: 20, y: PADDLE_Y + 1 + dy, vx: 0, vy: -10, tier: 10 }));
+    run(w, 0.5);
+    expect(w.lives).toBe(2); // only the first lethal bomb counts
+    expect(drainEvents(w).filter((e) => e.t === 'paddle-hit')).toHaveLength(1);
+  });
+
   it('a dodged bomb falls away harmlessly', () => {
     const w = world([[0, 0, '#']]);
     park(w);

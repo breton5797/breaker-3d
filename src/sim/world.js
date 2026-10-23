@@ -1,6 +1,6 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W,
-  PADDLE_MAX_ANGLE, RELEASE_RATE, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
+  PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
@@ -14,7 +14,7 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
 /**
  * @param {string[]} lines level text
  * @param {{ rng?: () => number, lives?: number, brickHp?: number, paddleW?: number, releaseRate?: number,
- *   charges?: {split:number, meteor:number} }} [opts]
+ *   dropSpeed?: number, aggression?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
   const grid = parseLevel(lines, { brickHp: opts.brickHp });
@@ -29,6 +29,8 @@ export function createWorld(lines, opts = {}) {
     paddle: { x: COLS / 2, w: opts.paddleW ?? PADDLE_W, prevX: COLS / 2 },
     basePaddleW: opts.paddleW ?? PADDLE_W,
     releaseRate: opts.releaseRate ?? RELEASE_RATE,
+    dropSpeed: opts.dropSpeed ?? DROP_SPEED, // how fast fruit falls
+    aggression: opts.aggression ?? 1, // unit fire-rate and bomb-speed factor
     state: 'ready', // ready | play | clear | over
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
@@ -84,8 +86,11 @@ export function useSkill(w, name) {
   const b = w.balls;
   if (name === 'split') {
     if (w.state !== 'play' || b.n === 0) return false;
+    // Each ball becomes three, but one use adds at most SPLIT_SKILL_MAX balls
+    // so stacked charges can't blow a whole stage away in seconds.
     const n0 = b.n;
-    for (let i = 0; i < n0; i++) splitBall(w, i, 3);
+    const cap = n0 + SPLIT_SKILL_MAX;
+    for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(3, 1 + cap - b.n));
   } else {
     if (w.state === 'ready') b.n = 0;
     for (let k = 0; k < METEOR_COUNT; k++) {

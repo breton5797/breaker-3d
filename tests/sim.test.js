@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME, LAUNCH_BALLS } from '../src/sim/constants.js';
+import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME, LAUNCH_BALLS, SPLIT_SKILL_MAX } from '../src/sim/constants.js';
 import { parseLevel, getLevel, LEVELS } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
 import { createWorld, stepWorld, launch, setPaddleX, useSkill, drainEvents } from '../src/sim/world.js';
@@ -384,6 +384,14 @@ describe('paddle, lives and flow', () => {
     expect(w.balls.n).toBe(6);
     expect(w.charges.split).toBe(0);
     expect(useSkill(w, 'split')).toBe(false);
+  });
+
+  it('one split skill adds at most SPLIT_SKILL_MAX balls', () => {
+    const w = world([[0, 0, '#']]);
+    w.charges.split = 1;
+    for (let i = 0; i < 400; i++) addBall(w.balls, 20 + (i % 30), 40, 0, 30, 0);
+    expect(useSkill(w, 'split')).toBe(true);
+    expect(w.balls.n).toBe(400 + SPLIT_SKILL_MAX);
   });
 
   it('meteor skill fans out fire balls from the paddle', () => {

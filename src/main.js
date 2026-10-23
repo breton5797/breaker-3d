@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { COLS, PADDLE_Y, PADDLE_H, BALL_R } from './sim/constants.js';
-import { getLevel, LEVELS, STAGE_COUNT } from './sim/levels.js';
+import { getLevel, LEVELS } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -57,7 +57,10 @@ const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 function startLevel(i) {
   level = getLevel(i);
   const p = level.params;
-  world = createWorld(level.lines, { brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate });
+  world = createWorld(level.lines, {
+    brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
+    dropSpeed: p.dropSpeed, aggression: p.aggression,
+  });
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   units3d.setLevel(world.units);
@@ -96,7 +99,7 @@ function finishLevel(cleared) {
     setTimeout(() => ui.showClear({
       score: w.score,
       stars,
-      hasNext: level.index + 1 < STAGE_COUNT,
+      hasNext: true, // endless
       stats: [
         ['클리어 시간', `${elapsed.toFixed(1)}초`],
         ['최대 공 개수', ui.fmt(w.peakBalls)],

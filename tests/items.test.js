@@ -78,13 +78,28 @@ describe('multiplier item bricks', () => {
     run(w, 0.3);
     const early = w.balls.n;
     expect(early).toBeGreaterThan(2);
-    expect(early).toBeLessThan(60);
-    run(w, 2);
-    const mid = w.balls.n;
-    expect(mid).toBeGreaterThan(early);
-    run(w, 45);
+    expect(early).toBeLessThan(150); // a visible burst, not an instant pop
+    run(w, 6);
+    // ...and the whole catch has arrived within a few seconds.
     expect(w.balls.n).toBe(200);
     expect(w.queued).toBe(0);
+  });
+
+  it('every fruit caught keeps growing the swarm (no plateau)', () => {
+    const w = sealed();
+    addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
+    setPaddleX(w, 20);
+    const counts = [];
+    for (const mult of [5, 5, 5, 5]) {
+      w.drops = [{ x: 20, y: PADDLE_Y + 1, mult }];
+      run(w, 8, 1 / 60);
+      counts.push(w.balls.n);
+    }
+    expect(counts).toEqual([5, 25, 125, 625]);
+  });
+
+  it('the ball cap is high enough for thousands of balls', () => {
+    expect(MAX_BALLS).toBeGreaterThanOrEqual(4000);
   });
 
   it('consecutive catches build a catch combo that a miss resets', () => {
@@ -115,6 +130,23 @@ describe('multiplier item bricks', () => {
     expect(w.drops).toHaveLength(0);
     expect(w.balls.n).toBe(1);
     expect(drainEvents(w).some((e) => e.t === 'miss')).toBe(true);
+  });
+
+  it('released balls are born inside the wall when any ball is in there', () => {
+    // Steel floor on text line 20 with a hole; one ball inside, many outside.
+    const p = [[0, 29, '#']];
+    for (let c = 0; c < COLS; c++) if (c < 40 || c > 42) p.push([c, 20, 'S']);
+    const w = world(p);
+    const floorY = ROWS - 1 - 20;
+    addBall(w.balls, 30, ROWS - 3, 30, 0, 0); // inside, rallying under the ceiling
+    for (let i = 0; i < 30; i++) addBall(w.balls, 10 + i, floorY - 20, 30, 0, 0); // outside, below the floor
+    w.queued = 40;
+    w.releaseRate = 40;
+    run(w, 0.5);
+    let insideBorn = 0;
+    for (let i = 31; i < w.balls.n; i++) if (w.balls.y[i] > floorY) insideBorn++;
+    expect(w.balls.n).toBeGreaterThan(40);
+    expect(insideBorn).toBe(w.balls.n - 31);
   });
 
   it('multiplication never exceeds MAX_BALLS', () => {
