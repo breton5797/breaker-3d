@@ -1,22 +1,21 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAIN } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
 /** @returns {number} how much a fruit (identified by its ITEM_MULT) multiplies the swarm */
-export const fruitGain = (mult) => mult * FRUIT_GAIN;
+export const fruitGain = (mult) => FRUIT_GAINS[mult] ?? 2;
 
 /**
  * Queues enough balls to multiply the current count by `mult` (capped by the
- * pool), and always at least one more, so every fruit grows the swarm. They are
- * released gradually by releaseQueued.
+ * pool). They are released gradually by releaseQueued.
  * @returns {number} the ball count this catch is heading for
  */
 export function multiplyBalls(w, mult) {
   const b = w.balls;
   const have = b.n + w.queued;
-  const target = Math.min(b.cap, Math.max(have + 1, Math.round(Math.max(have, 1) * mult)));
+  const target = Math.min(b.cap, Math.round(Math.max(have, 1) * mult));
   w.queued += Math.max(0, target - have);
   return target;
 }

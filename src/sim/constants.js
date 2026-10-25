@@ -57,8 +57,9 @@ export const ITEM_MULT = Object.freeze({
   [CELL.ITEM50]: 50,
   [CELL.ITEM100]: 100,
 });
-// A caught fruit multiplies the swarm by its ITEM_MULT times this (x5 cherry -> x1.25 ... x100 pineapple -> x25).
-export const FRUIT_GAIN = 0.25;
+// How much each caught fruit multiplies the swarm, keyed by its ITEM_MULT id:
+// cherry x2, strawberry x3, orange x5, apple x7, watermelon x9, pineapple x10.
+export const FRUIT_GAINS = Object.freeze({ 5: 2, 10: 3, 20: 5, 30: 7, 50: 9, 100: 10 });
 export const DROP_SPEED = 16; // cells per second an item capsule falls
 export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
 // Caught multipliers queue their balls; each second about RELEASE_DRAIN of
