@@ -1,5 +1,6 @@
 import { COLS, CELL, PADDLE_Y, PADDLE_H, UNIT_TIERS, UNIT_GRACE, MAX_SHELLS } from './constants.js';
 import { refreshPaddle } from './paddle.js';
+import { isInside } from './box.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const SPREAD = 4.4; // sideways speed between bombs of one volley
@@ -31,10 +32,9 @@ function volley(w, u) {
   w.events.push({ t: 'fire-shell', c: u.c, r: u.r, tier: u.tier });
 }
 
-/** True when at least one ball is above the sealed floor. */
+/** True when at least one ball is inside the landmark's box. */
 export function ballInside(w) {
-  const line = w.grid.floorRow + 1;
-  for (let i = 0; i < w.balls.n; i++) if (w.balls.y[i] > line) return true;
+  for (let i = 0; i < w.balls.n; i++) if (isInside(w.grid, w.balls.x[i], w.balls.y[i])) return true;
   return false;
 }
 

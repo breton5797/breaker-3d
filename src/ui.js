@@ -1,4 +1,4 @@
-import { levelName } from './sim/levels.js';
+import { levelName, LEVELS } from './sim/levels.js';
 import { ACHIEVEMENTS } from './achievements.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
@@ -9,13 +9,13 @@ const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
 const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;
 
-const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv'];
+const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv', 'screen-credits'];
 
 /**
  * DOM layer. All dynamic text goes through textContent.
  * @param {{ onPlay:(i:number)=>void, onNext:()=>void, onRetry:()=>void, onMenu:()=>void,
  *   onSkill:(name:string)=>void, onMute:()=>void, onPause:()=>void, onResume:()=>void,
- *   onAchievements:()=>void }} h
+ *   onAchievements:()=>void, onCredits:()=>void }} h
  */
 export function createUI(h) {
   const overlay = $('overlay');
@@ -31,6 +31,8 @@ export function createUI(h) {
   bind('btn-resume', h.onResume);
   bind('btn-achv', h.onAchievements);
   bind('btn-achv-back', h.onMenu);
+  bind('btn-credits', h.onCredits);
+  bind('btn-credits-back', h.onMenu);
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('skill-split', () => h.onSkill('split'));
@@ -48,7 +50,7 @@ export function createUI(h) {
     $('hud').hidden = !on;
     if (!on) setFinale(null);
     $('skills').hidden = !on;
-    if (!on) $('hint').hidden = true;
+    if (!on) { $('hint').hidden = true; $('photo-credit').hidden = true; }
   }
 
   function showTitle(save) {
@@ -111,6 +113,37 @@ export function createUI(h) {
       return li;
     }));
     show('screen-achv');
+  }
+
+  /** Credits screen: one row per landmark photo (author, licence, link to its Commons page). */
+  function showCredits(credits) {
+    const rows = LEVELS.filter((m) => credits[m.id]).map((m) => {
+      const c = credits[m.id];
+      const li = document.createElement('li');
+      const name = document.createElement('b');
+      name.textContent = m.name;
+      const link = document.createElement('a');
+      link.href = c.source;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = `${c.artist} · ${c.license}`;
+      li.append(name, link);
+      return li;
+    });
+    if (!rows.length) {
+      const li = document.createElement('li');
+      li.textContent = '사진 정보를 불러오지 못했습니다.';
+      rows.push(li);
+    }
+    $('credits-list').replaceChildren(...rows);
+    show('screen-credits');
+  }
+
+  /** Small caption naming the photographer of the current background (null hides it). */
+  function setPhotoCredit(credit) {
+    const el = $('photo-credit');
+    el.hidden = !credit;
+    if (credit) el.textContent = `📷 ${credit.artist} · ${credit.license}`;
   }
 
   /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean}} s */
@@ -220,6 +253,8 @@ export function createUI(h) {
     showOver,
     showPause: (on) => show(on ? 'screen-pause' : null),
     showAchievements,
+    showCredits,
+    setPhotoCredit,
     floatAt,
     setFinale,
     fmt,

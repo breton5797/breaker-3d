@@ -13,11 +13,11 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
 
 /**
  * @param {string[]} lines level text
- * @param {{ rng?: () => number, lives?: number, brickHp?: number, paddleW?: number, releaseRate?: number,
+ * @param {{ rng?: () => number, lives?: number, brickHp?: number, paddleW?: number, releaseRate?: number, box?: object, holes?: object[],
  *   dropSpeed?: number, aggression?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
-  const grid = parseLevel(lines, { brickHp: opts.brickHp });
+  const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes });
   const rng = opts.rng ?? Math.random;
   return {
     grid,

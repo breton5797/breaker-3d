@@ -8,10 +8,7 @@ const idx = (c, r) => r * COLS + c;
 
 function inspect(i) {
   const lvl = getLevel(i);
-  const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp });
-  const floor = g.floorRow;
-  const hole = [];
-  for (let c = 0; c < COLS; c++) if (g.cells[idx(c, floor)] === CELL.EMPTY) hole.push(c);
+  const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp, box: lvl.box, holes: lvl.holes });
   let items = 0;
   let topTier = 0;
   let units = 0;
@@ -19,7 +16,7 @@ function inspect(i) {
     if (ITEM_MULT[g.cells[k]]) items++;
     if (g.cells[k] === CELL.UNIT) { units++; topTier = Math.max(topTier, g.tier[k]); }
   }
-  return { lvl, g, hole, items, units, topTier };
+  return { lvl, g, items, units, topTier };
 }
 
 describe('endless difficulty curve', () => {
@@ -34,7 +31,8 @@ describe('endless difficulty curve', () => {
     let prev = stageParams(0);
     for (let i = 1; i < 1000; i++) {
       const p = stageParams(i);
-      expect(p.holeW).toBeLessThanOrEqual(prev.holeW);
+      expect(p.holeCount).toBeLessThanOrEqual(prev.holeCount);
+      expect(p.holeSize).toBeLessThanOrEqual(prev.holeSize);
       expect(p.brickHp).toBeGreaterThanOrEqual(prev.brickHp);
       expect(p.items).toBeLessThanOrEqual(prev.items);
       expect(p.bigItemShare).toBeLessThanOrEqual(prev.bigItemShare);
@@ -51,12 +49,13 @@ describe('endless difficulty curve', () => {
 
   it('stage 1 is a beginner stage; by stage 200 the step knobs are at their hardest', () => {
     const easy = stageParams(0);
-    expect(easy.holeW).toBeGreaterThanOrEqual(12);
+    expect(easy.holeCount).toBe(6);
     expect(easy.brickHp).toBe(1);
     expect(easy.unitCount).toBe(0);
     expect(easy.lives).toBeGreaterThanOrEqual(5);
     const hard = stageParams(199);
-    expect(hard.holeW).toBeLessThanOrEqual(3);
+    expect(hard.holeCount).toBe(1);
+    expect(hard.holeSize).toBe(1);
     expect(hard.brickHp).toBe(3);
     expect(hard.unitTop).toBe(10);
     expect(hard.lives).toBe(3);
@@ -89,19 +88,19 @@ describe('endless difficulty curve', () => {
   const sample = [...Array(18).keys(), 19, 33, 49, 74, 99, 124, 149, 174, 199, 299, 999];
   for (const i of sample) {
     it(`stage ${i + 1} is built to its parameters`, () => {
-      const { lvl, hole, items, units, topTier } = inspect(i);
+      const { lvl, items, units, topTier } = inspect(i);
       const p = lvl.params;
       expect(lvl.lines.length).toBeLessThanOrEqual(ROWS - 14);
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
-      expect(hole.length).toBe(p.holeW);
-      expect(hole[hole.length - 1] - hole[0]).toBe(hole.length - 1);
+      expect(lvl.holes).toHaveLength(p.holeCount);
       expect(items).toBeGreaterThanOrEqual(Math.floor(p.items * 0.8));
       expect(units).toBe(p.unitCount);
       expect(topTier).toBe(p.unitTop);
       expect(lvl.name.length).toBeGreaterThan(0);
-      // The sim must find the sealed floor (above the guard rows) even when the beginner hole is wide.
-      const g = parseLevel(lvl.lines, { brickHp: p.brickHp });
-      expect(g.floorRow).toBe(ROWS - lvl.lines.length + 2);
+      // The box floor is the bottom line, and the sim still recognises it as the sealed floor.
+      expect(lvl.box.bottom).toBe(ROWS - lvl.lines.length);
+      const g = parseLevel(lvl.lines, { brickHp: p.brickHp, box: lvl.box, holes: lvl.holes });
+      expect(g.floorRow).toBe(lvl.box.bottom);
     });
   }
 

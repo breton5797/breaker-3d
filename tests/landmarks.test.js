@@ -1,29 +1,22 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
 import { COLS, ROWS, CELL } from '../src/sim/constants.js';
-import { parseLevel, getLevel, stageParams, LEVELS, levelName } from '../src/sim/levels.js';
+import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX } from '../src/sim/levels.js';
 import { tint } from '../src/sim/maps.js';
+import { isInside } from '../src/sim/box.js';
 
 const idx = (c, r) => r * COLS + c;
-
-/** Entrance geometry of a built stage: hole span, guard cells under it. */
-function entrance(i) {
+const build = (i) => {
   const lvl = getLevel(i);
-  const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp });
-  const floor = g.floorRow;
-  const hole = [];
-  for (let c = 0; c < COLS; c++) if (g.cells[idx(c, floor)] !== CELL.STEEL) hole.push(c);
-  const guard = [];
-  for (let r = 0; r < floor; r++) {
-    for (let c = 0; c < COLS; c++) if (g.cells[idx(c, r)] === CELL.STEEL) guard.push({ c, r });
-  }
-  return { lvl, g, floor, hole, guard };
-}
+  return { lvl, g: parseLevel(lvl.lines, { brickHp: lvl.params.brickHp, box: lvl.box, holes: lvl.holes }) };
+};
+const SIDES = ['bottom', 'left', 'right', 'top', 'bl', 'br', 'tl', 'tr'];
 
-/** Breakable cells reachable from the entrance without passing through steel. */
-function reachableShare(g, floor, hole) {
+/** Share of breakable cells reachable from outside the box without crossing steel. */
+function reachableShare(g) {
   const seen = new Uint8Array(g.cells.length);
-  const stack = hole.map((c) => idx(c, floor));
-  stack.forEach((k) => { seen[k] = 1; });
+  const stack = [idx(0, ROWS - 1)];
+  seen[stack[0]] = 1;
   let reached = 0;
   while (stack.length) {
     const k = stack.pop();
@@ -33,7 +26,7 @@ function reachableShare(g, floor, hole) {
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nc = c + dc;
       const nr = r + dr;
-      if (nc < 0 || nc >= COLS || nr <= floor || nr >= ROWS) continue;
+      if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) continue;
       const nk = idx(nc, nr);
       if (seen[nk] || g.cells[nk] === CELL.STEEL) continue;
       seen[nk] = 1;
@@ -44,13 +37,25 @@ function reachableShare(g, floor, hole) {
 }
 
 describe('landmark maps', () => {
-  it('offer at least 24 distinct landmarks with a place and era', () => {
+  it('offer at least 24 distinct landmarks with a place, era and photo id', () => {
     expect(LEVELS.length).toBeGreaterThanOrEqual(24);
     expect(new Set(LEVELS.map((m) => m.name)).size).toBe(LEVELS.length);
+    expect(new Set(LEVELS.map((m) => m.id)).size).toBe(LEVELS.length);
     for (const m of LEVELS) {
       expect(m.subtitle).toMatch(/·/);
       expect(m.palette).toHaveLength(8);
       for (const hex of m.palette) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('every landmark has a freely licensed photo with credits', () => {
+    const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
+    for (const m of LEVELS) {
+      expect(existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url))).toBe(true);
+      const c = credits[m.id];
+      expect(c.artist.length).toBeGreaterThan(0);
+      expect(c.license).toMatch(/^(public domain|cc0|cc by(-sa)? [\d.]+( \w+)?)$/i);
+      expect(c.source).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
     }
   });
 
@@ -61,115 +66,103 @@ describe('landmark maps', () => {
     expect(getLevel(2 * L + 3).name).toBe(`${LEVELS[3].name} · 밤`);
     expect(getLevel(3 * L + 5).name).toBe(LEVELS[5].name);
     for (const i of [0, L, 2 * L, 7 * L + 11]) expect(levelName(i)).toBe(getLevel(i).name);
-  });
-
-  it('every mural fits the field with its gutter, so the lobby is never cut off', () => {
-    for (const m of LEVELS) {
-      const lines = m.build();
-      expect(6 + 2 * lines.length).toBeLessThanOrEqual(ROWS - 14);
-      for (const l of lines) expect(l.length).toBe(COLS / 2);
-    }
+    expect(getLevel(L).photo).toBe(LEVELS[0].id);
+    expect(getLevel(0).photoTint).toBe('#ffffff');
+    expect(getLevel(L).photoTint).not.toBe('#ffffff');
   });
 
   it('revisits recolour the palette but keep valid colours', () => {
     const L = LEVELS.length;
-    const day = getLevel(0).palette;
-    const dusk = getLevel(L).palette;
-    const night = getLevel(2 * L).palette;
-    expect(dusk).not.toEqual(day);
-    expect(night).not.toEqual(day);
-    for (const hex of [...dusk, ...night]) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(getLevel(L).palette).not.toEqual(getLevel(0).palette);
+    expect(getLevel(2 * L).palette).not.toEqual(getLevel(0).palette);
+    for (const hex of [...getLevel(L).palette, ...getLevel(2 * L).palette]) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
     expect(tint('#000000', '#ffffff', 0.5)).toBe('#808080');
   });
 
   for (let i = 0; i < 24; i++) {
-    it(`map ${i + 1} is a solid, fully reachable landmark`, () => {
-      const { lvl, g, floor, hole } = entrance(i);
+    it(`map ${i + 1} sits in a steel box and every brick is reachable through its holes`, () => {
+      const { lvl, g } = build(i);
       expect(lvl.lines.length).toBeLessThanOrEqual(ROWS - 14);
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
-      expect(g.total).toBeGreaterThan(1000);
-      let steel = 0;
-      for (let k = 0; k < g.cells.length; k++) if (g.cells[k] === CELL.STEEL && Math.floor(k / COLS) > floor) steel++;
-      expect(steel / (g.total + steel)).toBeLessThan(0.15);
-      // No steel may seal bricks away from the entrance.
-      expect(reachableShare(g, floor, hole)).toBeGreaterThan(0.99);
+      expect(g.total).toBeGreaterThan(800);
+      expect(reachableShare(g)).toBeGreaterThan(0.99);
     });
   }
 });
 
-describe('entrance difficulty', () => {
-  it('the hole narrows one cell at a time from 16 to 2', () => {
-    expect(stageParams(0).holeW).toBe(16);
-    expect(stageParams(199).holeW).toBe(2);
-    let prev = stageParams(0);
-    for (let i = 1; i < 400; i++) {
-      const p = stageParams(i);
-      expect(prev.holeW - p.holeW).toBeGreaterThanOrEqual(0);
-      expect(prev.holeW - p.holeW).toBeLessThanOrEqual(1);
-      prev = p;
+describe('the box', () => {
+  it('has open lanes left, right and above, and steel walls with only the holes open', () => {
+    const { lvl, g } = build(0);
+    const b = lvl.box;
+    expect(b).toEqual(BOX(lvl.lines.length));
+    expect(b.left).toBeGreaterThanOrEqual(6);
+    expect(COLS - 1 - b.right).toBeGreaterThanOrEqual(6);
+    expect(ROWS - 1 - b.top).toBeGreaterThanOrEqual(5);
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < b.left; c++) expect(g.cells[idx(c, r)]).toBe(CELL.EMPTY);
+    const open = new Set(lvl.holes.flatMap((h) => h.cells.map(([c, r]) => idx(c, r))));
+    for (let c = b.left; c <= b.right; c++) {
+      for (const r of [b.bottom, b.top]) expect(g.cells[idx(c, r)] === CELL.STEEL || open.has(idx(c, r))).toBe(true);
+    }
+    for (let r = b.bottom; r <= b.top; r++) {
+      for (const c of [b.left, b.right]) expect(g.cells[idx(c, r)] === CELL.STEEL || open.has(idx(c, r))).toBe(true);
     }
   });
 
-  it('the hole drifts off-centre gradually after the first 10 stages', () => {
-    for (let i = 0; i < 10; i++) expect(stageParams(i).holeShift).toBe(0);
-    let prev = stageParams(10);
-    for (let i = 11; i < 400; i++) {
-      const p = stageParams(i);
-      expect(p.holeShift).toBeGreaterThanOrEqual(prev.holeShift);
-      expect(p.holeShift - prev.holeShift).toBeLessThanOrEqual(0.03);
-      prev = p;
-    }
-    expect(stageParams(199).holeShift).toBeGreaterThanOrEqual(0.7);
-    expect(stageParams(1e6).holeShift).toBeLessThanOrEqual(0.8);
-  });
-
-  it('a steel guard appears under the hole from stage 61 and grows', () => {
-    for (let i = 0; i < 60; i++) expect(stageParams(i).guard).toBe(0);
-    expect(stageParams(60).guard).toBe(1);
-    let prev = 0;
-    for (let i = 60; i < 400; i++) {
-      const { guard } = stageParams(i);
-      expect(guard).toBeGreaterThanOrEqual(prev);
-      prev = guard;
-    }
-    expect(prev).toBeLessThanOrEqual(4);
-  });
-
-  it('stage 1 has a wide, centred, unguarded entrance', () => {
-    const { hole, guard } = entrance(0);
-    expect(hole).toHaveLength(16);
-    expect(Math.abs((hole[0] + hole.at(-1) + 1) / 2 - COLS / 2)).toBeLessThanOrEqual(0.5);
-    expect(guard).toHaveLength(0);
-  });
-
-  it('built entrances follow the knobs: width, side offset and a guard that never covers the hole', () => {
-    for (const i of [10, 11, 40, 41, 60, 99, 140, 181, 198, 199, 350]) {
-      const { lvl, hole, guard, floor, g } = entrance(i);
-      const p = lvl.params;
-      expect(hole).toHaveLength(p.holeW);
-      expect(hole.at(-1) - hole[0]).toBe(p.holeW - 1);
-      const centre = (hole[0] + hole.at(-1) + 1) / 2;
-      const maxOff = (COLS - p.holeW) / 2 - 6;
-      const side = i % 2 === 0 ? 1 : -1;
-      expect(Math.abs(centre - (COLS / 2 + side * p.holeShift * maxOff))).toBeLessThanOrEqual(1);
-      // Open cavity right above the hole so an entering ball keeps going.
-      for (let r = floor + 1; r <= floor + 8; r++) for (const c of hole) expect(g.cells[idx(c, r)]).toBe(CELL.EMPTY);
-      // The guard never covers the whole hole: at least one column stays open straight up.
-      const want = Math.max(0, Math.min(p.guard, p.holeW - 1));
-      expect(guard).toHaveLength(want);
-      for (const { c, r } of guard) {
-        expect(r).toBe(floor - 2);
-        expect(c).toBeGreaterThanOrEqual(hole[0]);
-        expect(c).toBeLessThanOrEqual(hole.at(-1));
+  it('every hole is 1-2 cells wide and opens onto a clear pocket inside', () => {
+    for (const i of [0, 7, 40, 99, 100, 160, 333]) {
+      const { lvl, g } = build(i);
+      for (const h of lvl.holes) {
+        expect(h.size).toBe(lvl.params.holeSize);
+        for (const [c, r] of h.cells) expect(g.cells[idx(c, r)]).toBe(CELL.EMPTY);
+        // Step a few cells inward from the hole: nothing but air.
+        const [c0, r0] = h.cells[0];
+        for (let k = 1; k <= 4; k++) expect(g.cells[idx(c0 + h.inward[0] * k, r0 + h.inward[1] * k)]).toBe(CELL.EMPTY);
       }
     }
   });
 
-  it('the narrowest late entrances still carry a guard', () => {
-    for (const i of [196, 199, 500]) {
-      const { lvl, guard } = entrance(i);
-      expect(lvl.params.holeW).toBe(2);
-      expect(guard).toHaveLength(1);
+  it('a ball counts as inside only within the box walls', () => {
+    const { lvl, g } = build(0);
+    const b = lvl.box;
+    const midY = (b.bottom + b.top) / 2;
+    expect(isInside(g, (b.left + b.right) / 2, midY)).toBe(true);
+    expect(isInside(g, b.left - 2, midY)).toBe(false);
+    expect(isInside(g, b.right + 2, midY)).toBe(false);
+    expect(isInside(g, (b.left + b.right) / 2, b.bottom - 1)).toBe(false);
+    expect(isInside(g, (b.left + b.right) / 2, b.top + 1)).toBe(false);
+  });
+});
+
+describe('entrance difficulty', () => {
+  it('holes shrink from six two-ball holes to a single one-ball hole, never easier', () => {
+    expect(stageParams(0)).toMatchObject({ holeCount: 6, holeSize: 2 });
+    expect(stageParams(199)).toMatchObject({ holeCount: 1, holeSize: 1 });
+    let prev = stageParams(0);
+    for (let i = 1; i < 500; i++) {
+      const p = stageParams(i);
+      expect(p.holeCount).toBeLessThanOrEqual(prev.holeCount);
+      expect(p.holeSize).toBeLessThanOrEqual(prev.holeSize);
+      expect(prev.holeCount - p.holeCount).toBeLessThanOrEqual(1);
+      prev = p;
     }
+  });
+
+  it('built stages have exactly the planned holes, all on different spots', () => {
+    for (const i of [0, 29, 30, 75, 120, 150, 199, 640]) {
+      const { lvl } = build(i);
+      expect(lvl.holes).toHaveLength(lvl.params.holeCount);
+      expect(new Set(lvl.holes.map((h) => h.slot)).size).toBe(lvl.holes.length);
+      for (const h of lvl.holes) expect(SIDES).toContain(h.side);
+    }
+  });
+
+  it('early stages always keep one hole in the floor, right above the paddle', () => {
+    for (let i = 0; i < 60; i++) expect(getLevel(i).holes.some((h) => h.side === 'bottom')).toBe(true);
+  });
+
+  it('across stages the holes appear on every side and at every corner', () => {
+    const seen = new Set();
+    for (let i = 0; i < 120; i++) for (const h of getLevel(i).holes) seen.add(h.side);
+    expect([...seen].sort()).toEqual([...SIDES].sort());
   });
 });
