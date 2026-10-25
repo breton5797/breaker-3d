@@ -12,7 +12,7 @@ export const ACHIEVEMENTS = Object.freeze([
   { id: 'balls_max', icon: '🌕', name: '공의 바다', desc: `공 ${MAX_BALLS.toLocaleString('ko-KR')}개(최대치) 달성`, test: (s) => s.peakBalls >= MAX_BALLS },
   { id: 'combo_1000', icon: '🔗', name: '콤보 장인', desc: '콤보 1,000 달성', test: (s) => s.bestCombo >= 1000 },
   { id: 'streak_10', icon: '🧺', name: '과일 바구니', desc: '과일 10개 연속 받기', test: (s) => s.bestStreak >= 10 },
-  { id: 'pineapple', icon: '🍍', name: '황금 파인애플', desc: '파인애플(×50) 받기', test: (s) => s.bestFruit >= 100 },
+  { id: 'pineapple', icon: '🍍', name: '황금 파인애플', desc: '파인애플(×25) 받기', test: (s) => s.bestFruit >= 100 },
   { id: 'kill_5', icon: '🎯', name: '저격수 사냥', desc: 'Lv.5 이상 유닛 격파', test: (s) => s.topKill >= 5 },
   { id: 'kill_10', icon: '👑', name: '파괴신 처단', desc: 'Lv.10 파괴신 격파', test: (s) => s.topKill >= 10 },
   { id: 'stage_20', icon: '🥉', name: '20 스테이지', desc: '스테이지 20 클리어', test: (s) => s.cleared && s.stage + 1 >= 20 },

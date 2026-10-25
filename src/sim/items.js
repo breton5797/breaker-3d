@@ -9,13 +9,14 @@ export const fruitGain = (mult) => mult * FRUIT_GAIN;
 
 /**
  * Queues enough balls to multiply the current count by `mult` (capped by the
- * pool). They are released gradually by releaseQueued.
+ * pool), and always at least one more, so every fruit grows the swarm. They are
+ * released gradually by releaseQueued.
  * @returns {number} the ball count this catch is heading for
  */
 export function multiplyBalls(w, mult) {
   const b = w.balls;
   const have = b.n + w.queued;
-  const target = Math.min(b.cap, Math.round(Math.max(have, 1) * mult));
+  const target = Math.min(b.cap, Math.max(have + 1, Math.round(Math.max(have, 1) * mult)));
   w.queued += Math.max(0, target - have);
   return target;
 }
