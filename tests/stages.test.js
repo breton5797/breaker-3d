@@ -119,6 +119,6 @@ describe('endless difficulty curve', () => {
     w.drops = [{ x: 9, y: PADDLE_Y + 1, mult: 100 }];
     for (let t = 0; t < 1.3; t += 1 / 120) stepWorld(w, 1 / 120);
     expect(drainEvents(w).some((e) => e.t === 'collect')).toBe(true);
-    expect(w.balls.n).toBeGreaterThanOrEqual(15); // ~1.2 s at 15/s
+    expect(w.balls.n).toBe(10); // pineapple x10: all ten balls arrive within ~1.2 s at 15/s
   });
 });

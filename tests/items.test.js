@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, ITEM_MULT, FRUIT_GAIN } from '../src/sim/constants.js';
+import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, ITEM_MULT } from '../src/sim/constants.js';
 import { fruitGain } from '../src/sim/items.js';
 import { parseLevel } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
@@ -56,7 +56,7 @@ describe('multiplier item bricks', () => {
       target = drainEvents(w).find((e) => e.t === 'collect')?.n ?? 0;
     }
     expect(w.collected).toBe(1);
-    expect(target).toBe(Math.round(n0 * 2.5)); // cherry: x2.5 after the 50% cut
+    expect(target).toBe(n0 * 2); // cherry: x2
     run(w, 10);
     expect(w.queued).toBe(0); // everything owed has been released
   });
@@ -67,22 +67,30 @@ describe('multiplier item bricks', () => {
     w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 20 }];
     setPaddleX(w, 20);
     run(w, 0.3);
-    expect(drainEvents(w).some((e) => e.t === 'collect' && e.mult === 20 && e.gain === 10 && e.n === 10)).toBe(true);
+    expect(drainEvents(w).some((e) => e.t === 'collect' && e.mult === 20 && e.gain === 5 && e.n === 5)).toBe(true);
   });
 
-  it('every fruit multiplies by half its original amount', () => {
-    expect(FRUIT_GAIN).toBe(0.5);
-    expect([5, 10, 20, 30, 50, 100].map(fruitGain)).toEqual([2.5, 5, 10, 15, 25, 50]);
+  it('fruit multiply by x2, x3, x5, x7, x9 and x10 (cherry to pineapple)', () => {
+    expect([5, 10, 20, 30, 50, 100].map(fruitGain)).toEqual([2, 3, 5, 7, 9, 10]);
   });
 
-  it('a cherry (x2.5) rounds the swarm to whole balls', () => {
+  it('a cherry on a single ball still adds a ball (every fruit grows the swarm)', () => {
+    const w = sealed();
+    addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
+    setPaddleX(w, 20);
+    w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 5 }];
+    run(w, 6);
+    expect(w.balls.n).toBe(2);
+  });
+
+  it('a cherry doubles the swarm', () => {
     const w = sealed();
     addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
     addBall(w.balls, 40, CHAMBER_Y - 4, 30, 0, 0);
     setPaddleX(w, 20);
     w.drops = [{ x: 20, y: PADDLE_Y + 1, mult: 5 }];
     run(w, 6);
-    expect(w.balls.n).toBe(5);
+    expect(w.balls.n).toBe(4);
   });
 
   it('a caught item releases its balls gradually, not all at once', () => {
@@ -96,8 +104,8 @@ describe('multiplier item bricks', () => {
     expect(early).toBeGreaterThan(2);
     expect(early).toBeLessThan(150); // a visible burst, not an instant pop
     run(w, 6);
-    // ...and the whole catch has arrived within a few seconds (pineapple: x50).
-    expect(w.balls.n).toBe(100);
+    // ...and the whole catch has arrived within a few seconds (pineapple: x10).
+    expect(w.balls.n).toBe(20);
     expect(w.queued).toBe(0);
   });
 
@@ -106,7 +114,7 @@ describe('multiplier item bricks', () => {
     addBall(w.balls, 30, CHAMBER_Y, 30, 0, 0);
     setPaddleX(w, 20);
     const counts = [];
-    for (const mult of [10, 10, 10, 10]) { // strawberries: x5 each
+    for (const mult of [20, 20, 20, 20]) { // oranges: x5 each
       w.drops = [{ x: 20, y: PADDLE_Y + 1, mult }];
       run(w, 8, 1 / 60);
       counts.push(w.balls.n);

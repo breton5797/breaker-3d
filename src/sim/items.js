@@ -1,11 +1,11 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAIN } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
 /** @returns {number} how much a fruit (identified by its ITEM_MULT) multiplies the swarm */
-export const fruitGain = (mult) => mult * FRUIT_GAIN;
+export const fruitGain = (mult) => FRUIT_GAINS[mult] ?? 2;
 
 /**
  * Queues enough balls to multiply the current count by `mult` (capped by the
