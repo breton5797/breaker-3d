@@ -1,5 +1,6 @@
 // Drawing kit for handcrafted maps: a coarse 48-wide char canvas that
 // levels.js later upscales to the fine game grid.
+import { mulberry32 } from './rng.js';
 
 // Stages are designed on a coarse 48-wide grid (levels.js upscales them x2).
 export const COLS = 48;
@@ -48,3 +49,32 @@ export function sprinkle(g, rng, count, ch, where = (c) => c !== 'S') {
   }
 }
 export const toLines = (g) => g.map((r) => r.join(''));
+
+// ---------- shape painting for landmark murals ----------
+
+export const CX = COLS / 2;
+
+/** Paints every cell whose centre (x + 0.5, y + 0.5) makes fn return a char. */
+export function paint(g, fn) {
+  for (let y = 0; y < g.length; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const ch = fn(x + 0.5, y + 0.5);
+      if (ch) g[y][x] = ch;
+    }
+  }
+}
+/** Isosceles triangle: apex at (cx, top), half-width hw at y = bottom. */
+export const inTri = (x, y, cx, top, bottom, hw) =>
+  y >= top && y <= bottom && Math.abs(x - cx) <= ((y - top) / Math.max(1e-6, bottom - top)) * hw;
+export const inRect = (x, y, x0, y0, w, h) => x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;
+export const inEllipse = (x, y, cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+
+/**
+ * Scatters special blocks onto bricks of the given palette letters and returns
+ * the finished lines. `specials` is a list of [char, count, letters].
+ */
+export function decorate(g, seed, specials) {
+  const rng = mulberry32(seed * 977 + 5);
+  for (const [ch, count, on] of specials) sprinkle(g, rng, count, ch, (c) => on.includes(c));
+  return toLines(g);
+}

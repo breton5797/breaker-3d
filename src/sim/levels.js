@@ -1,6 +1,6 @@
 import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 
-import { COLS, LEVELS, PALETTES, procedural, toLines } from './maps.js';
+import { COLS, LEVELS, landmarkAt, toLines } from './maps.js';
 
 // Stages are designed on a coarse grid (maps.js), then upscaled to the fine game grid.
 const SCALE = GRID_COLS / COLS;
@@ -71,7 +71,7 @@ export function parseLevel(lines, { brickHp = 1 } = {}) {
 
 /**
  * Lowest row that is mostly steel: the sealed floor, or -1 when there is none.
- * "Mostly" (3/4) because beginner stages cut a hole up to 14 cells wide.
+ * "Mostly" (3/4) because beginner stages cut a hole up to 16 cells wide.
  */
 const FLOOR_STEEL = Math.ceil(GRID_COLS * 0.75);
 
@@ -154,61 +154,69 @@ function seedUnits(lines, top, count, seed) {
   return toLines(g);
 }
 
-const CAVITY = 8; // empty cells needed above the hole so an entering ball keeps going
+const CAVITY = 8; // empty fine rows kept above the floor so an entering ball keeps going
+const WALL_MARGIN = 6; // fine cells the hole always keeps from a side wall
+const GUARD_GAP = 1; // empty fine rows between the floor and the entrance guard
 
 /**
- * Seals the bottom of the stage with steel, leaving one hole `holeW` wide under
- * the window with the most open space above it (a shaft or a chamber),
- * preferring the centre.
+ * Where the entrance goes: centred at first, drifting toward a side wall as
+ * `holeShift` grows (alternating sides stage by stage).
+ * @returns {{ x0:number, w:number }} fine columns [x0, x0 + w)
  */
-function sealFloor(lines, holeW) {
-  const g = lines.map((l) => [...l]);
-  const floor = g.length - 1;
-  const run = (x) => {
-    let n = 0;
-    for (let y = floor - 1; y >= 0 && g[y][x] === '.' && n < CAVITY; y--) n++;
-    return n;
-  };
-  const off = (x) => Math.abs(x + holeW / 2 - GRID_COLS / 2);
-  let best = Math.floor((GRID_COLS - holeW) / 2);
-  let bestOpen = -1;
-  for (let x = 0; x + holeW <= GRID_COLS; x++) {
-    let open = 0;
-    for (let k = 0; k < holeW; k++) if (run(x + k) >= CAVITY) open++;
-    if (open > bestOpen || (open === bestOpen && off(x) < off(best))) { best = x; bestOpen = open; }
-  }
-  g[floor] = Array.from({ length: GRID_COLS }, (_, x) => (x >= best && x < best + holeW ? '.' : 'S'));
-  return toLines(g);
+export function entranceSpan(p, n) {
+  const maxOff = (GRID_COLS - p.holeW) / 2 - WALL_MARGIN;
+  const side = n % 2 === 0 ? 1 : -1;
+  const centre = GRID_COLS / 2 + side * p.holeShift * maxOff;
+  return { x0: Math.round(centre - p.holeW / 2), w: p.holeW };
 }
 
-const PROC_NAMES = ['미궁', '요새', '성벽', '협곡', '탑', '동굴', '벌집', '격자', '광산', '방벽'];
-const finish = (coarse, holeW) => withGutter(sealFloor(upscale(coarse), holeW));
+/**
+ * Opens a full-width lobby above the steel floor. A ball that makes it through
+ * the entrance rattles along the whole floor (the hole is the only way out)
+ * instead of dropping straight back out of a hole-sized pocket.
+ */
+function carveLobby(coarse) {
+  const rows = Math.ceil((CAVITY + 1) / SCALE) + 1;
+  return coarse.map((line, y) => (y >= coarse.length - rows ? '.'.repeat(COLS) : line));
+}
 
 /**
- * Builds stage i (0, 1, 2, ... endless). The handcrafted maps come first; after
- * that every other stage revisits one and the rest are procedural. All
- * difficulty knobs come from stageParams(i).
+ * Seals the bottom with steel, leaving the entrance open, and hangs a short
+ * steel guard under the hole (never wider than the hole minus one cell, so a
+ * straight shot always has a column to slip through).
+ */
+function sealFloor(lines, { x0, w }, guard) {
+  const floor = Array.from({ length: GRID_COLS }, (_, x) => (x >= x0 && x < x0 + w ? '.' : 'S')).join('');
+  const gw = Math.max(0, Math.min(guard, w - 1));
+  const g0 = x0 + Math.floor((w - gw) / 2);
+  const guardLine = Array.from({ length: GRID_COLS }, (_, x) => (x >= g0 && x < g0 + gw ? 'S' : '.')).join('');
+  return [...lines.slice(0, -1), floor, ...Array(GUARD_GAP).fill('.'.repeat(GRID_COLS)), guardLine];
+}
+
+/** @returns {string} the name stage i is shown with (cheap: builds nothing) */
+export const levelName = (i) => landmarkAt(Math.max(0, Math.floor(i))).name;
+
+/**
+ * Builds stage i (0, 1, 2, ... endless). Every stage is a landmark: the list
+ * in order, then again at sunset and at night. All difficulty knobs, including
+ * the entrance, come from stageParams(i).
  * @param {number} i
  */
 export function getLevel(i) {
   const n = Math.max(0, Math.floor(i));
   const p = stageParams(n);
-  const d = Math.min(1, n / 199); // obstacle density for procedural walls
-  const keys = Object.keys(PALETTES);
-  // Handcrafted maps first (in order), then every other stage revisits one.
-  const crafted = n < LEVELS.length ? LEVELS[n] : n % 2 === 0 ? LEVELS[(n / 2) % LEVELS.length] : null;
-  const coarse = crafted ? crafted.build() : procedural(n, d);
-  // Open-chamber and maze layouts leak or trap balls, so they get extra fruit.
-  const items = Math.round(p.items * (crafted?.itemBoost ?? 1));
-  const seeded = seedUnits(seedItems(coarse, items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
-  const lines = finish(seeded, p.holeW);
+  const map = landmarkAt(n);
+  const hole = entranceSpan(p, n);
+  const coarse = carveLobby(map.build());
+  const seeded = seedUnits(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
+  const lines = sealFloor(withGutter(upscale(seeded)), hole, p.guard);
   return {
     index: n,
-    name: crafted ? crafted.name : `${PROC_NAMES[Math.floor(n / 2) % PROC_NAMES.length]} ${n + 1}`,
-    subtitle: crafted ? crafted.subtitle : '벽 속 아이템을 노려라',
-    palette: crafted ? crafted.palette : PALETTES[keys[n % keys.length]],
+    name: map.name,
+    subtitle: map.subtitle,
+    palette: map.palette,
     brickHp: p.brickHp,
-    params: { ...p, items },
+    params: p,
     lines,
   };
 }

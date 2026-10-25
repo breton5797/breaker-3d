@@ -9,10 +9,7 @@ const idx = (c, r) => r * COLS + c;
 function inspect(i) {
   const lvl = getLevel(i);
   const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp });
-  let floor = -1;
-  for (let r = 0; r < ROWS && floor < 0; r++) {
-    for (let c = 0; c < COLS; c++) if (g.cells[idx(c, r)] !== CELL.EMPTY) { floor = r; break; }
-  }
+  const floor = g.floorRow;
   const hole = [];
   for (let c = 0; c < COLS; c++) if (g.cells[idx(c, floor)] === CELL.EMPTY) hole.push(c);
   let items = 0;
@@ -102,9 +99,9 @@ describe('endless difficulty curve', () => {
       expect(units).toBe(p.unitCount);
       expect(topTier).toBe(p.unitTop);
       expect(lvl.name.length).toBeGreaterThan(0);
-      // The sim must find the sealed floor even when the beginner hole is wide.
+      // The sim must find the sealed floor (above the guard rows) even when the beginner hole is wide.
       const g = parseLevel(lvl.lines, { brickHp: p.brickHp });
-      expect(g.floorRow).toBe(ROWS - lvl.lines.length);
+      expect(g.floorRow).toBe(ROWS - lvl.lines.length + 2);
     });
   }
 

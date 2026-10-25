@@ -1,4 +1,4 @@
-import { LEVELS } from './sim/levels.js';
+import { levelName } from './sim/levels.js';
 import { ACHIEVEMENTS } from './achievements.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
@@ -60,7 +60,7 @@ export function createUI(h) {
       const b = document.createElement('button');
       b.className = 'stage-btn';
       b.disabled = i >= save.unlocked;
-      b.title = i < LEVELS.length ? LEVELS[i].name : `STAGE ${i + 1}`;
+      b.title = levelName(i);
       b.setAttribute('aria-label', `스테이지 ${i + 1}${b.disabled ? ' (잠김)' : ''}`);
       const num = document.createElement('b');
       num.textContent = String(i + 1);

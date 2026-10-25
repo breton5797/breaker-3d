@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { COLS, PADDLE_Y, PADDLE_H, BALL_R } from './sim/constants.js';
-import { getLevel, LEVELS } from './sim/levels.js';
+import { getLevel } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -250,7 +250,7 @@ function frame(now) {
 /** Title screen with the latest unlocked stage as an untouched backdrop. */
 function showMenu() {
   mode = 'title';
-  const preview = getLevel(Math.min(save.unlocked - 1, LEVELS.length - 1));
+  const preview = getLevel(save.unlocked - 1);
   const backdrop = createWorld(preview.lines, { brickHp: preview.brickHp, paddleW: preview.params.paddleW });
   bricks.setLevel(backdrop.grid, preview.palette);
   beacon.setLevel(backdrop.grid);

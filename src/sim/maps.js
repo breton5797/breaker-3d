@@ -1,198 +1,89 @@
-import { mulberry32 } from './rng.js';
-import { COLS, canvas, put, rect, stamp, channel, sprinkle, toLines } from './mapkit.js';
-import { rocket, invaders, vault, hourglass, zigzag, honeycomb, donut, cat, checker, staircase } from './maps2.js';
+// Landmark stages: ancient sites, ruins and world-famous places, each a brick
+// mural with its own palette (a/b sky, c ground, d-h the landmark). Ordered
+// from open murals to ones braced with more steel.
+import { COLS, toLines } from './mapkit.js';
+import {
+  giza, stonehenge, moai, parthenon, sphinx, colosseum, chichenItza, angkorWat, petra, machuPicchu, greatWall,
+} from './landmarks/ancient.js';
+import {
+  fuji, liberty, eiffel, pisa, tajMahal, bigBen, sungnyemun, nSeoulTower, operaHouse, goldenGate, stBasil,
+  forbiddenCity, sagradaFamilia,
+} from './landmarks/famous.js';
 
 export { COLS, toLines };
 
-// ---------- handcrafted stages ----------
+const map = (name, subtitle, build, palette) => Object.freeze({ name, subtitle, build, palette: Object.freeze(palette) });
 
-function tunnelT() {
-  const g = canvas(46, '#');
-  rect(g, 6, 2, 36, 7, 'H'); // T crossbar frame
-  rect(g, 20, 8, 8, 38, 'H'); // T stem frame
-  rect(g, 7, 3, 34, 5, '.');
-  rect(g, 21, 8, 6, 38, '.');
-  [[10, 4, '2'], [16, 5, '3'], [24, 4, '5'], [31, 5, '3'], [37, 4, '2']].forEach(([x, y, c]) => put(g, x, y, c));
-  return toLines(g);
+export const LEVELS = Object.freeze([
+  map('기자 피라미드', '이집트 · 기원전 26세기', giza,
+    ['#7ec8f0', '#bfe3f2', '#e9c46a', '#e8b86a', '#ffcf3a', '#c8914a', '#b07a3c', '#d9a55b']),
+  map('후지산', '일본 · 해발 3,776m', fuji,
+    ['#8fc9f2', '#f6c7d4', '#2f7d4f', '#5b6fa8', '#e2453c', '#f4f7fb', '#40538a', '#3a8fd1']),
+  map('스톤헨지', '영국 · 기원전 3000년경', stonehenge,
+    ['#7b6fd6', '#ff9e6d', '#5fa548', '#9aa0a8', '#ffd166', '#6c727c', '#4a4f57', '#3f7d3a']),
+  map('모아이', '칠레 · 라파누이(이스터섬)', moai,
+    ['#5dc1f0', '#a8e0f5', '#6fbf4e', '#7d746c', '#9a9087', '#4b443e', '#1f8fd1', '#c0473a']),
+  map('자유의 여신상', '미국 뉴욕 · 1886년', liberty,
+    ['#78b9ee', '#bcd9f2', '#8c96b0', '#5fb3a1', '#c9b79c', '#ffd23f', '#2b6cb0', '#6b7a99']),
+  map('에펠탑', '프랑스 파리 · 1889년', eiffel,
+    ['#8ec5f5', '#cfe6fb', '#5daa4f', '#8b5e3c', '#b07a4f', '#3d3d3d', '#5d4030', '#cccccc']),
+  map('피사의 사탑', '이탈리아 피사 · 1173년 착공', pisa,
+    ['#7fc4f0', '#c4e4f7', '#62b04f', '#f2ead8', '#d9ccb0', '#a89c84', '#8a5a44', '#e0d6c0']),
+  map('타지마할', '인도 아그라 · 17세기', tajMahal,
+    ['#f7b4a7', '#fbd9c4', '#4f9a4a', '#f7f4ee', '#e3d9c8', '#b9aa94', '#5aa9e6', '#d6b04a']),
+  map('파르테논 신전', '그리스 아테네 · 기원전 5세기', parthenon,
+    ['#6fb8f0', '#b3dcf7', '#b9a27d', '#ece4d2', '#d8ccb2', '#b4a685', '#8f8166', '#7d9a52']),
+  map('빅벤', '영국 런던 · 1859년', bigBen,
+    ['#3a4a8c', '#e98a5c', '#6d7891', '#c9a86a', '#a88a55', '#5a4a35', '#2f5d8a', '#f4efe3']),
+  map('숭례문', '한국 서울 · 1398년', sungnyemun,
+    ['#7ec3ee', '#c3e2f5', '#a7a196', '#b8322c', '#cfc8bb', '#4c5a52', '#2b2f33', '#3e8f6b']),
+  map('N서울타워', '한국 서울 남산 · 1975년', nSeoulTower,
+    ['#16204a', '#26346b', '#2f6b45', '#e8ecf5', '#ffd166', '#9aa6c4', '#3a3f5c', '#cfd8ff']),
+  map('시드니 오페라하우스', '호주 시드니 · 1973년', operaHouse,
+    ['#69b8f2', '#b9def7', '#8a8f99', '#f7f7f2', '#d9c3a3', '#cfd3d6', '#2a7fc9', '#6c8f5a']),
+  map('금문교', '미국 샌프란시스코 · 1937년', goldenGate,
+    ['#9fb7c9', '#dfe7ec', '#7a8f5a', '#c0362c', '#e6e6e6', '#8a241d', '#2c6a8f', '#555b66']),
+  map('성 바실리 대성당', '러시아 모스크바 · 1561년', stBasil,
+    ['#7cc3f0', '#bfe1f5', '#a03c32', '#e2453c', '#c96a4a', '#2e8b57', '#2b6cb0', '#ffd23f']),
+  map('콜로세움', '이탈리아 로마 · 80년', colosseum,
+    ['#7ec8f0', '#c2e5f7', '#b7a57a', '#d8c39a', '#c2ab7f', '#8c7650', '#a08a60', '#6a8f4a']),
+  map('스핑크스', '이집트 기자 · 기원전 26세기', sphinx,
+    ['#79c2ef', '#c8e6f5', '#e7c483', '#e2b66d', '#a97d42', '#c09050', '#d8ac68', '#3f6fa8']),
+  map('치첸이트사', '멕시코 · 마야 문명', chichenItza,
+    ['#6cbdf0', '#b6e0f6', '#2f8a4a', '#cdbf9e', '#b8a882', '#e3d7bb', '#8e8166', '#1f6b3a']),
+  map('앙코르와트', '캄보디아 · 12세기', angkorWat,
+    ['#f59e7a', '#fbc98a', '#6b6458', '#7b7468', '#9c9284', '#5c564c', '#4a7fa8', '#3a5f80']),
+  map('자금성', '중국 베이징 · 1420년', forbiddenCity,
+    ['#7ec3ee', '#c9e5f6', '#2e8b57', '#b8322c', '#efeae0', '#8a2420', '#f2b705', '#b9b2a6']),
+  map('페트라', '요르단 · 나바테아 왕국', petra,
+    ['#8fd0f5', '#e6c79a', '#c97b5a', '#e09b78', '#f0b392', '#9e5a40', '#5a2e22', '#b06a4c']),
+  map('마추픽추', '페루 · 15세기 잉카', machuPicchu,
+    ['#8ec9f2', '#f2f5f8', '#2f7d4f', '#9a9488', '#8c8478', '#c4a35a', '#5fae4e', '#6b7c8a']),
+  map('만리장성', '중국 · 기원전 7세기~17세기', greatWall,
+    ['#7fc4f0', '#c7e4f6', '#3f8f4a', '#9b8f7a', '#b8ad96', '#857862', '#3d3428', '#7aa8c9']),
+  map('사그라다 파밀리아', '스페인 바르셀로나 · 1882년 착공', sagradaFamilia,
+    ['#79c1ef', '#c6e3f6', '#9a8f7a', '#d9c7a1', '#c4b08a', '#9c8a66', '#4a4036', '#5f646e']),
+]);
+
+/** Mixes hex colour `a` toward `b` by t (0..1). */
+export function tint(a, b, t) {
+  const ch = (hex, k) => parseInt(hex.slice(1 + k * 2, 3 + k * 2), 16);
+  const mix = (k) => Math.round(ch(a, k) + (ch(b, k) - ch(a, k)) * t).toString(16).padStart(2, '0');
+  return `#${mix(0)}${mix(1)}${mix(2)}`;
 }
 
-const HEART = [
-  '..###...###..',
-  '.#####.#####.',
-  '#############',
-  '#############',
-  '#############',
-  '.###########.',
-  '..#########..',
-  '...#######...',
-  '....#####....',
-  '.....###.....',
-  '......#......',
+// Each lap of the landmark list comes back at another time of day.
+const VARIANTS = [
+  null,
+  { suffix: ' · 노을', sky: ['#ff8a5c', '#ffc27a'], toward: '#ff7a3c', t: 0.22 },
+  { suffix: ' · 밤', sky: ['#1c2756', '#2e3c78'], toward: '#0b1238', t: 0.4 },
 ];
-function heartBombs() {
-  const g = canvas(40);
-  stamp(g, HEART, 4, 2, 3, { '#': 'a' });
-  const rng = mulberry32(11);
-  sprinkle(g, rng, 14, 'B', (c) => c === 'a');
-  sprinkle(g, rng, 6, '2', (c) => c === 'a');
-  put(g, 23, 34, '3');
-  rect(g, 0, 39, COLS, 1, 'H');
-  return toLines(g);
+
+/** @returns {{ name:string, subtitle:string, palette:string[], build:() => string[] }} landmark for stage n */
+export function landmarkAt(n) {
+  const base = LEVELS[n % LEVELS.length];
+  const v = VARIANTS[Math.floor(n / LEVELS.length) % VARIANTS.length];
+  if (!v) return base;
+  const palette = base.palette.map((hex, k) => (k < 2 ? tint(hex, v.sky[k], 0.75) : tint(hex, v.toward, v.t)));
+  return { ...base, name: base.name + v.suffix, palette };
 }
-
-function spiral() {
-  const g = canvas(46, '#');
-  // Concentric steel rings; each has one gap, alternating bottom/top, so the
-  // ball has to snake inward ring by ring.
-  for (let k = 0, x0 = 1, y0 = 1, x1 = COLS - 2, y1 = 44; x1 - x0 > 6 && y1 - y0 > 6; k++) {
-    rect(g, x0, y0, x1 - x0 + 1, 1, 'S');
-    rect(g, x0, y1, x1 - x0 + 1, 1, 'S');
-    rect(g, x0, y0, 1, y1 - y0 + 1, 'S');
-    rect(g, x1, y0, 1, y1 - y0 + 1, 'S');
-    const gapX = k % 2 === 0 ? 19 : (k % 4 === 1 ? x1 - 11 : x0 + 2);
-    rect(g, gapX, k % 2 === 0 ? y1 : y0, 10, 1, '#');
-    x0 += 5; y0 += 5; x1 -= 5; y1 -= 5;
-  }
-  // Air lanes through every corridor so a swarm can skate along and mow.
-  for (let y = 0; y < g.length; y++) {
-    for (let x = 0; x < COLS; x++) if (g[y][x] === '#' && (y % 5 === 3 || x % 5 === 3)) g[y][x] = '.';
-  }
-  const rng = mulberry32(5);
-  sprinkle(g, rng, 16, '3', (c) => c === '#');
-  sprinkle(g, rng, 22, 'B', (c) => c === '#');
-  sprinkle(g, rng, 4, '-', (c) => c === '#');
-  sprinkle(g, rng, 6, 'F', (c) => c === '#');
-  sprinkle(g, rng, 6, 'B', (c) => c === '#');
-  return toLines(g);
-}
-
-function chainReaction() {
-  const g = canvas(44, '#');
-  // A snaking fuse of bombs 3 apart: one hit cascades along the whole wall.
-  for (let y = 4; y < 44; y += 9) for (let x = 2; x < COLS - 1; x += 3) put(g, x, y, 'B');
-  for (let y = 4; y < 40; y += 3) put(g, Math.floor(y / 9) % 2 === 0 ? COLS - 2 : 2, y, 'B');
-  rect(g, 0, 41, COLS, 1, '-');
-  channel(g, 22);
-  put(g, 10, 20, '|');
-  put(g, 37, 20, '|');
-  return toLines(g);
-}
-
-function smiley() {
-  const g = canvas(46);
-  const cx = 23.5, cy = 20, R = 19;
-  for (let y = 0; y < 46; y++) for (let x = 0; x < COLS; x++) {
-    const d = Math.hypot(x - cx, y - cy);
-    if (d < R) put(g, x, y, d > R - 1 ? 'H' : 'b');
-  }
-  rect(g, 14, 12, 5, 7, 'B');
-  rect(g, 29, 12, 5, 7, 'B');
-  for (let x = 12; x <= 35; x++) put(g, x, Math.round(26 + 7 * Math.sin(((x - 12) / 23) * Math.PI)), 'F');
-  put(g, 23, 40, '5');
-  return toLines(g);
-}
-
-const FONT = {
-  W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'],
-  O: ['.###.', '#ooo#', '#ooo#', '#ooo#', '.###.'], // o = hollow, nothing sealed inside
-};
-function wow() {
-  const g = canvas(44, '#');
-  // Narrow letters (2x wide, 3x tall) leave 6-cell corridors so balls can climb past them.
-  ['W', 'O', 'W'].forEach((ch, i) => stamp(g, FONT[ch], 3 + i * 16, 8, 2, { '#': 'S', o: '.' }, 3));
-  channel(g, 15, 2);
-  channel(g, 31, 2);
-  const rng = mulberry32(3);
-  sprinkle(g, rng, 9, '2', (c) => c === '#');
-  sprinkle(g, rng, 4, '5', (c) => c === '#');
-  sprinkle(g, rng, 5, 'G', (c) => c === '#');
-  return toLines(g);
-}
-
-function pyramid() {
-  const g = canvas(46);
-  for (let s = 0; s < 11; s++) {
-    const y = 4 + s * 4;
-    rect(g, 23 - s * 2, y, 2 + s * 4, 4, String.fromCharCode(97 + (s % 8)));
-    if (s % 2 === 1) put(g, 23 - s * 2, y + 1, '-');
-    if (s % 3 === 2) put(g, 24 + s * 2, y + 2, '-');
-  }
-  put(g, 23, 5, '5');
-  put(g, 12, 40, '3');
-  put(g, 35, 40, '3');
-  put(g, 23, 44, 'F');
-  return toLines(g);
-}
-
-function theWall() {
-  const g = canvas(45, '#');
-  channel(g, 6, 2);
-  channel(g, 39, 2);
-  const rng = mulberry32(2026);
-  sprinkle(g, rng, 6, '5');
-  sprinkle(g, rng, 10, '3');
-  sprinkle(g, rng, 8, 'B');
-  sprinkle(g, rng, 4, '|');
-  sprinkle(g, rng, 6, 'G');
-  return toLines(g);
-}
-
-export function procedural(seed, d = 0) {
-  const rng = mulberry32(seed * 7919 + 13);
-  const h = 34 + Math.floor(rng() * 12);
-  const g = canvas(h, '#');
-  for (let k = 0; k < 3 + Math.floor(rng() * 5 + d * 8); k++) {
-    const w = 3 + Math.floor(rng() * 14);
-    rect(g, Math.floor(rng() * COLS), Math.floor(rng() * h), w, 1 + Math.floor(rng() * 3), rng() < 0.5 ? 'S' : '.');
-  }
-  sprinkle(g, rng, 4 + Math.floor(rng() * 8), '2');
-  sprinkle(g, rng, 2 + Math.floor(rng() * 6), '3');
-  sprinkle(g, rng, 1 + Math.floor(rng() * 3), '5');
-  sprinkle(g, rng, 3 + Math.floor(rng() * 10), 'B');
-  sprinkle(g, rng, Math.floor(rng() * 4), '-');
-  sprinkle(g, rng, Math.floor(rng() * 4), 'F');
-  sprinkle(g, rng, 2, 'G');
-  channel(g, 4 + Math.floor(rng() * 38));
-  return toLines(g);
-}
-
-export const PALETTES = {
-  red: ['#e2453c', '#d93a33', '#ef5a3f', '#c9302c', '#f06a4a', '#d4473a', '#e85d3c', '#b8322c'],
-  pink: ['#ff5c9a', '#ff7ab0', '#e0447f', '#ff92c2', '#c93a72', '#ff6aa6', '#f04f8f', '#d33d79'],
-  ocean: ['#2bb5ff', '#36d1dc', '#3a8dff', '#5ad8ff', '#2878e8', '#4fc3f7', '#1fa2ff', '#62e0ff'],
-  sunset: ['#ff9f1c', '#ff6b6b', '#ffbf69', '#f25f5c', '#ffd166', '#ef476f', '#ffa94d', '#ff7b54'],
-  lemon: ['#ffd23f', '#ffcc1a', '#f7b801', '#ffe066', '#f4a259', '#ffd447', '#ffc300', '#ffe45c'],
-  neon: ['#b388ff', '#7c4dff', '#ea80fc', '#651fff', '#d500f9', '#9575cd', '#e040fb', '#8c9eff'],
-  rainbow: ['#ff4d4d', '#ff9f43', '#feca57', '#1dd1a1', '#48dbfb', '#2e86de', '#a55eea', '#ff6b81'],
-  mint: ['#00d2a0', '#1de9b6', '#00bfa5', '#64ffda', '#26a69a', '#00e5ff', '#18ffff', '#4db6ac'],
-  candy: ['#f2b5d4', '#ff5c8a', '#ffd23f', '#39e6ff', '#7bdff2', '#b388ff', '#1dd1a1', '#ff9f43'],
-  space: ['#e8ecf5', '#ff4d4d', '#3d7bff', '#ffd23f', '#9aa6c4', '#ff9f43', '#c0c8dc', '#7c4dff'],
-  cat: ['#f4a259', '#ffb7c5', '#e8ecf5', '#ffd166', '#f08a4b', '#ffcf9e', '#e07a3f', '#ffe0b5'],
-  chess: ['#f5ead6', '#3b3f58', '#ff6b81', '#48dbfb', '#ffd23f', '#1dd1a1', '#a55eea', '#ff9f43'],
-  arcade: ['#39e6ff', '#ff5c8a', '#ffd23f', '#1dd1a1', '#ff4d4d', '#7cff6b', '#ff7bf0', '#ffa94d'],
-  honey: ['#ffc300', '#ffb000', '#f7a400', '#ffd447', '#e89a00', '#ffcf3a', '#f2b705', '#ffdd66'],
-  sand: ['#e9c46a', '#f4a261', '#e76f51', '#f6d186', '#d4a373', '#faedcd', '#e5989b', '#ccd5ae'],
-  gold: ['#ffd700', '#f5c542', '#e6b422', '#ffe066', '#d4a017', '#fff1a8', '#c99700', '#ffcf40'],
-};
-
-// Ordered roughly from open, forgiving layouts to tight mazes.
-export const LEVELS = [
-  { name: 'T 터널', subtitle: '통로 끝 좁은 구멍으로 공을 넣어라', palette: PALETTES.red, build: tunnelT },
-  { name: '하트 폭탄', subtitle: '하트 아래 틈을 노려라', palette: PALETTES.pink, build: heartBombs, itemBoost: 1.6 },
-  { name: '도넛', subtitle: '스프링클은 레이저, 가운데엔 과일', palette: PALETTES.candy, build: donut },
-  { name: '스마일', subtitle: '웃는 얼굴 밑, 작은 구멍', palette: PALETTES.lemon, build: smiley },
-  { name: '로켓', subtitle: '불꽃을 타고 창문 속 잭팟으로', palette: PALETTES.space, build: rocket },
-  { name: '고양이', subtitle: '불꽃 눈, 폭탄 코, 레이저 수염', palette: PALETTES.cat, build: cat },
-  { name: '레이저 피라미드', subtitle: '구석의 틈을 찾아라', palette: PALETTES.rainbow, build: pyramid },
-  { name: '체스판', subtitle: '모서리마다 강철 못', palette: PALETTES.chess, build: checker },
-  { name: '인베이더', subtitle: '외계인 눈은 폭탄이다', palette: PALETTES.arcade, build: invaders },
-  { name: '연쇄 반응', subtitle: '하나가 터지면 전부 터진다', palette: PALETTES.sunset, build: chainReaction },
-  { name: '벌집', subtitle: '방마다 숨은 과일을 찾아라', palette: PALETTES.honey, build: honeycomb },
-  { name: '계단 폭포', subtitle: '층층이 떨어지는 레이저', palette: PALETTES.ocean, build: staircase },
-  { name: '모래시계', subtitle: '좁은 목을 지나야 위로 간다', palette: PALETTES.sand, build: hourglass, itemBoost: 1.4 },
-  { name: 'W O W', subtitle: '갱도를 타고 올라가라', palette: PALETTES.neon, build: wow },
-  { name: '지그재그', subtitle: '층마다 반대편 출구', palette: PALETTES.neon, build: zigzag, itemBoost: 1.3 },
-  { name: '금고', subtitle: '옆 갱도로 올라가 위에서 금고를 열어라', palette: PALETTES.gold, build: vault },
-  { name: '나선 미로', subtitle: '강철 소용돌이의 중심으로', palette: PALETTES.ocean, build: spiral, itemBoost: 1.4 },
-  { name: '더 월', subtitle: '구멍 하나, 벽돌 7,000개', palette: PALETTES.mint, build: theWall },
-];
