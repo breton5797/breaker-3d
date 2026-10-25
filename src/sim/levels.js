@@ -1,9 +1,10 @@
 import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 
-import { COLS, LEVELS, landmarkAt, toLines } from './maps.js';
+import { LEVELS, landmarkAt, toLines } from './maps.js';
 
-// Stages are designed on a coarse grid (maps.js), then upscaled to the fine game grid.
-const SCALE = GRID_COLS / COLS;
+// Stages are designed on a coarse grid (maps.js), narrowed to fit the box, then
+// upscaled SCALE times to the fine game grid.
+const SCALE = 2;
 
 export { LEVELS };
 import { mulberry32 } from './rng.js';
@@ -36,9 +37,10 @@ const CHAR_CELL = {
  * Letters a-h are bricks with an explicit palette index; '#' bricks get a
  * stripe colour from their line.
  * @param {string[]} lines
- * @param {{ brickHp?: number }} [opts] hits a plain brick takes ('H' adds one more)
+ * @param {{ brickHp?: number, box?: object|null, holes?: object[] }} [opts] brickHp: hits a
+ *   plain brick takes ('H' adds one more); box/holes: the steel box and its entrances (getLevel)
  */
-export function parseLevel(lines, { brickHp = 1 } = {}) {
+export function parseLevel(lines, { brickHp = 1, box = null, holes = [] } = {}) {
   const size = GRID_COLS * ROWS;
   const cells = new Uint8Array(size);
   const hp = new Uint8Array(size);
@@ -66,12 +68,13 @@ export function parseLevel(lines, { brickHp = 1 } = {}) {
       if (type !== CELL.STEEL) remaining++;
     }
   });
-  return { cells, hp, color, tier, remaining, total: remaining, floorRow: findFloorRow(cells) };
+  const floorRow = box ? box.bottom : findFloorRow(cells);
+  return { cells, hp, color, tier, remaining, total: remaining, floorRow, box, holes };
 }
 
 /**
  * Lowest row that is mostly steel: the sealed floor, or -1 when there is none.
- * "Mostly" (3/4) because beginner stages cut a hole up to 16 cells wide.
+ * "Mostly" (3/4) so a few holes in it still count.
  */
 const FLOOR_STEEL = Math.ceil(GRID_COLS * 0.75);
 
@@ -83,9 +86,6 @@ function findFloorRow(cells) {
   }
   return -1;
 }
-
-const GUTTER = 6; // empty fine rows under the ceiling where escaped balls go wild
-const withGutter = (lines) => [...Array(GUTTER).fill('.'.repeat(GRID_COLS)), ...lines].slice(0, ROWS - 14);
 
 // Cells that stay a single fine cell when upscaling; the rest of their block becomes brick.
 const SINGLE = new Set(['A', 'C', 'D', 'E', 'I', 'M', 'B', '-', '|', 'G', 'F', '2', '3', '5', ...UNIT_CHARS]);
@@ -122,7 +122,7 @@ function seedItems(lines, count, bigShare, seed) {
   const g = lines.map((l) => [...l].map((ch) => GATE_TO_ITEM[ch] ?? ch));
   let placed = 0;
   for (let tries = 0; placed < count && tries < 5000; tries++) {
-    const x = Math.floor(rng() * COLS);
+    const x = Math.floor(rng() * g[0].length);
     const y = Math.floor(rng() * g.length);
     if (isPlainBrick(g[y][x])) {
       g[y][x] = pickItem(rng, bigShare);
@@ -142,7 +142,7 @@ function seedUnits(lines, top, count, seed) {
   const deepest = g.length - 4; // keep clear of the sealed floor
   let placed = 0;
   for (let tries = 0; placed < count && tries < 20000; tries++) {
-    const x = Math.floor(rng() * COLS);
+    const x = Math.floor(rng() * g[0].length);
     const y = Math.floor(rng() * deepest);
     if (!isPlainBrick(g[y][x])) continue;
     // One commander at the top tier; the squad is 1-3 tiers below, so at most
@@ -154,69 +154,178 @@ function seedUnits(lines, top, count, seed) {
   return toLines(g);
 }
 
-const CAVITY = 8; // empty fine rows kept above the floor so an entering ball keeps going
-const WALL_MARGIN = 6; // fine cells the hole always keeps from a side wall
-const GUARD_GAP = 1; // empty fine rows between the floor and the entrance guard
+const CAVITY = 8; // empty fine rows kept above the box floor so an entering ball keeps going
+const LANE = 7; // open fine columns between each side wall of the field and the box
+const TOP_LANE = 6; // open fine rows between the ceiling and the box
+const INNER_COARSE = 40; // coarse columns inside the box (murals are drawn 48 wide)
+const INNER = INNER_COARSE * SCALE;
+const POCKET = 6; // fine cells kept clear behind every hole
 
-/**
- * Where the entrance goes: centred at first, drifting toward a side wall as
- * `holeShift` grows (alternating sides stage by stage).
- * @returns {{ x0:number, w:number }} fine columns [x0, x0 + w)
- */
-export function entranceSpan(p, n) {
-  const maxOff = (GRID_COLS - p.holeW) / 2 - WALL_MARGIN;
-  const side = n % 2 === 0 ? 1 : -1;
-  const centre = GRID_COLS / 2 + side * p.holeShift * maxOff;
-  return { x0: Math.round(centre - p.holeW / 2), w: p.holeW };
+/** The steel box for a stage of `lineCount` lines: wall columns and rows (inclusive). */
+export const BOX = (lineCount) => ({ left: LANE, right: LANE + INNER + 1, bottom: ROWS - lineCount, top: ROWS - 1 - TOP_LANE });
+
+// Where holes can go. `at` runs left to right on the floor and ceiling, bottom
+// to top on the side walls. odds = % of random serves that get in through that
+// hole alone, for a two-ball and a one-ball hole (measured by scripts/slot-odds.mjs).
+export const SLOTS = [
+  { slot: 'bottom-l', side: 'bottom', at: 0.25, odds: [1.7, 0.67] },
+  { slot: 'bottom-c', side: 'bottom', at: 0.5, odds: [2.03, 0.87] },
+  { slot: 'bottom-r', side: 'bottom', at: 0.75, odds: [1.87, 1.1] },
+  { slot: 'left-lo', side: 'left', at: 0.35, odds: [0.73, 0.3] },
+  { slot: 'left-hi', side: 'left', at: 0.7, odds: [1.13, 0.37] },
+  { slot: 'right-lo', side: 'right', at: 0.35, odds: [0.77, 0.27] },
+  { slot: 'right-hi', side: 'right', at: 0.7, odds: [1.0, 0.5] },
+  { slot: 'top-l', side: 'top', at: 0.3, odds: [0.93, 0.5] },
+  { slot: 'top-r', side: 'top', at: 0.7, odds: [0.97, 0.33] },
+  { slot: 'bl', side: 'bl', odds: [3.27, 1.73] },
+  { slot: 'br', side: 'br', odds: [2.87, 1.37] },
+  { slot: 'tl', side: 'tl', odds: [2.13, 1.27] },
+  { slot: 'tr', side: 'tr', odds: [2.87, 1.3] },
+];
+const FLOOR_UNTIL = 60; // before this stage one hole is always in the floor
+const ODDS_START = 10; // % of random serves that should get in at stage 1...
+const ODDS_END = 1; // ...falling smoothly to this by stage 200, then holding
+const ODDS_CLOSE = 0.12; // a hole set within this share of the target counts as a match
+
+/** Target entrance odds (%) for stage n: a smooth slide from ODDS_START to ODDS_END. */
+export const targetOdds = (n) => Math.max(ODDS_END, ODDS_START * (ODDS_END / ODDS_START) ** (n / 199));
+
+function combinations(list, k, from = 0, acc = [], out = []) {
+  if (acc.length === k) { out.push(acc); return out; }
+  for (let i = from; i <= list.length - (k - acc.length); i++) combinations(list, k, i + 1, [...acc, list[i]], out);
+  return out;
 }
 
 /**
- * Opens a full-width lobby above the steel floor. A ball that makes it through
- * the entrance rattles along the whole floor (the hole is the only way out)
- * instead of dropping straight back out of a hole-sized pocket.
+ * Picks this stage's hole slots: among every set of `count` slots whose
+ * combined odds land close to targetOdds(n), one at random (so the walls vary
+ * from stage to stage while the difficulty slides smoothly). Early stages
+ * always keep a floor hole.
  */
-function carveLobby(coarse) {
-  const rows = Math.ceil((CAVITY + 1) / SCALE) + 1;
-  return coarse.map((line, y) => (y >= coarse.length - rows ? '.'.repeat(COLS) : line));
+function pickSlots(n, count, size) {
+  const rng = mulberry32(n * 131 + 7);
+  const target = targetOdds(n);
+  const sets = combinations(SLOTS, count)
+    .filter((set) => n >= FLOOR_UNTIL || set.some((s) => s.side === 'bottom'))
+    .map((set) => ({ set, miss: Math.abs(set.reduce((sum, s) => sum + s.odds[size === 2 ? 0 : 1], 0) - target) / target }))
+    .sort((a, b) => a.miss - b.miss);
+  const close = sets.filter((x) => x.miss <= ODDS_CLOSE);
+  const pool = close.length ? close : sets.slice(0, 3);
+  return pool[Math.floor(rng() * pool.length)].set;
 }
 
 /**
- * Seals the bottom with steel, leaving the entrance open, and hangs a short
- * steel guard under the hole (never wider than the hole minus one cell, so a
- * straight shot always has a column to slip through).
+ * Geometry of one hole in fine coordinates: the wall cells it opens ([c, r]),
+ * the direction into the box, and the interior pocket kept clear behind it
+ * (interior columns ic, rows ir counted from the top).
  */
-function sealFloor(lines, { x0, w }, guard) {
-  const floor = Array.from({ length: GRID_COLS }, (_, x) => (x >= x0 && x < x0 + w ? '.' : 'S')).join('');
-  const gw = Math.max(0, Math.min(guard, w - 1));
-  const g0 = x0 + Math.floor((w - gw) / 2);
-  const guardLine = Array.from({ length: GRID_COLS }, (_, x) => (x >= g0 && x < g0 + gw ? 'S' : '.')).join('');
-  return [...lines.slice(0, -1), floor, ...Array(GUARD_GAP).fill('.'.repeat(GRID_COLS)), guardLine];
+function holeGeometry({ slot, side, at }, size, box, innerRows) {
+  const rowOf = (ir) => box.top - 1 - ir; // interior row (from top) -> grid row
+  const span = (a, len) => Math.round(a * len - size / 2);
+  const range = (a, k) => Array.from({ length: k }, (_, i) => a + i);
+  const clamp = (p) => ({
+    ic0: Math.max(0, p.ic0), ic1: Math.min(INNER - 1, p.ic1), ir0: Math.max(0, p.ir0), ir1: Math.min(innerRows - 1, p.ir1),
+  });
+  if (side === 'bottom' || side === 'top') {
+    const ic = span(at, INNER);
+    const r = side === 'bottom' ? box.bottom : box.top;
+    const cells = range(box.left + 1 + ic, size).map((c) => [c, r]);
+    const ir0 = side === 'bottom' ? innerRows - POCKET : 0;
+    return { slot, side, size, cells, inward: [0, side === 'bottom' ? 1 : -1], pocket: clamp({ ic0: ic - 1, ic1: ic + size, ir0, ir1: ir0 + POCKET - 1 }) };
+  }
+  if (side === 'left' || side === 'right') {
+    const irTop = innerRows - 1 - span(at, innerRows) - (size - 1);
+    const c = side === 'left' ? box.left : box.right;
+    const cells = range(irTop, size).map((ir) => [c, rowOf(ir)]);
+    const ic0 = side === 'left' ? 0 : INNER - POCKET;
+    return { slot, side, size, cells, inward: [side === 'left' ? 1 : -1, 0], pocket: clamp({ ic0, ic1: ic0 + POCKET - 1, ir0: irTop - 1, ir1: irTop + size }) };
+  }
+  // Corners: the corner cell plus `size` cells along each wall, so a ball can slip in diagonally.
+  const left = side[1] === 'l';
+  const low = side[0] === 'b';
+  const c = left ? box.left : box.right;
+  const r = low ? box.bottom : box.top;
+  const dc = left ? 1 : -1;
+  const dr = low ? 1 : -1;
+  const cells = [[c, r], ...range(1, size).map((k) => [c + dc * k, r]), ...range(1, size).map((k) => [c, r + dr * k])];
+  const ic0 = left ? 0 : INNER - POCKET;
+  const ir0 = low ? innerRows - POCKET : 0;
+  return { slot, side, size, cells, inward: [dc, dr], pocket: clamp({ ic0, ic1: ic0 + POCKET - 1, ir0, ir1: ir0 + POCKET - 1 }) };
+}
+
+/** Rank for narrowing: specials survive over steel, steel over bricks, bricks over air. */
+const rank = (ch) => (ch === '.' ? 0 : ch === 'S' ? 2 : isPlainBrick(ch) || ch === 'H' ? 1 : 3);
+
+/** Squeezes a 48-wide mural into `width` columns, keeping thin details (each target column keeps its strongest source cell). */
+function narrow(lines, width) {
+  return lines.map((line) => Array.from({ length: width }, (_, j) => {
+    const a = Math.floor((j * line.length) / width);
+    const b = Math.max(a + 1, Math.floor(((j + 1) * line.length) / width));
+    let best = line[a];
+    for (let k = a + 1; k < b; k++) if (rank(line[k]) > rank(best)) best = line[k];
+    return best;
+  }).join(''));
+}
+
+/** Clears the bottom coarse rows (a lobby along the floor) and every hole pocket. */
+function carveOpenings(coarse, holes) {
+  const lobby = Math.ceil((CAVITY + 1) / SCALE) + 1;
+  const g = coarse.map((line, y) => (y >= coarse.length - lobby ? [...'.'.repeat(line.length)] : [...line]));
+  for (const { pocket: p } of holes) {
+    for (let y = Math.floor(p.ir0 / SCALE); y <= Math.floor(p.ir1 / SCALE); y++) {
+      for (let x = Math.floor(p.ic0 / SCALE); x <= Math.floor(p.ic1 / SCALE); x++) g[y][x] = '.';
+    }
+  }
+  return toLines(g);
+}
+
+/** Wraps the fine interior in a steel box with open lanes around it, then opens the holes. */
+function frame(inner, box, holes) {
+  const lane = '.'.repeat(LANE);
+  const wall = `${lane}${'S'.repeat(INNER + 2)}${lane}`;
+  const rows = [
+    ...Array(TOP_LANE).fill('.'.repeat(GRID_COLS)),
+    wall,
+    ...inner.map((line) => `${lane}S${line}S${lane}`),
+    wall,
+  ].map((line) => [...line]);
+  for (const h of holes) for (const [c, r] of h.cells) rows[ROWS - 1 - r][c] = '.';
+  return toLines(rows);
 }
 
 /** @returns {string} the name stage i is shown with (cheap: builds nothing) */
 export const levelName = (i) => landmarkAt(Math.max(0, Math.floor(i))).name;
 
 /**
- * Builds stage i (0, 1, 2, ... endless). Every stage is a landmark: the list
- * in order, then again at sunset and at night. All difficulty knobs, including
- * the entrance, come from stageParams(i).
+ * Builds stage i (0, 1, 2, ... endless). Every stage is a landmark inside a
+ * steel box: the list in order, then again at sunset and at night. The holes
+ * (how many, how big, on which walls) and every other knob come from stageParams(i).
  * @param {number} i
+ * @param {{ slots?: string[] }} [opts] force these hole slots (balance scripts and tests)
  */
-export function getLevel(i) {
+export function getLevel(i, { slots } = {}) {
   const n = Math.max(0, Math.floor(i));
   const p = stageParams(n);
   const map = landmarkAt(n);
-  const hole = entranceSpan(p, n);
-  const coarse = carveLobby(map.build());
+  const mural = narrow(map.build(), INNER_COARSE);
+  const innerRows = mural.length * SCALE;
+  const box = BOX(TOP_LANE + innerRows + 2);
+  const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize);
+  const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
+  const coarse = carveOpenings(mural, holes);
   const seeded = seedUnits(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
-  const lines = sealFloor(withGutter(upscale(seeded)), hole, p.guard);
+  const lines = frame(upscale(seeded), box, holes);
   return {
     index: n,
     name: map.name,
     subtitle: map.subtitle,
     palette: map.palette,
+    photo: map.id,
+    photoTint: map.photoTint,
     brickHp: p.brickHp,
     params: p,
     lines,
+    box,
+    holes: holes.map(({ pocket, ...h }) => h),
   };
 }

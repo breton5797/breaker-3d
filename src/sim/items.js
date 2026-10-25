@@ -1,6 +1,7 @@
 import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
+import { isInside } from './box.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 
@@ -29,11 +30,10 @@ export function releaseQueued(w, dt) {
   w.releaseAcc += Math.max(w.releaseRate, w.queued * RELEASE_DRAIN) * dt;
   if (w.releaseAcc < 1) return;
   const b = w.balls;
-  // Prefer parents inside the wall (above the sealed floor): a ball born
-  // outside usually just drops away, so the swarm would not really grow.
-  const line = w.grid.floorRow + 1;
+  // Prefer parents inside the box: a ball born outside usually just drops
+  // away, so the swarm would not really grow.
   const inside = [];
-  for (let i = 0; i < b.n; i++) if (b.y[i] > line) inside.push(i);
+  for (let i = 0; i < b.n; i++) if (isInside(w.grid, b.x[i], b.y[i])) inside.push(i);
   while (w.releaseAcc >= 1 && w.queued > 0) {
     w.releaseAcc -= 1;
     w.queued--;

@@ -8,11 +8,13 @@ import { createBricks } from './render/bricks.js';
 import { createBalls3d } from './render/balls3d.js';
 import { createFx } from './render/fx.js';
 import { createDrops3d, createBeacon } from './render/drops3d.js';
+import { createPhoto } from './render/photo.js';
 import { createUnits3d } from './render/units3d.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
 import { loadSave, writeSave, recordClear, unlockAchievements } from './storage.js';
+import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned } from './achievements.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
@@ -26,6 +28,7 @@ const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
 const beacon = createBeacon(stage.scene);
+const photo = createPhoto(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const quality = createQualityGovernor();
@@ -33,6 +36,9 @@ const PADDLE_HEX = 0xc4d2ff;
 const STUN_HEX = 0xff3040;
 
 let save = loadSave();
+// Photo credits (author and licence per landmark), shown on the credits screen and under each stage.
+let credits = {};
+loadCredits().then((c) => { credits = c; if (level && (mode === 'play' || mode === 'paused')) ui.setPhotoCredit(credits[level.photo] ?? null); });
 audio.setMuted(save.muted);
 
 let level = null;
@@ -57,6 +63,7 @@ const ui = createUI({
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
+  onCredits: () => ui.showCredits(credits),
 });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
 
@@ -64,11 +71,14 @@ function startLevel(i) {
   level = getLevel(i);
   const p = level.params;
   world = createWorld(level.lines, {
+    box: level.box, holes: level.holes,
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
     dropSpeed: p.dropSpeed, aggression: p.aggression,
   });
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
+  photo.setLevel(level);
+  ui.setPhotoCredit(credits[level.photo] ?? null);
   units3d.setLevel(world.units);
   director.reset();
   stage.setZoom(1);
@@ -251,9 +261,12 @@ function frame(now) {
 function showMenu() {
   mode = 'title';
   const preview = getLevel(save.unlocked - 1);
-  const backdrop = createWorld(preview.lines, { brickHp: preview.brickHp, paddleW: preview.params.paddleW });
+  const backdrop = createWorld(preview.lines, {
+    box: preview.box, holes: preview.holes, brickHp: preview.brickHp, paddleW: preview.params.paddleW,
+  });
   bricks.setLevel(backdrop.grid, preview.palette);
   beacon.setLevel(backdrop.grid);
+  photo.setLevel(preview);
   drops3d.update([], 0);
   units3d.setLevel(backdrop.units);
   units3d.update(backdrop.units, [], false, 0, 0);

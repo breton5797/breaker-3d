@@ -56,32 +56,59 @@ export function createDrops3d(scene) {
   return { update };
 }
 
-/** Pulsing light-pillar under the entrance hole so players know where to aim. */
+/** Pulsing light-pillars outside every entrance hole so players know where to aim. */
 export function createBeacon(scene) {
   const mat = new THREE.MeshBasicMaterial({
     color: 0x2fc6e0, transparent: true, depthWrite: false,
   });
-  const beam = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
-  scene.add(beam);
-  let hole = null;
+  const beams = [];
+  let shown = 0;
 
-  /** Finds the entrance: the gap in the sealed floor row the sim detected. */
-  function setLevel(grid) {
-    hole = null;
-    const r = grid.floorRow;
-    if (r >= 0) {
-      const gaps = [];
-      for (let c = 0; c < COLS; c++) if (grid.cells[r * COLS + c] !== CELL.STEEL) gaps.push(c);
-      if (gaps.length) hole = { c: gaps[0], w: gaps.length, r };
+  function beam(k) {
+    if (!beams[k]) {
+      beams[k] = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      scene.add(beams[k]);
     }
-    beam.visible = Boolean(hole);
-    if (!hole) return;
-    beam.position.set(toWorldX(hole.c + hole.w / 2), toWorldY(hole.r - 6), 0.08);
-    beam.scale.set(hole.w, 12, 1);
+    return beams[k];
+  }
+
+  /** Places one pillar per hole, reaching outward from the wall (length cells). */
+  function place(k, hole) {
+    const cs = hole.cells.map(([c]) => c);
+    const rs = hole.cells.map(([, r]) => r);
+    const c0 = Math.min(...cs);
+    const r0 = Math.min(...rs);
+    const w = Math.max(...cs) - c0 + 1;
+    const h = Math.max(...rs) - r0 + 1;
+    const [ox, oy] = [-hole.inward[0], -hole.inward[1]]; // outward
+    const corner = ox !== 0 && oy !== 0;
+    const len = corner ? 3 : oy < 0 ? 12 : oy > 0 ? 5 : 6;
+    const sx = corner ? 3 : ox ? len : w;
+    const sy = corner ? 3 : oy ? len : h;
+    const cx = c0 + w / 2 + ox * (corner ? 2 : (len + w) / 2);
+    const cy = r0 + h / 2 + oy * (corner ? 2 : (len + h) / 2);
+    const m = beam(k);
+    m.visible = true;
+    m.position.set(toWorldX(cx), toWorldY(cy), 0.08);
+    m.scale.set(sx, sy, 1);
+  }
+
+  /** Lights the stage's holes; plain grids without a box fall back to the floor gap. */
+  function setLevel(grid) {
+    let holes = grid.holes ?? [];
+    if (!holes.length && grid.floorRow >= 0) {
+      const r = grid.floorRow;
+      const gaps = [];
+      for (let c = 0; c < COLS; c++) if (grid.cells[r * COLS + c] !== CELL.STEEL) gaps.push([c, r]);
+      if (gaps.length) holes = [{ cells: gaps, inward: [0, 1] }];
+    }
+    holes.forEach((hole, k) => place(k, hole));
+    for (let k = holes.length; k < beams.length; k++) beams[k].visible = false;
+    shown = holes.length;
   }
 
   function update(time) {
-    if (hole) mat.opacity = 0.25 + 0.2 * Math.sin(time * 5);
+    if (shown) mat.opacity = 0.25 + 0.2 * Math.sin(time * 5);
   }
 
   return { setLevel, update };
