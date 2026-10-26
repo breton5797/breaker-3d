@@ -51,7 +51,8 @@ export function updateUnits(w, dt) {
   });
 }
 
-function stunPaddle(w, tier) {
+/** A bomb (or a boss attack) of this tier hit the paddle: stun it, and lethal tiers cost a life. */
+export function stunPaddle(w, tier) {
   const spec = UNIT_TIERS[tier - 1];
   w.stun = Math.max(w.stun, spec.stun);
   refreshPaddle(w);

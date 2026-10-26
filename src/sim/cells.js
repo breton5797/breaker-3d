@@ -2,7 +2,6 @@ import {
   COLS, ROWS, CELL, SPLIT_COUNT, BOMB_RADIUS, BOMB_DELAY, FIRE_TIME, BALL_SPEED, COMBO_WINDOW, FINALE_GAP, ITEM_MULT,
 } from './constants.js';
 import { addBall } from './balls.js';
-import { CORE_BLAST, spendCore } from './boss.js';
 
 const MIN_VY = 0.22; // fraction of speed a ball must keep vertically
 
@@ -57,16 +56,6 @@ export function breakCell(w, c, r, ball = -1) {
   const i = r * COLS + c;
   const type = g.cells[i];
   if (type === CELL.EMPTY || type === CELL.STEEL) return;
-  // Explosions, lasers and bolts only crack a boss core; balls wear it down in hitCell.
-  if (type === CELL.CORE && ball < 0) {
-    const dmg = Math.min(CORE_BLAST, g.hp[i]);
-    if (!spendCore(w, dmg)) return;
-    if (g.hp[i] > dmg) {
-      g.hp[i] -= dmg;
-      w.events.push({ t: 'core-hit', c, r });
-      return;
-    }
-  }
   const tier = g.tier[i];
   g.cells[i] = CELL.EMPTY;
   g.hp[i] = 0;
@@ -89,17 +78,6 @@ export function breakCell(w, c, r, ball = -1) {
       const mult = tier >= 9 ? 20 : tier >= 7 ? 10 : 5;
       w.drops = [...w.drops, { x: c + 0.5, y: r + 0.5, mult }];
       w.events.push({ t: 'drop', c, r, mult });
-    }
-  }
-  if (type === CELL.CORE && w.boss) {
-    w.score += 300;
-    w.boss.cores--;
-    w.events.push({ t: 'core-down', c, r });
-    if (w.boss.cores <= 0 && w.boss.alive) {
-      w.boss.alive = false;
-      w.score += 5000;
-      w.events.push({ t: 'boss-down', c, r });
-      startFinale(w); // the rest of the mural shatters
     }
   }
   if (type === CELL.COIN) {
@@ -140,15 +118,6 @@ export function hitCell(w, c, r, ball) {
   const i = r * COLS + c;
   const type = w.grid.cells[i];
   if (type === CELL.STEEL) return true;
-  if (type === CELL.CORE) {
-    // Fire or not, a ball takes one point off the core (within its damage budget) and bounces.
-    if (!spendCore(w, 1)) return true;
-    if (w.grid.hp[i] > 1) {
-      w.grid.hp[i]--;
-      w.events.push({ t: 'core-hit', c, r });
-    } else breakCell(w, c, r, Math.max(0, ball));
-    return true;
-  }
   const onFire = w.balls.fire[ball] > 0;
   const n = SPLIT_COUNT[type];
   if (n) {

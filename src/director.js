@@ -21,7 +21,7 @@ const STEEL_HEX = 0x6c7a96;
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
  */
-export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d }) {
+export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d }) {
   const pacing = createPacing();
   let ballMark = 0;
   let comboMark = 0;
@@ -177,17 +177,37 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           ui.damageFlash(true);
           ui.toast('−1 ♥', 'danger');
           break;
-        case 'core-hit':
-          bricks.dent(w.grid, e.r * COLS + e.c);
+        case 'boss-hit':
+          boss3d.hit();
           if (coreHits++ < 3) audio.coreHit();
           break;
-        case 'core-down':
-          for (let k = 0; k < 10 && shards < SHARD_BUDGET; k++, shards++) fx.shards(e.c + 0.5, e.r + 0.5, 0xd1123f, 1.5);
-          audio.coreDown();
-          stage.shake(0.25);
+        case 'boss-shield':
+          // The swarm hits faster than the boss can take damage: the rest clank off a shield.
+          if (coreHits++ < 3) audio.coreHit();
+          ui.bossShield();
+          break;
+        case 'boss-phase':
+          audio.bossWarn();
+          stage.shake(1);
+          haptics.play('stun');
+          for (let k = 0; k < 30; k++) fx.shards(e.x, e.y, e.phase === 3 ? 0x8b93a8 : 0xff2a2a, 1.6);
+          ui.toast(e.phase === 3 ? '갑옷이 부서졌다! 지금이야!' : '보스가 분노했다!', 'mega danger');
+          break;
+        case 'boss-warn':
+          if (e.kind === 'sweep') audio.laser(); else audio.rumble();
+          break;
+        case 'boss-strike':
+          boss3d.strike(e, w.boss);
+          if (e.kind === 'sweep') { audio.laser(); break; }
+          fx.boom(e.x - 0.5, PADDLE_Y - 0.5);
+          stage.shake(e.kind === 'stomp' ? 1.2 : 0.8);
+          stage.kick(0, 0, -1);
+          audio.thunder();
           break;
         case 'boss-down':
-          fx.boom(e.c, e.r);
+          boss3d.down();
+          fx.firework(e.x, e.y, 0xffd23a, [1, 0.8, 0.2]);
+          fx.firework(e.x, e.y, 0xff5a3c, [1, 0.35, 0.2]);
           stage.shake(2);
           stage.kick(0, 0, -2.5);
           pacing.hitStop(0.12);
@@ -195,15 +215,6 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('clear');
           ui.toast('BOSS 격파!', 'mega');
           break;
-        case 'core-shield':
-          // The swarm hit the core faster than it can take damage: it clanks off a shield.
-          if (coreHits++ < 3) audio.coreHit();
-          ui.bossShield();
-          break;
-        case 'regen':
-          bricks.restore(w.grid, e.r * COLS + e.c);
-          break;
-        case 'boss-shot': audio.shoot(); fx.split(e.c, e.r, 5); break;
         case 'storm-warn':
           gimmicks3d.warnColumn(e.c, e.bottom, e.top);
           audio.rumble();
