@@ -43,3 +43,7 @@ Licences and authors were re-checked against the Commons file pages on 2026-10-2
 | aurora | [Aurora borealis over Eielson Air Force Base, Alaska.jpg](https://commons.wikimedia.org/wiki/File:Aurora_borealis_over_Eielson_Air_Force_Base,_Alaska.jpg) | United States Air Force photo by Senior Airman Joshua Strang | Public domain |
 | supercell | [Supercell-thunderstorm-in-Kansas.jpg](https://commons.wikimedia.org/wiki/File:Supercell-thunderstorm-in-Kansas.jpg) | NOAA National Severe Storms Laboratory | Public domain |
 | iceberg | [Iceberg in the Arctic with its underside exposed.jpg](https://commons.wikimedia.org/wiki/File:Iceberg_in_the_Arctic_with_its_underside_exposed.jpg) | AWeith | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+
+# Generated artwork
+
+Fruit, special-block icons, brick/table/floor surfaces and boss skins in `public/art/` were generated for this game on a local machine with [Z-Image-Turbo](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) (Tongyi-MAI, model licence [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), checked on the model card 2026-10-27), then cut out, made tileable and resized. No reference images or third-party artwork were used as input; prompts describe generic objects and materials only.

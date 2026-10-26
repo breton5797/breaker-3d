@@ -2,11 +2,26 @@ import { levelName } from './sim/levels.js';
 import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
+import { artUrl } from './art.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
+
+/** A fruit (or other emoji) inline in text: its picture when it has one, the emoji if that fails to load. */
+function emojiSpan({ emoji, art }) {
+  const span = document.createElement('span');
+  span.className = 'toast-emoji';
+  if (!art) { span.textContent = emoji; return span; }
+  const img = document.createElement('img');
+  img.className = 'art-icon';
+  img.src = artUrl(art);
+  img.alt = '';
+  img.onerror = () => { span.textContent = emoji; };
+  span.append(img);
+  return span;
+}
 
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
 const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;
@@ -203,7 +218,8 @@ export function createUI(h) {
   /**
    * @param {string | (string | { small: string } | { emoji: string })[]} content plain
    *   text, or parts: `{ small }` is a little badge (a fruit's multiplier) and
-   *   `{ emoji }` keeps its own colours instead of the toast's gradient fill
+   *   `{ emoji, art? }` keeps its own colours instead of the toast's gradient fill
+   *   (shown as the `art` picture when given, see emojiSpan)
    */
   function toast(content, cls = '') {
     const el = document.createElement('div');
@@ -211,9 +227,10 @@ export function createUI(h) {
     const parts = Array.isArray(content) ? content : [content];
     el.append(...parts.map((part) => {
       if (typeof part === 'string') return document.createTextNode(part);
-      const span = document.createElement(part.small ? 'small' : 'span');
-      span.className = part.small ? 'toast-badge' : 'toast-emoji';
-      span.textContent = part.small ?? part.emoji;
+      if (part.emoji) return emojiSpan(part);
+      const span = document.createElement('small');
+      span.className = 'toast-badge';
+      span.textContent = part.small;
       return span;
     }));
     $('toasts').append(el);
@@ -240,9 +257,10 @@ export function createUI(h) {
       const row = document.createElement('div');
       parts.forEach((part) => {
         if (typeof part === 'string') { row.append(document.createTextNode(part)); return; }
+        if (part.emoji) { row.append(emojiSpan(part)); return; }
         const span = document.createElement('span');
-        span.className = part.emoji ? 'toast-emoji' : part.small ? 'floater-small' : 'floater-big';
-        span.textContent = part.emoji ?? part.small ?? part.big;
+        span.className = part.small ? 'floater-small' : 'floater-big';
+        span.textContent = part.small ?? part.big;
         row.append(span);
       });
       el.append(row);

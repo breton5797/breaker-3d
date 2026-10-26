@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CELL, COLS, ROWS, PADDLE_Y } from './sim/constants.js';
 import { SPECIALS } from './render/bricks.js';
 import { fruitFor } from './fruits.js';
+import { fruitArt } from './art.js';
 import { createPacing } from './pacing.js';
 import { fruitHaptic } from './haptics.js';
 
@@ -117,10 +118,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           {
             const f = fruitFor(e.mult);
             const badge = { small: `×${e.gain}` };
-            ui.toast([{ emoji: f.emoji }, ` ${f.name} `, badge, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
+            ui.toast([{ emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
-            ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji }, badge]], e.streak >= 5 ? 'hot' : '');
+            ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji, art: fruitArt(f.id) }, badge]], e.streak >= 5 ? 'hot' : '');
           }
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
@@ -152,7 +153,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           ui.damageFlash(e.lethal);
           ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
-        case 'miss': ui.toast([{ emoji: fruitFor(e.mult).emoji }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger'); break;
+        case 'miss': ui.toast([{ emoji: fruitFor(e.mult).emoji, art: fruitArt(fruitFor(e.mult).id) }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger'); break;
         case 'paddle':
           audio.paddle();
           if (paddleHits++ === 0) {

@@ -4,6 +4,8 @@ import { COLS, ROWS, PADDLE_Y, PADDLE_H } from '../sim/constants.js';
 import { createCamFx } from './camfx.js';
 import { frameTable, placeCamera, viewFor, framingBox } from './framing.js';
 import { buildRoom } from './environment.js';
+import { ART } from '../art.js';
+import { paintedTexture } from './art.js';
 
 // Camera style (field of view, tilt, paddle follow, crop) depends on the screen shape: see viewFor.
 export const TILT = viewFor(2, 1).tilt; // wide-screen tilt; upright fruit cut-outs are turned to face it
@@ -20,28 +22,31 @@ export const toWorldX = (x) => x - COLS / 2;
 export const toWorldY = (y) => y - ROWS / 2;
 
 function makeFloorTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
-  const g = c.getContext('2d');
-  g.fillStyle = '#141a33';
-  g.fillRect(0, 0, 512, 512);
-  g.strokeStyle = 'rgba(140,160,255,0.07)';
-  g.lineWidth = 1;
-  for (let i = 0; i <= 512; i += 16) {
-    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 512); g.stroke();
-    g.beginPath(); g.moveTo(0, i); g.lineTo(512, i); g.stroke();
-  }
-  g.strokeStyle = 'rgba(140,160,255,0.16)';
-  g.lineWidth = 2;
-  for (let i = 0; i <= 512; i += 128) {
-    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 512); g.stroke();
-    g.beginPath(); g.moveTo(0, i); g.lineTo(512, i); g.stroke();
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(COLS / 32, ROWS / 32);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return paintedTexture(512, (g, n, img) => {
+    if (img) {
+      g.drawImage(img, 0, 0, n, n);
+      g.fillStyle = 'rgba(12,16,40,0.45)'; // keep the table dark so bricks and balls stand out
+      g.fillRect(0, 0, n, n);
+    } else {
+      g.fillStyle = '#141a33';
+      g.fillRect(0, 0, n, n);
+    }
+    g.strokeStyle = 'rgba(140,160,255,0.07)';
+    g.lineWidth = 1;
+    for (let i = 0; i <= n; i += 16) {
+      g.beginPath(); g.moveTo(i, 0); g.lineTo(i, n); g.stroke();
+      g.beginPath(); g.moveTo(0, i); g.lineTo(n, i); g.stroke();
+    }
+    g.strokeStyle = 'rgba(140,160,255,0.16)';
+    g.lineWidth = 2;
+    for (let i = 0; i <= n; i += 128) {
+      g.beginPath(); g.moveTo(i, 0); g.lineTo(i, n); g.stroke();
+      g.beginPath(); g.moveTo(0, i); g.lineTo(n, i); g.stroke();
+    }
+  }, ART.board, (tex) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(COLS / 32, ROWS / 32);
+  });
 }
 
 function buildArena(scene) {

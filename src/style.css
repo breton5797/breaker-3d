@@ -203,6 +203,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Emoji keep their own colours; the gradient text fill would paint them flat. */
 .toast-emoji { display: inline-block; -webkit-text-fill-color: initial; color: initial; background: none; }
+.art-icon { width: 1.15em; height: 1.15em; vertical-align: -0.2em; object-fit: contain; }
 /* Small multiplier badge next to a caught fruit (the toast text itself is gradient-clipped). */
 .toast-badge {
   display: inline-block; margin: 0 2px; padding: 1px 6px; border-radius: 8px; vertical-align: middle;

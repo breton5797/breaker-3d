@@ -23,7 +23,7 @@ function shadowTexture() {
 export function createDrops3d(scene) {
   const materials = Object.fromEntries(Object.values(ITEM_MULT).map((mult) => [
     mult,
-    new THREE.SpriteMaterial({ map: fruitTexture(fruitFor(mult).emoji, 128, false), depthWrite: false }),
+    new THREE.SpriteMaterial({ map: fruitTexture(fruitFor(mult), 128, false), depthWrite: false }),
   ]));
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false });
   const shadowGeo = new THREE.PlaneGeometry(1, 1);
