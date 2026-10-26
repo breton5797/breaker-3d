@@ -21,7 +21,7 @@ const STEEL_HEX = 0x6c7a96;
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
  */
-export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics }) {
+export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d }) {
   const pacing = createPacing();
   let ballMark = 0;
   let comboMark = 0;
@@ -63,6 +63,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     let paddleHits = 0;
     let chips = 0;
     let lasers = 0;
+    let coreHits = 0;
     let catches = 0;
     for (const e of events) {
       switch (e.t) {
@@ -175,6 +176,45 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('lost');
           ui.damageFlash(true);
           ui.toast('−1 ♥', 'danger');
+          break;
+        case 'core-hit':
+          bricks.dent(w.grid, e.r * COLS + e.c);
+          if (coreHits++ < 3) audio.coreHit();
+          break;
+        case 'core-down':
+          for (let k = 0; k < 10 && shards < SHARD_BUDGET; k++, shards++) fx.shards(e.c + 0.5, e.r + 0.5, 0xd1123f, 1.5);
+          audio.coreDown();
+          stage.shake(0.25);
+          break;
+        case 'boss-down':
+          fx.boom(e.c, e.r);
+          stage.shake(2);
+          stage.kick(0, 0, -2.5);
+          pacing.hitStop(0.12);
+          audio.bossDown();
+          haptics.play('clear');
+          ui.toast('BOSS 격파!', 'mega');
+          break;
+        case 'core-shield':
+          // The swarm hit the core faster than it can take damage: it clanks off a shield.
+          if (coreHits++ < 3) audio.coreHit();
+          ui.bossShield();
+          break;
+        case 'regen':
+          bricks.restore(w.grid, e.r * COLS + e.c);
+          break;
+        case 'boss-shot': audio.shoot(); fx.split(e.c, e.r, 5); break;
+        case 'storm-warn':
+          gimmicks3d.warnColumn(e.c, e.bottom, e.top);
+          audio.rumble();
+          break;
+        case 'storm':
+          gimmicks3d.hideWarning();
+          fx.zap(e.c, e.bottom, 0xbfe3ff);
+          stage.shake(0.7);
+          stage.kick(0, 0, -0.8);
+          audio.thunder();
+          haptics.play('boom');
           break;
         case 'finale':
           haptics.play('milestone');

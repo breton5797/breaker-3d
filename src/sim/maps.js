@@ -9,11 +9,16 @@ import {
   fuji, liberty, eiffel, himeji, tajMahal, brandenburgGate, bigBen, sungnyemun, gyeongbokgung, grandCanyon, goldenGate,
   stBasil, charlesBridge, forbiddenCity, sagradaFamilia,
 } from './landmarks/famous.js';
+import { colossus, kraken, golem, mothership } from './landmarks/bosses.js';
+import {
+  saturn, curiosity, earthrise, blackHole, dumbo, blackSmoker, jellyfish, spermWhale, lavaFountain, aurora, supercell, iceberg,
+} from './landmarks/wonders.js';
 
 export { COLS, toLines };
 
 // id names the background photo (public/landmarks/<id>.jpg).
 const map = (id, name, subtitle, build, palette) => Object.freeze({ id, name, subtitle, build, palette: Object.freeze(palette) });
+const wonder = (theme, ...args) => Object.freeze({ ...map(...args), theme });
 
 export const LEVELS = Object.freeze([
   map('giza', '기자 피라미드', '이집트 · 기원전 26세기', giza,
@@ -66,6 +71,52 @@ export const LEVELS = Object.freeze([
     ['#79c1ef', '#c6e3f6', '#9a8f7a', '#d9c7a1', '#c4b08a', '#9c8a66', '#4a4036', '#5f646e']),
 ]);
 
+// Bosses take turns on every 10th stage (sequence.js). No photo: they fight on the bare table.
+const boss = (id, name, subtitle, build, palette) => Object.freeze({ ...map(id, `BOSS · ${name}`, subtitle, build, palette), photo: null });
+
+export const BOSSES = Object.freeze([
+  boss('colossus', '석상 거인', '모래 속에서 깨어난 고대의 수호자', colossus,
+    ['#2b2f45', '#3a3f5c', '#8a7350', '#8f8a80', '#b3ab9b', '#5d574d', '#3b362f', '#ff5a3c']),
+  boss('kraken', '크라켄', '심연에서 떠오른 거대 오징어', kraken,
+    ['#0b2340', '#123257', '#1f4f5c', '#a83d5a', '#d0587a', '#e58a9e', '#7a2340', '#ffe066']),
+  boss('golem', '용암 골렘', '불타는 심장을 품은 바위 거인', golem,
+    ['#2a1410', '#3b1d16', '#4a3328', '#4b4440', '#6a605a', '#2f2a27', '#1f1b19', '#ff7a1a']),
+  boss('mothership', '외계 모선', '하늘을 뒤덮은 정체불명의 우주선', mothership,
+    ['#0d1030', '#161a44', '#2c3a2e', '#8a93a8', '#b7bfd0', '#5ad1ff', '#9bffb0', '#ffd23a']),
+]);
+
+/** @returns {object} the boss for the bossIndex-th boss stage (they take turns) */
+export const bossAt = (bossIndex) => BOSSES[bossIndex % BOSSES.length];
+
+// 경이의 세계: space, the deep sea and natural wonders (same shape as LEVELS plus a theme).
+// Not part of LEVELS: the chapter sequencing places them.
+export const WONDERS = Object.freeze([
+  wonder('space', 'saturn', '토성', '태양계 여섯째 행성 · 고리 지름 28만km', saturn,
+    ['#070b24', '#1b2452', '#6b4a2e', '#e9b866', '#c7782f', '#f6e3b4', '#d8c9a2', '#8f7a58']),
+  wonder('space', 'curiosity', '화성 큐리오시티', '화성 게일 크레이터 · 2012년 착륙', curiosity,
+    ['#e3a77c', '#f2cfa4', '#b4502a', '#f1eee6', '#8a8f99', '#262931', '#3b3534', '#d9824e']),
+  wonder('space', 'earthrise', '지구돋이', '아폴로 8호 · 1968년 달 궤도에서', earthrise,
+    ['#03050d', '#111933', '#9a968f', '#2a6fe0', '#c99a52', '#f7f9fd', '#5c5955', '#0f2150']),
+  wonder('space', 'blackHole', '블랙홀 M87*', '처녀자리 은하 M87 · 5,500만 광년', blackHole,
+    ['#020206', '#140a1e', '#4a1208', '#b8240e', '#ff6a1a', '#ffc23d', '#6e1a0a', '#fff3c4']),
+  wonder('sea', 'dumbo', '덤보 문어', '심해 3,000m · 귀 모양 지느러미', dumbo,
+    ['#020a1c', '#0a2244', '#8f7fd8', '#f2c6cc', '#ec8f9a', '#1a1022', '#5d4fae', '#fff0e2']),
+  wonder('sea', 'blackSmoker', '블랙 스모커', '대서양 해저 열수구 · 350°C', blackSmoker,
+    ['#020814', '#08233f', '#3a4252', '#d8762f', '#8a4a24', '#262a34', '#5f86b8', '#ff3b3b']),
+  wonder('sea', 'jellyfish', '불꽃해파리', '태평양 심해 1,200m · 할리트레페스', jellyfish,
+    ['#03124a', '#0a2a7a', '#3f6fd8', '#c6deff', '#79a8ff', '#ffc928', '#fff0b0', '#ff6fb0']),
+  wonder('sea', 'spermWhale', '향유고래', '세계 최대 이빨고래 · 몸길이 18m', spermWhale,
+    ['#0a5fb8', '#3da0e8', '#86cdf5', '#2c3440', '#566270', '#0f141b', '#a9bccb', '#eaf6ff']),
+  wonder('nature', 'lavaFountain', '용암 분수', '미국 하와이 킬라우에아 · 높이 수백m', lavaFountain,
+    ['#9bb8cf', '#d5e2ea', '#5d6670', '#d81f17', '#ff6a1f', '#ffd03a', '#25252a', '#4c4c54']),
+  wonder('nature', 'aurora', '오로라', '미국 알래스카 · 북극광', aurora,
+    ['#0b1440', '#2a2a6e', '#eef3fb', '#2fe07a', '#b14ad8', '#b8ffc6', '#10241b', '#ff7ad0']),
+  wonder('nature', 'supercell', '슈퍼셀 뇌우', '미국 캔자스 · 회전하는 폭풍', supercell,
+    ['#2b3240', '#7b8796', '#4f5d2c', '#353c4b', '#5f6a7b', '#a4b0c0', '#1b1f28', '#ffee3a']),
+  wonder('nature', 'iceberg', '빙산', '북극해 · 90%가 물속에', iceberg,
+    ['#7ec8ef', '#cfeaf7', '#1c66a8', '#52c9d6', '#c4f1ff', '#ffffff', '#238fb0', '#fff4c2']),
+]);
+
 /** Mixes hex colour `a` toward `b` by t (0..1). */
 export function tint(a, b, t) {
   const ch = (hex, k) => parseInt(hex.slice(1 + k * 2, 3 + k * 2), 16);
@@ -81,14 +132,20 @@ const VARIANTS = [
   { suffix: ' · 밤', sky: ['#1c2756', '#2e3c78'], toward: '#0b1238', t: 0.4, photoTint: '#6d7cc4' },
 ];
 
+// One lap: the 24 landmarks, then the 12 wonders (chapter "경이의 세계").
+export const LAP = Object.freeze([...LEVELS, ...WONDERS]);
+
 /**
+ * The k-th regular map (bosses are placed separately, see sequence.js). Each
+ * lap the landmarks come back at another time of day; the wonders stay as they are.
  * @returns {{ id:string, name:string, subtitle:string, palette:string[], photoTint:string,
- *   build:() => string[] }} landmark for stage n
+ *   build:() => string[], theme?:string, chapterStart:boolean }} map for regular slot n
  */
 export function landmarkAt(n) {
-  const base = LEVELS[n % LEVELS.length];
-  const v = VARIANTS[Math.floor(n / LEVELS.length) % VARIANTS.length];
-  if (!v) return { ...base, photoTint: '#ffffff' };
+  const base = LAP[n % LAP.length];
+  const chapterStart = n % LAP.length === LEVELS.length; // the first wonder opens the new chapter
+  const v = VARIANTS[Math.floor(n / LAP.length) % VARIANTS.length];
+  if (!v || base.theme) return { ...base, photoTint: '#ffffff', chapterStart };
   const palette = base.palette.map((hex, k) => (k < 2 ? tint(hex, v.sky[k], 0.75) : tint(hex, v.toward, v.t)));
-  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint };
+  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint, chapterStart };
 }

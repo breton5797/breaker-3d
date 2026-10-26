@@ -3,7 +3,7 @@
 Landmark background photos come from Wikimedia Commons under the licences below.
 They were resized (768 px), cropped to the play area and tinted for the sunset/night stages.
 The modified photos are shared under the same licence as each original (as CC BY-SA requires).
-Licences and authors were re-checked against the Commons file pages on 2026-10-26.
+Licences and authors were re-checked against the Commons file pages on 2026-10-26 (landmarks) and 2026-10-27 (the 12 "경이의 세계" photos).
 
 | Landmark | Photo | Author | Licence |
 |---|---|---|---|
@@ -31,3 +31,15 @@ Licences and authors were re-checked against the Commons file pages on 2026-10-2
 | gyeongbokgung | [Front view of the Imperial Throne Hall Geunjeongjeon at Gyeongbokgung Palace with blue sky in Seoul.jpg](https://commons.wikimedia.org/wiki/File:Front_view_of_the_Imperial_Throne_Hall_Geunjeongjeon_at_Gyeongbokgung_Palace_with_blue_sky_in_Seoul.jpg) | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
 | grandCanyon | [Grand Canyon National Park, View from Hermits Rest 4235 - Flickr - Grand Canyon NPS.jpg](https://commons.wikimedia.org/wiki/File:Grand_Canyon_National_Park,_View_from_Hermits_Rest_4235_-_Flickr_-_Grand_Canyon_NPS.jpg) | Grand Canyon National Park | Public domain |
 | charlesBridge | [The Vltava, Charles Bridge, Old Town Bridge Tower and Church of St. Francis of Assisi. Prague, Czech Republic.jpg](https://commons.wikimedia.org/wiki/File:The_Vltava,_Charles_Bridge,_Old_Town_Bridge_Tower_and_Church_of_St._Francis_of_Assisi._Prague,_Czech_Republic.jpg) | Ввласенко | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) |
+| saturn | [Saturn during Equinox.jpg](https://commons.wikimedia.org/wiki/File:Saturn_during_Equinox.jpg) | NASA / JPL / Space Science Institute | Public domain |
+| curiosity | [Curiosity selfie on Mars.jpg](https://commons.wikimedia.org/wiki/File:Curiosity_selfie_on_Mars.jpg) | NASA | Public domain |
+| earthrise | [NASA-Apollo8-Dec24-Earthrise.jpg](https://commons.wikimedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg) | NASA/Bill Anders | Public domain |
+| blackHole | [Black hole - Messier 87 crop max res.jpg](https://commons.wikimedia.org/wiki/File:Black_hole_-_Messier_87_crop_max_res.jpg) | Event Horizon Telescope, uploader cropped and converted TIF to JPG | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0) |
+| dumbo | [Dumbo-hires.jpg](https://commons.wikimedia.org/wiki/File:Dumbo-hires.jpg) | NOAA Okeanos Explorer | Public domain |
+| blackSmoker | [Blacksmoker in Atlantic Ocean.jpg](https://commons.wikimedia.org/wiki/File:Blacksmoker_in_Atlantic_Ocean.jpg) | P. Rona / OAR/National Undersea Research Program (NURP); NOAA | Public domain |
+| jellyfish | [Halitrephes Maasi.jpg](https://commons.wikimedia.org/wiki/File:Halitrephes_Maasi.jpg) | NOAA Office of Ocean Exploration and Research | Public domain |
+| spermWhale | [Mother and baby sperm whale.jpg](https://commons.wikimedia.org/wiki/File:Mother_and_baby_sperm_whale.jpg) | Gabriel Barathieu | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0) |
+| lavaFountain | [Pahoeoe fountain edit2.jpg](https://commons.wikimedia.org/wiki/File:Pahoeoe_fountain_edit2.jpg) | J.D. Griggs | Public domain |
+| aurora | [Aurora borealis over Eielson Air Force Base, Alaska.jpg](https://commons.wikimedia.org/wiki/File:Aurora_borealis_over_Eielson_Air_Force_Base,_Alaska.jpg) | United States Air Force photo by Senior Airman Joshua Strang | Public domain |
+| supercell | [Supercell-thunderstorm-in-Kansas.jpg](https://commons.wikimedia.org/wiki/File:Supercell-thunderstorm-in-Kansas.jpg) | NOAA National Severe Storms Laboratory | Public domain |
+| iceberg | [Iceberg in the Arctic with its underside exposed.jpg](https://commons.wikimedia.org/wiki/File:Iceberg_in_the_Arctic_with_its_underside_exposed.jpg) | AWeith | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |

@@ -12,6 +12,8 @@ import { createPhoto } from './render/photo.js';
 import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
+import { createGimmicks3d } from './render/gimmicks3d.js';
+import { coreHpLeft } from './sim/boss.js';
 import { createHaptics } from './haptics.js';
 import { createFullscreen } from './fullscreen.js';
 import { bindUiSounds } from './uiSounds.js';
@@ -34,6 +36,7 @@ const MAX_DT = 1 / 30;
 const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
 const trails3d = createTrails3d(stage.scene);
+const gimmicks3d = createGimmicks3d(stage.scene);
 const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
@@ -109,7 +112,7 @@ const ui = createUI({
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
-const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
+const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d });
 ui.setVibe(haptics.supported, haptics.enabled);
 // An app is already full screen: no button there.
 ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
@@ -125,19 +128,31 @@ function startLevel(i) {
     box: level.box, holes: level.holes,
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
     dropSpeed: p.dropSpeed, aggression: p.aggression,
+    boss: level.boss, theme: level.theme ?? null,
   });
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   photo.setLevel(level);
   ui.setPhotoCredit(credits[level.photo] ?? null);
   units3d.setLevel(world.units);
+  gimmicks3d.setLevel(world.gimmick);
   director.reset();
   stage.setZoom(1);
   elapsed = 0;
   quality.reset();
   mode = 'play';
   ui.startStage(level);
-  audio.stageIntro();
+  if (level.boss) {
+    audio.bossWarn();
+    haptics.play('stun');
+    setTimeout(() => ui.toast('⚠ BOSS 출현! 심장(빨간 핵)을 부숴라', 'mega danger'), 900);
+  } else audio.stageIntro();
+  if (level.chapterStart) {
+    setTimeout(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
+    setTimeout(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
+  }
+  const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
+  if (GIMMICK_TIPS[level.theme]) setTimeout(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
     setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
@@ -368,6 +383,7 @@ function hud() {
     muted: audio.isMuted(),
     gold: save.gold + world.gold,
   });
+  ui.setBoss(world.boss ? level.name : null, world.boss ? coreHpLeft(world) / world.boss.coreHpMax : 1);
 }
 
 let last = performance.now();
@@ -404,6 +420,7 @@ function frame(now) {
     } else quality.reset();
   }
   bricks.update(now / 1000);
+  gimmicks3d.update(now / 1000, dt);
   beacon.update(now / 1000);
   fx.update(dt * (mode === 'outro' ? 0.6 : scale));
   stage.render(dt, world ? world.paddle.x : COLS / 2);
@@ -424,6 +441,7 @@ function showMenu() {
   coins3d.reset();
   coins3d.update([], 0);
   units3d.setLevel(backdrop.units);
+  gimmicks3d.setLevel(null);
   units3d.update(backdrop.units, [], false, 0, 0);
   balls3d.update(backdrop.balls, null);
   trails3d.update(backdrop.balls);

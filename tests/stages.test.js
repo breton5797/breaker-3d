@@ -101,8 +101,9 @@ describe('endless difficulty curve', () => {
       expect(items).toBeGreaterThanOrEqual(Math.floor(p.items * 0.8));
       expect(items).toBeLessThanOrEqual(p.items + p.unitCount); // only seeded fruit (veteran units drop extra later)
       expect(coins).toBeGreaterThanOrEqual(Math.floor(p.coins * 0.8));
-      expect(units).toBe(p.unitCount);
-      expect(topTier).toBe(p.unitTop);
+      // A boss stage (every 10th) has no enemy units: the boss itself shoots.
+      expect(units).toBe(lvl.boss ? 0 : p.unitCount);
+      expect(topTier).toBe(lvl.boss ? 0 : p.unitTop);
       expect(lvl.name.length).toBeGreaterThan(0);
       // The box floor is the bottom line, and the sim still recognises it as the sealed floor.
       expect(lvl.box.bottom).toBe(ROWS - lvl.lines.length);
