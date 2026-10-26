@@ -70,7 +70,7 @@ describe('table framing', () => {
   });
 });
 
-describe('per-screen view (tall phones zoom onto the steel box)', () => {
+describe('per-screen view (tall phones zoom onto the play field)', () => {
   const STEEL = { left: -41, right: 42, bottom: -14, top: 58 }; // the box (world units), rows 50..122
   const HUD = 84;
   const SKILLS = 140;
@@ -103,9 +103,9 @@ describe('per-screen view (tall phones zoom onto the steel box)', () => {
       }
     });
 
-    it(`${w}x${h}: fills the screen (box spans 85% of the width, or the board reaches the HUD)`, () => {
+    it(`${w}x${h}: fills the screen (box spans 78% of the width, or the board reaches the HUD)`, () => {
       const { px } = shoot(w, h);
-      const wide = px(STEEL.right, STEEL.top).x - px(STEEL.left, STEEL.top).x > w * 0.85;
+      const wide = px(STEEL.right, STEEL.top).x - px(STEEL.left, STEEL.top).x > w * 0.78;
       const tall = px(0, ROWS_HALF + 1.4, 2.2).y <= HUD + h * 0.02;
       expect(wide || tall).toBe(true);
     });
@@ -123,7 +123,6 @@ describe('per-screen view (tall phones zoom onto the steel box)', () => {
   for (const [w, h] of phones) {
     it(`${w}x${h}: a finger at the screen edge drives the paddle into the wall`, () => {
       for (const side of [1, -1]) {
-        // Paddle already near that wall (the camera has followed it there, see the sway below).
         const { v } = shoot(w, h);
         const f = frameTable({
           fov: v.fov, aspect: w / h, tilt: v.tilt, box: framingBox(v), margin: v.margin,
@@ -147,6 +146,10 @@ describe('per-screen view (tall phones zoom onto the steel box)', () => {
 
   it('wide screens map the finger one-to-one', () => {
     expect(viewFor(1440, 900).reach).toBe(1);
+  });
+
+  it('the picture never pans with the paddle, on any screen (the view stays fixed)', () => {
+    for (const [w, h] of [...phones, [1440, 900], [900, 430]]) expect(viewFor(w, h).sway).toBe(0);
   });
 
   it('wide screens keep the full board and the stronger perspective', () => {
