@@ -270,9 +270,10 @@ export function createBoss3d(scene) {
     model.group.position.set(toWorldX(boss.x) + jitter, toWorldY(boss.y), HOVER + Math.sin(time * 2) * 0.4);
     const squash = flinch > 0 ? 1 - 0.12 * (flinch / FLINCH_TIME) : 1;
     model.group.scale.set(1 / squash, 1, squash);
-    model.animate(time, boss.phase, (paddleX - boss.x) / COLS);
     if (shownPhase !== boss.phase) shownPhase = boss.phase;
     tint(boss.phase);
+    // After the tint, so a model's own colour animation (the saucer's lights) shows.
+    model.animate(time, boss.phase, (paddleX - boss.x) / COLS);
     plates.forEach((p, k) => {
       const pl = boss.plates[k];
       p.visible = Boolean(pl);

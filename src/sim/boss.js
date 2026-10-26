@@ -46,10 +46,13 @@ function floorRow(grid) {
 export function createBoss(spec, grid, rng) {
   const k = KIND[spec.kind] ?? KIND.colossus;
   const { box } = grid;
-  const xMin = box.left + 1 + k.r;
-  const xMax = box.right - k.r;
-  const yMax = box.top - k.r - 0.5;
-  const yMin = Math.min(yMax, floorRow(grid) + 1 + k.r + 0.5);
+  // Keep the whole thing (plates included) inside the box and above the bricks:
+  // a plate swinging through a wall would push balls straight through the steel.
+  const reach = k.r + PLATE_GAP + PLATE_R + BALL_R;
+  const xMin = box.left + 1 + reach;
+  const xMax = box.right - reach;
+  const yMax = box.top - reach;
+  const yMin = Math.min(yMax, floorRow(grid) + 1 + reach);
   const cx = (xMin + xMax) / 2;
   const cy = (yMin + yMax) / 2;
   return {
@@ -67,9 +70,13 @@ export function createBoss(spec, grid, rng) {
     bounds: { xMin, xMax, yMin, yMax, cx, cy },
     t: 0,
     hop: { from: cx, to: cx, t: HOP_TIME, next: HOP_EVERY },
-    plates: Array.from({ length: PLATES }, (_, j) => ({ angle: (j / PLATES) * Math.PI * 2 })),
+    plates: Array.from({ length: PLATES }, (_, j) => {
+      const angle = (j / PLATES) * Math.PI * 2;
+      return { angle, x: cx + Math.cos(angle) * (k.r + PLATE_GAP), y: cy + Math.sin(angle) * (k.r + PLATE_GAP) };
+    }),
     plateOrbit: k.r + PLATE_GAP,
     plateR: PLATE_R,
+    reach,
     attackTimer: ATTACK_EVERY,
     attack: null, // { kind, stage:'warn'|'sweep', t, x, w, dir, hit, beam }
     rng,
@@ -112,7 +119,12 @@ function move(b, dt) {
   }
   b.x = Math.min(xMax, Math.max(xMin, b.x));
   b.y = Math.min(yMax, Math.max(yMin, b.y));
-  for (const p of b.plates) p.angle += dt * 1.6 * pace;
+  // Plate centres once per frame (thousands of balls test against them).
+  for (const p of b.plates) {
+    p.angle += dt * 1.6 * pace;
+    p.x = b.x + Math.cos(p.angle) * b.plateOrbit;
+    p.y = b.y + Math.sin(p.angle) * b.plateOrbit;
+  }
 }
 
 /**
@@ -171,10 +183,10 @@ export function collideBoss(w, i) {
   const boss = w.boss;
   if (!boss || !boss.alive) return false;
   const b = w.balls;
+  // Most balls are nowhere near the boss: a cheap box test first.
+  if (Math.abs(b.x[i] - boss.x) > boss.reach || Math.abs(b.y[i] - boss.y) > boss.reach) return false;
   for (const p of boss.plates) {
-    const px = boss.x + Math.cos(p.angle) * boss.plateOrbit;
-    const py = boss.y + Math.sin(p.angle) * boss.plateOrbit;
-    if (bounce(b, i, px, py, boss.plateR)) return true;
+    if (bounce(b, i, p.x, p.y, boss.plateR)) return true;
   }
   if (bounce(b, i, boss.x, boss.y, boss.r)) {
     damageBoss(w, 1);
@@ -227,7 +239,10 @@ export function updateBoss(w, dt) {
   const b = w.boss;
   if (!b || !b.alive) return;
   move(b, dt);
-  if (w.state !== 'play') return;
+  if (w.state !== 'play') {
+    if (w.state !== 'clear') b.attack = null; // a life lost or game over calls off the pending blow
+    return;
+  }
   b.budget = Math.min(b.dps * BUDGET_SECONDS, b.budget + b.dps * dt);
   if (b.attack) { runAttack(w, b, dt); return; }
   b.attackTimer -= dt;

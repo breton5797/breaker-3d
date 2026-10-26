@@ -90,6 +90,24 @@ describe('boss character', () => {
     }
   });
 
+  it('its plates never swing through the steel walls or into the bricks (they would push balls through)', () => {
+    for (const n of [9, 19, 29, 39, 99, 199]) {
+      const { w } = bossWorld(n);
+      w.state = 'play';
+      const box = w.grid.box;
+      const floor = highestBrickRow(w);
+      const reach = w.boss.plateOrbit + w.boss.plateR + 0.28;
+      for (let t = 0; t < 20; t += 1 / 30) {
+        updateBoss(w, 1 / 30);
+        drainEvents(w);
+        expect(w.boss.x - reach).toBeGreaterThanOrEqual(box.left + 1 - 1e-6);
+        expect(w.boss.x + reach).toBeLessThanOrEqual(box.right + 1e-6);
+        expect(w.boss.y + reach).toBeLessThanOrEqual(box.top + 1e-6);
+        expect(w.boss.y - reach).toBeGreaterThanOrEqual(floor + 1 - 1e-6);
+      }
+    }
+  });
+
   it('a ball bounces off the body and deals one point of damage', () => {
     const { w } = bossWorld();
     w.state = 'play';
@@ -214,6 +232,16 @@ describe('boss attacks', () => {
     const after = run(w, WARN_TIME + 0.2);
     expect(after.some((e) => e.t === 'boss-strike')).toBe(true);
     expect(after.some((e) => e.t === 'paddle-hit')).toBe(false);
+  });
+
+  it('a pending attack is called off when the run stops (life lost or game over)', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    run(w, ATTACK_EVERY + 0.05);
+    expect(w.boss.attack).not.toBeNull();
+    w.state = 'over';
+    run(w, 0.1);
+    expect(w.boss.attack).toBeNull();
   });
 
   it('holds its attacks while the ball waits on the paddle', () => {
