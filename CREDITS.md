@@ -2,6 +2,8 @@
 
 Landmark background photos come from Wikimedia Commons under the licences below.
 They were resized (768 px), cropped to the play area and tinted for the sunset/night stages.
+The modified photos are shared under the same licence as each original (as CC BY-SA requires).
+Licences and authors were re-checked against the Commons file pages on 2026-10-26.
 
 | Landmark | Photo | Author | Licence |
 |---|---|---|---|

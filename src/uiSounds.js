@@ -21,6 +21,8 @@ export const UI_SOUNDS = Object.freeze({
   'btn-vibe': 'toggle',
   'btn-full': 'toggle',
   'btn-full-pause': 'toggle',
+  // The startup error screen shows before the game (and its audio) has loaded.
+  'boot-error-reload': null,
   // Skills already play their own sound in the game.
   'skill-split': null,
   'skill-meteor': null,
