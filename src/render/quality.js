@@ -1,10 +1,10 @@
 // Automatic quality: when frames stay slow, step down one level at a time.
 // Never steps back up, so the picture can't flicker between levels.
 export const QUALITY_LEVELS = Object.freeze([
-  { name: 'high', ballShadows: true, shadows: true, pixelRatio: 2 },
-  { name: 'medium', ballShadows: false, shadows: true, pixelRatio: 2 },
-  { name: 'low', ballShadows: false, shadows: true, pixelRatio: 1 },
-  { name: 'lowest', ballShadows: false, shadows: false, pixelRatio: 1 },
+  { name: 'high', trails: true, ballShadows: true, shadows: true, pixelRatio: 2 },
+  { name: 'medium', trails: true, ballShadows: false, shadows: true, pixelRatio: 2 },
+  { name: 'low', trails: false, ballShadows: false, shadows: true, pixelRatio: 1 },
+  { name: 'lowest', trails: false, ballShadows: false, shadows: false, pixelRatio: 1 },
 ]);
 
 const WINDOW = 2; // seconds of frames averaged per decision

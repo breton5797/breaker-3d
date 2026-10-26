@@ -117,6 +117,11 @@ export function createFx(scene) {
     for (let k = 0; k < BOLT_SEGMENTS; k++) g.add(new THREE.Mesh(segGeo, flat(0.75, 0.9, 1)));
     return g;
   });
+  // Scorch: a dark matte disc left on the table by a bomb, fading out (darkening, never glowing).
+  const scorchGeo = new THREE.CircleGeometry(1, 32);
+  const scorches = createPool(scene, 16, () => new THREE.Mesh(scorchGeo, new THREE.MeshBasicMaterial({
+    color: 0x0a0806, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
+  })));
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
 
@@ -161,9 +166,29 @@ export function createFx(scene) {
     });
   }
 
+  function scorch(x, y, radius) {
+    const turn = Math.random() * Math.PI;
+    scorches.fire(1.8, (m, u) => {
+      m.position.set(toWorldX(x), toWorldY(y), 0.03);
+      m.rotation.z = turn;
+      m.scale.set(radius * (0.8 + 0.2 * Math.min(1, u * 8)), radius * 0.85, 1);
+      m.material.opacity = 0.5 * (1 - u) ** 1.5;
+    });
+  }
+
   return {
     shards: debris.spawn,
-    boom: (c, r) => ring(c + 0.5, r + 0.5, BOMB_RADIUS * 1.3, [1, 0.45, 0.1], 0.55),
+    /** @param {boolean} [full] scorch, dust and the inner ring too (the director budgets these per frame) */
+    boom: (c, r, full = true) => {
+      ring(c + 0.5, r + 0.5, BOMB_RADIUS * 1.3, [1, 0.45, 0.1], 0.55);
+      if (!full) return;
+      ring(c + 0.5, r + 0.5, BOMB_RADIUS * 0.7, [1, 0.85, 0.5], 0.3);
+      scorch(c + 0.5, r + 0.5, BOMB_RADIUS * 0.9);
+      // Dust: dull grey grit that hops low and settles.
+      for (let k = 0; k < 14; k++) debris.spawn(c + 0.5, r + 0.5, k % 2 ? 0x6b6258 : 0x8d8478, 0.6);
+    },
+    /** An armoured brick chipped: two pale flecks. */
+    chip: (c, r) => { for (let k = 0; k < 2; k++) debris.spawn(c + 0.5, r + 0.5, 0xd9dde8, 0.55); },
     split: (c, r, n) => ring(c + 0.5, r + 0.5, 2 + n * 0.5, n >= 5 ? [0.85, 0.2, 0.8] : [0.15, 0.75, 0.9], 0.35),
     gold: (c, r) => ring(c + 0.5, r + 0.5, 5, [1, 0.75, 0.15], 0.6),
     catchBurst: (x, mult) => {
@@ -197,6 +222,7 @@ export function createFx(scene) {
       rings.update(dt);
       beams.update(dt);
       bolts.update(dt);
+      scorches.update(dt);
     },
   };
 }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H } from '../sim/constants.js';
+import { createCamFx } from './camfx.js';
 
 const FOV = 42;
 export const TILT = 0.5; // radians the table leans away from the viewer
@@ -125,7 +126,27 @@ function buildPaddle(scene) {
     bodyMat.color.setHex(color);
   }
   set(0, 12, 0xc4d2ff); // title-screen default until a stage sets the real width
-  return { set };
+
+  // Squash spring: a hit presses the bar down and flat, then it bounces back.
+  let squash = 0;
+  let squashVel = 0;
+  let wobble = 0;
+  let clock = 0;
+  /** @param {number} amount 0..1 how hard the paddle was hit */
+  function punch(amount) { squashVel = Math.min(12, squashVel + Math.min(1, amount) * 9); }
+  /** Rocks the bar side to side for a moment (stunned). */
+  function shakeOff(amount) { wobble = Math.min(1, wobble + amount); }
+  function update(dt) {
+    clock += dt;
+    squashVel += (-220 * squash - 16 * squashVel) * dt;
+    squash += squashVel * dt;
+    wobble = Math.max(0, wobble - dt * 1.6);
+    const k = Math.max(-0.35, Math.min(0.45, squash));
+    group.scale.set(1 + k * 0.08, 1 + k * 0.25, 1 - k * 0.4);
+    group.position.z = -k * 0.3;
+    group.rotation.y = Math.sin(clock * 38) * wobble * 0.12;
+  }
+  return { set, punch, shakeOff, update };
 }
 
 /** Vertical backdrop gradient behind the table (deep navy to near-black). */
@@ -173,7 +194,8 @@ export function createStage(canvas) {
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 800);
 
   let dist = 80;
-  let shakeAmp = 0;
+  const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const camFx = createCamFx({ reduced });
   let zoom = 1;
   const look = new THREE.Vector3();
 
@@ -197,12 +219,12 @@ export function createStage(canvas) {
    * @param {number} paddleX sim paddle x (for the camera sway)
    */
   function render(dt, paddleX) {
-    shakeAmp = Math.max(0, shakeAmp - dt * 3.5);
+    camFx.step(dt);
+    arena.paddle.update(dt);
     const sway = toWorldX(paddleX) * 0.08;
     const d = dist * zoom;
-    const sx = (Math.random() - 0.5) * shakeAmp;
-    const sy = (Math.random() - 0.5) * shakeAmp;
-    camera.position.set(sway + sx, -Math.sin(TILT) * d + sy, Math.cos(TILT) * d);
+    const o = camFx.offset;
+    camera.position.set(sway + o.x, -Math.sin(TILT) * d + o.y, Math.cos(TILT) * d + o.z);
     look.set(sway * 0.5, -1.5, 0);
     camera.lookAt(look);
     renderer.render(scene, camera);
@@ -215,7 +237,9 @@ export function createStage(canvas) {
     paddle: arena.paddle,
     render,
     resize,
-    shake: (amount) => { shakeAmp = Math.min(2.5, shakeAmp + amount); },
+    shake: (amount) => camFx.shake(amount),
+    /** Directional punch of the camera (world units/s); it springs back on its own. */
+    kick: (x, y, z) => camFx.kick(x, y, z),
     setZoom: (z) => { zoom = z; },
     /** @param {{ shadows:boolean, pixelRatio:number }} q a QUALITY_LEVELS entry */
     setQuality: (q) => {

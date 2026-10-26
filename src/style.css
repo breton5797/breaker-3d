@@ -145,6 +145,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
   100% { transform: translate(-50%, -260%) scale(1); opacity: 0; }
 }
 .gold-count.pump { animation: goldPump 0.35s ease-out; }
+
+/* Hurt: the screen edges darken to red for a moment (flat vignette, no glow). */
+#damage {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(150, 10, 25, 0.55) 100%);
+}
+#damage.hurt { animation: hurt 0.45s ease-out; }
+#damage.hurt.heavy { animation-duration: 0.8s; background: radial-gradient(ellipse at center, transparent 45%, rgba(150, 10, 25, 0.7) 100%); }
+@keyframes hurt { 0% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #damage.hurt { animation-duration: 0.25s; } }
 @keyframes goldPump { 0% { transform: scale(1.6); color: #fff6c2; } 100% { transform: scale(1); } }
 .c-coin { background: #7a5a05; }
 
