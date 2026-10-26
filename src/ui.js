@@ -141,8 +141,19 @@ export function createUI(h) {
       link.href = c.source;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = `${c.artist} · ${c.license}`;
-      li.append(name, link);
+      link.textContent = c.artist;
+      const line = document.createElement('span');
+      line.append(link, ' · ');
+      // The licence itself, linked when it has a deed (CC licences ask for the link).
+      if (c.licenseUrl) {
+        const lic = document.createElement('a');
+        lic.href = c.licenseUrl;
+        lic.target = '_blank';
+        lic.rel = 'noopener noreferrer license';
+        lic.textContent = c.license;
+        line.append(lic);
+      } else line.append(c.license);
+      li.append(name, line);
       return li;
     });
     if (!rows.length) {

@@ -20,6 +20,22 @@ describe('photo credits', () => {
     expect(cleanCredit(null)).toBeNull();
   });
 
+  it('keeps a Creative Commons licence link, drops any other link', () => {
+    const url = 'https://creativecommons.org/licenses/by-sa/4.0';
+    expect(cleanCredit({ ...ok, licenseUrl: url }).licenseUrl).toBe(url);
+    expect(cleanCredit({ ...ok, licenseUrl: 'http://creativecommons.org/publicdomain/zero/1.0/deed.en' }).licenseUrl)
+      .toBe('http://creativecommons.org/publicdomain/zero/1.0/deed.en');
+    expect(cleanCredit({ ...ok, licenseUrl: 'https://evil.example/licenses/by/4.0' }).licenseUrl).toBeUndefined();
+    expect(cleanCredit({ ...ok, licenseUrl: 'javascript:alert(1)' }).licenseUrl).toBeUndefined();
+  });
+
+  it('every shipped CC photo carries a link to its licence (CC requires it)', () => {
+    const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
+    for (const [id, c] of Object.entries(credits)) {
+      if (/^cc/i.test(c.license)) expect(cleanCredit(c).licenseUrl, id).toMatch(/^https?:\/\/creativecommons\.org\//);
+    }
+  });
+
   it('every shipped credit passes the check', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
     for (const c of Object.values(credits)) expect(cleanCredit(c)).not.toBeNull();

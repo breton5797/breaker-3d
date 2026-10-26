@@ -11,13 +11,44 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="BREAKER 3D" />
     <link rel="apple-touch-icon" href="%BASE_URL%icon-180.png" />
-    <title>BREAKER 3D</title>
+    <title>BREAKER 3D — 세계 랜드마크 3D 벽돌 깨기</title>
+    <meta name="description" content="좁은 틈을 뚫고 과일을 받아 공을 수천 개로 불려라! 피라미드·에펠탑·숭례문 등 세계 랜드마크 24곳을 무한 스테이지로 부수는 무료 3D 벽돌 깨기 게임." />
+    <link rel="canonical" href="https://breton5797.github.io/breaker-3d/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BREAKER 3D" />
+    <meta property="og:title" content="BREAKER 3D — 세계 랜드마크 3D 벽돌 깨기" />
+    <meta property="og:description" content="과일을 받아 공을 수천 개로! 세계 랜드마크 24곳을 부수는 무료 3D 벽돌 깨기." />
+    <meta property="og:url" content="https://breton5797.github.io/breaker-3d/" />
+    <meta property="og:image" content="https://breton5797.github.io/breaker-3d/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      /* Shown until the game's code has loaded and drawn its first frame. */
+      #splash { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #06080f; color: #9fb4ff;
+        font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 0.2em; transition: opacity 0.4s; }
+      #splash b { display: block; font-size: 34px; color: #fff; letter-spacing: 0.05em; margin-bottom: 8px; }
+      #splash.gone { opacity: 0; pointer-events: none; }
+      #boot-error { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: #06080f;
+        color: #dfe6ff; font: 16px/1.6 system-ui, sans-serif; text-align: center; }
+      #boot-error[hidden] { display: none; }
+      #boot-error button { margin-top: 16px; padding: 10px 20px; border-radius: 12px; border: 0; background: #39c6e6; color: #06080f; font-weight: 800; }
+    </style>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070f'/%3E%3Crect x='5' y='6' width='10' height='6' rx='1' fill='%23ff5c8a'/%3E%3Crect x='17' y='6' width='10' height='6' rx='1' fill='%236c8cff'/%3E%3Ccircle cx='16' cy='19' r='3' fill='%23fff'/%3E%3Crect x='9' y='25' width='14' height='3' rx='1.5' fill='%2339e6ff'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <noscript><p style="color:#fff;padding:24px;font:16px system-ui">BREAKER 3D를 하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
+    <div id="splash" aria-live="polite"><div><b>BREAKER 3D</b>LOADING…</div></div>
+    <div id="boot-error" role="alert" hidden>
+      <div>
+        <p id="boot-error-text">이 브라우저에서는 3D 그래픽(WebGL)을 쓸 수 없어 게임을 시작할 수 없습니다.<br />최신 Chrome·Safari·Edge·Firefox에서 열거나, 브라우저 설정에서 하드웨어 가속을 켜 주세요.</p>
+        <button id="boot-error-reload" type="button">새로고침</button>
+      </div>
+    </div>
     <canvas id="game" aria-label="게임 화면"></canvas>
     <div id="lens" aria-hidden="true"></div>
 
@@ -78,6 +109,7 @@
           <li><b class="chip c-coin">🪙</b> 골드 벽돌: 떨어지는 동전을 받으면 골드가 쌓여요</li>
         </ul>
         <p class="controls">마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지</p>
+        <p class="legal-links"><a href="%BASE_URL%privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a> · <a href="%BASE_URL%licenses.txt" target="_blank" rel="noopener">오픈소스 라이선스</a> · <span id="app-version"></span></p>
       </div>
 
       <div id="screen-clear" class="panel" hidden>
@@ -110,7 +142,7 @@
 
       <div id="screen-credits" class="panel" hidden>
         <p class="eyebrow">PHOTO CREDITS</p>
-        <p class="credits-note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진이며, 게임에 맞게 크기를 줄이고 잘라 색을 입혔습니다.</p>
+        <p class="credits-note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.</p>
         <ul id="credits-list" class="credits-list"></ul>
         <button id="btn-credits-back" class="primary">돌아가기</button>
       </div>
@@ -126,6 +158,6 @@
       </div>
     </section>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/boot.js"></script>
   </body>
 </html>

@@ -5,14 +5,20 @@ const SOURCE = /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/;
 /** Licences free enough to ship (shared with scripts/fetch-photos.mjs). */
 export const FREE_LICENSE = /^(public domain|cc0|cc by(-sa)? [\d.]+( \w+)?)$/i;
 
-/** @returns {{ artist:string, license:string, source:string } | null} a valid credit entry */
+const LICENSE_URL = /^https?:\/\/creativecommons\.org\/[\w./-]+$/;
+
+/**
+ * @returns {{ artist:string, license:string, source:string, licenseUrl?:string } | null} a valid
+ *   credit entry; licenseUrl (the licence deed CC asks us to link) is kept only for creativecommons.org
+ */
 export function cleanCredit(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const artist = typeof raw.artist === 'string' ? raw.artist.slice(0, 120) : '';
   const license = typeof raw.license === 'string' ? raw.license : '';
   const source = typeof raw.source === 'string' ? raw.source : '';
   if (!artist || !FREE_LICENSE.test(license) || !SOURCE.test(source)) return null;
-  return { artist, license, source };
+  const licenseUrl = typeof raw.licenseUrl === 'string' && LICENSE_URL.test(raw.licenseUrl) ? raw.licenseUrl : undefined;
+  return licenseUrl ? { artist, license, source, licenseUrl } : { artist, license, source };
 }
 
 /** @returns {Promise<Record<string, {artist:string, license:string, source:string}>>} credits by landmark id ({} on failure) */

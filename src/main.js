@@ -336,6 +336,14 @@ function showMenu() {
 
 showMenu();
 requestAnimationFrame(frame);
+// The first frame is on screen: lift the loading screen (see index.html / boot.js).
+requestAnimationFrame(() => {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.classList.add('gone');
+  setTimeout(() => splash.remove(), 500);
+});
+document.getElementById('app-version').textContent = `v${__APP_VERSION__}`;
 
 // Dev-only handle for browser E2E checks; stripped from production builds.
 if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage };
