@@ -7,6 +7,8 @@ import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells } from './units.js';
+import { createBoss, updateBoss } from './boss.js';
+import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball by (min, max)
@@ -17,10 +19,12 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
  *   dropSpeed?: number, aggression?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
-  const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes });
+  const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes, coreHp: opts.boss?.coreHp });
   const rng = opts.rng ?? Math.random;
   return {
     grid,
+    boss: opts.boss ? createBoss(grid, opts.boss, rng, opts.brickHp ?? 1) : null,
+    gimmick: opts.theme && opts.box ? createGimmick(opts.theme, { box: opts.box, rng }) : null,
     balls: createBalls(),
     rng,
     units: buildUnits(grid, rng), // enemy units { c, r, tier, cd }
@@ -191,6 +195,7 @@ function updateBalls(w, dt) {
   for (let i = 0; i < b.n; ) {
     if (b.fire[i] > 0) b.fire[i] = Math.max(0, b.fire[i] - dt);
     const dist = Math.hypot(b.vx[i], b.vy[i]) * dt;
+    if (w.gimmick) bendBall(w.gimmick, b, i, dt);
     const steps = Math.max(1, Math.ceil(dist / MAX_SUBSTEP));
     for (let s = 0; s < steps; s++) moveBall(w, i, dt / steps);
     if (b.y[i] < -1) { removeBall(b, i); continue; }
@@ -210,12 +215,15 @@ export function stepWorld(w, dt) {
     updateDrops(w, dt);
     updateUnits(w, dt);
     updateShells(w, dt);
+    updateBoss(w, dt);
+    updateGimmick(w, dt);
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;
   const nearlyDone = g.total >= 100 && g.remaining <= g.total * FINALE_FRACTION;
   const stalled = g.remaining <= g.total * STALL_FRACTION && w.time - w.lastBreak > STALL_TIME;
-  if (!w.finale && w.state === 'play' && (nearlyDone || stalled)) {
+  // A living boss keeps its stage going: no early finale until its core breaks.
+  if (!w.finale && w.state === 'play' && !w.boss?.alive && (nearlyDone || stalled)) {
     startFinale(w);
   }
   if (w.grid.remaining <= 0) {

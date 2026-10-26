@@ -66,6 +66,7 @@ export function createUI(h) {
 
   function playing(on) {
     $('hud').hidden = !on;
+    if (!on) setBoss(null);
     if (!on) setFinale(null);
     $('skills').hidden = !on;
     if (!on) { $('hint').hidden = true; $('photo-credit').hidden = true; }
@@ -281,6 +282,22 @@ export function createUI(h) {
     el.textContent = on ? '📳 진동 켜짐' : '📴 진동 꺼짐';
   }
 
+  /** Boss health bar: name and the core's remaining share (0..1); null hides it. */
+  function setBoss(name, share = 1) {
+    $('boss-bar').hidden = name === null;
+    if (name === null) return;
+    $('boss-name').textContent = name;
+    $('boss-fill').style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+  }
+
+  /** The boss bar flashes white when hits bounce off the core's shield. */
+  function bossShield() {
+    const el = $('boss-bar');
+    if (el.hidden || el.classList.contains('shield')) return;
+    el.classList.add('shield');
+    setTimeout(() => el.classList.remove('shield'), 160);
+  }
+
   /** Finale banner with a live brick countdown; pass null to hide it. */
   function setFinale(left) {
     $('finale-banner').hidden = left === null;
@@ -432,6 +449,8 @@ export function createUI(h) {
     resumePlay,
     placeHint,
     setFullscreen,
+    setBoss,
+    bossShield,
     setVibe,
     setPhotoCredit,
     floatAt,

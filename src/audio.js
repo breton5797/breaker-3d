@@ -129,6 +129,29 @@ export function createAudio() {
     /** Ball or combo milestone toast. */
     milestone() { [0, 7, 12].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(10 + s), 0.12, 'square', 0.06); }, k * 50)); },
 
+    // ---------- bosses and chapter gimmicks ----------
+    /** A boss appears: a two-tone siren over a low drone. */
+    bossWarn() {
+      voices = 0;
+      tone(55, 1.4, 'sawtooth', 0.12, 50);
+      [0, 1, 2, 3].forEach((k) => setTimeout(() => { voices = 0; tone(k % 2 ? 520 : 700, 0.28, 'square', 0.07); }, k * 300));
+    },
+    /** A ball chips the boss core: a dull metal clank. */
+    coreHit() { tone(180 + Math.random() * 30, 0.08, 'square', 0.06, 120); },
+    /** A core cell gives way. */
+    coreDown() { burst(0.25, 2500, 0.3); tone(240, 0.25, 'sawtooth', 0.1, 70); },
+    /** The boss falls: a long crash, a low boom and a rising victory chord. */
+    bossDown() {
+      voices = 0;
+      burst(1.2, 4000, 0.6);
+      tone(70, 1.0, 'sine', 0.5, 30);
+      [0, 4, 7, 12, 16].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(8 + s), 0.5, 'triangle', 0.16); }, 400 + k * 110));
+    },
+    /** Storm warning: a low rumble building under the doomed column. */
+    rumble() { burst(0.9, 300, 0.35); },
+    /** The bolt lands: a sharp crack and a rolling boom. */
+    thunder() { voices = 0; burst(0.08, 9000, 0.5); burst(1.1, 700, 0.5); tone(60, 0.8, 'sine', 0.3, 35); },
+
     // ---------- stage clear screen ----------
     /** The clear panel slams in: a low thump, a cymbal-ish wash and a big chord. */
     clearSlam() {

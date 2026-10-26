@@ -9,6 +9,7 @@ import {
   fuji, liberty, eiffel, himeji, tajMahal, brandenburgGate, bigBen, sungnyemun, gyeongbokgung, grandCanyon, goldenGate,
   stBasil, charlesBridge, forbiddenCity, sagradaFamilia,
 } from './landmarks/famous.js';
+import { colossus, kraken, golem, mothership } from './landmarks/bosses.js';
 
 export { COLS, toLines };
 
@@ -65,6 +66,23 @@ export const LEVELS = Object.freeze([
   map('sagradaFamilia', '사그라다 파밀리아', '스페인 바르셀로나 · 1882년 착공', sagradaFamilia,
     ['#79c1ef', '#c6e3f6', '#9a8f7a', '#d9c7a1', '#c4b08a', '#9c8a66', '#4a4036', '#5f646e']),
 ]);
+
+// Bosses take turns on every 10th stage (sequence.js). No photo: they fight on the bare table.
+const boss = (id, name, subtitle, build, palette) => Object.freeze({ ...map(id, `BOSS · ${name}`, subtitle, build, palette), photo: null });
+
+export const BOSSES = Object.freeze([
+  boss('colossus', '석상 거인', '모래 속에서 깨어난 고대의 수호자', colossus,
+    ['#2b2f45', '#3a3f5c', '#8a7350', '#8f8a80', '#b3ab9b', '#5d574d', '#3b362f', '#ff5a3c']),
+  boss('kraken', '크라켄', '심연에서 떠오른 거대 오징어', kraken,
+    ['#0b2340', '#123257', '#1f4f5c', '#a83d5a', '#d0587a', '#e58a9e', '#7a2340', '#ffe066']),
+  boss('golem', '용암 골렘', '불타는 심장을 품은 바위 거인', golem,
+    ['#2a1410', '#3b1d16', '#4a3328', '#4b4440', '#6a605a', '#2f2a27', '#1f1b19', '#ff7a1a']),
+  boss('mothership', '외계 모선', '하늘을 뒤덮은 정체불명의 우주선', mothership,
+    ['#0d1030', '#161a44', '#2c3a2e', '#8a93a8', '#b7bfd0', '#5ad1ff', '#9bffb0', '#ffd23a']),
+]);
+
+/** @returns {object} the boss for the bossIndex-th boss stage (they take turns) */
+export const bossAt = (bossIndex) => BOSSES[bossIndex % BOSSES.length];
 
 /** Mixes hex colour `a` toward `b` by t (0..1). */
 export function tint(a, b, t) {

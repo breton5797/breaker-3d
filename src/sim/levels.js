@@ -1,6 +1,7 @@
 import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 
-import { LEVELS, landmarkAt, toLines } from './maps.js';
+import { LEVELS, landmarkAt, bossAt, toLines } from './maps.js';
+import { stageSlot } from './sequence.js';
 
 // Stages are designed on a coarse grid (maps.js), narrowed to fit the box, then
 // upscaled SCALE times to the fine game grid.
@@ -30,6 +31,7 @@ const CHAR_CELL = {
   E: CELL.ITEM30,
   I: CELL.ITEM50,
   M: CELL.ITEM100,
+  X: CELL.CORE,
   $: CELL.COIN,
 };
 
@@ -38,10 +40,11 @@ const CHAR_CELL = {
  * Letters a-h are bricks with an explicit palette index; '#' bricks get a
  * stripe colour from their line.
  * @param {string[]} lines
- * @param {{ brickHp?: number, box?: object|null, holes?: object[] }} [opts] brickHp: hits a
- *   plain brick takes ('H' adds one more); box/holes: the steel box and its entrances (getLevel)
+ * @param {{ brickHp?: number, box?: object|null, holes?: object[], coreHp?: number }} [opts] brickHp: hits a
+ *   plain brick takes ('H' adds one more); box/holes: the steel box and its entrances (getLevel);
+ *   coreHp: hits each cell of a boss core ('X') takes
  */
-export function parseLevel(lines, { brickHp = 1, box = null, holes = [] } = {}) {
+export function parseLevel(lines, { brickHp = 1, box = null, holes = [], coreHp = 1 } = {}) {
   const size = GRID_COLS * ROWS;
   const cells = new Uint8Array(size);
   const hp = new Uint8Array(size);
@@ -63,6 +66,7 @@ export function parseLevel(lines, { brickHp = 1, box = null, holes = [] } = {}) 
       hp[i] = unitTier ? UNIT_TIERS[unitTier - 1].hp
         : SPLIT_COUNT[type] ? SPLIT_USES
         : ch === 'H' ? brickHp + 1
+        : type === CELL.CORE ? coreHp
         : type === CELL.BRICK ? brickHp : 1;
       tier[i] = unitTier;
       color[i] = isLetter ? code - 97 : Math.floor(li / 5) % 8;
@@ -310,7 +314,10 @@ function frame(inner, box, holes) {
 }
 
 /** @returns {string} the name stage i is shown with (cheap: builds nothing) */
-export const levelName = (i) => landmarkAt(Math.max(0, Math.floor(i))).name;
+export const levelName = (i) => {
+  const slot = stageSlot(Math.max(0, Math.floor(i)));
+  return (slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content)).name;
+};
 
 /**
  * Builds stage i (0, 1, 2, ... endless). Every stage is a landmark inside a
@@ -319,29 +326,40 @@ export const levelName = (i) => landmarkAt(Math.max(0, Math.floor(i))).name;
  * @param {number} i
  * @param {{ slots?: string[] }} [opts] force these hole slots (balance scripts and tests)
  */
+/** Boss core toughness and bomb tier rise with the stage. */
+const bossSpec = (n) => ({
+  coreHp: Math.min(12, 5 + Math.floor(n / 25)),
+  tier: Math.min(10, 2 + Math.floor(n / 25)),
+  dps: 6 + Math.floor(n / 30), // core damage per second: fights last ~20 s however big the swarm
+});
+
 export function getLevel(i, { slots } = {}) {
   const n = Math.max(0, Math.floor(i));
   const p = stageParams(n);
-  const map = landmarkAt(n);
+  const slot = stageSlot(n);
+  const map = slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content);
   const mural = narrow(map.build(), INNER_COARSE);
   const innerRows = mural.length * SCALE;
   const box = BOX(TOP_LANE + innerRows + 2);
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize);
   const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
   const coarse = carveOpenings(mural, holes);
-  const seeded = seedUnits(seedCoins(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.coins, n + 401), p.unitTop, p.unitCount, n + 701);
+  const fed = seedCoins(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.coins, n + 401);
+  // A boss does the shooting itself, so its stage has no enemy units.
+  const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
   const lines = frame(upscale(seeded), box, holes);
   return {
     index: n,
     name: map.name,
     subtitle: map.subtitle,
     palette: map.palette,
-    photo: map.id,
+    photo: map.photo === null ? null : map.id,
     photoTint: map.photoTint,
     brickHp: p.brickHp,
     params: p,
     lines,
     box,
     holes: holes.map(({ pocket, ...h }) => h),
+    boss: slot.boss ? bossSpec(n) : null,
   };
 }

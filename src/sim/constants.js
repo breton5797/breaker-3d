@@ -47,6 +47,7 @@ export const CELL = Object.freeze({
   ITEM100: 16,
   UNIT: 17,
   COIN: 18,
+  CORE: 19, // a boss's heart: many hits, explosions only crack it (boss.js)
 });
 
 // Item bricks drop a capsule; catching it with the paddle multiplies the ball count.
