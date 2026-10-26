@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { COLS, ROWS, CELL } from '../sim/constants.js';
 import { toWorldX, toWorldY, TILT } from './stage.js';
 import { fruitFor, EMOJI_FONT } from '../fruits.js';
+import { coinMaterials, coinGeometry } from './coinLook.js';
 
 /** Icon spec for a fruit item: the fruit itself, no tile and no number. */
 function fruitSpec(mult) {
@@ -20,7 +21,7 @@ export const SPECIALS = {
   [CELL.LASER_V]: { tint: [2.4, 0.4, 0.6], label: '↕', bg: '#e02a5a' },
   [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c' },
   [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00' },
-  [CELL.COIN]: { tint: [2.8, 2.1, 0.3], label: '🪙', bg: '#c99a06' },
+  [CELL.COIN]: { tint: [2.8, 2.1, 0.3], label: '', bg: '#c99a06', coin: true },
   // Multiplier items are drawn as fruit (see src/fruits.js), never as numbers.
   [CELL.ITEM5]: fruitSpec(5),
   [CELL.ITEM10]: fruitSpec(10),
@@ -118,11 +119,14 @@ export function createBricks(scene) {
   const iconGeo = new THREE.BoxGeometry(0.92, 0.92, 1.1);
   // Fruit stands upright on its cell, turned to face the tilted camera.
   const fruitGeo = new THREE.PlaneGeometry(1, 1).rotateX(TILT).translate(0, 0, 0.45);
+  // Gold coin bricks are real 3D coins (raised over the wall so their faces show).
+  const coinGeo = coinGeometry(0.5, 0.26);
+  const COIN_LIFT = 0.35;
   const specialMeshes = Object.fromEntries(Object.entries(SPECIALS).map(([type, spec]) => {
     const material = spec.fruit
       ? new THREE.MeshBasicMaterial({ map: fruitTexture(spec.fruit), transparent: true, depthWrite: false })
-      : new THREE.MeshLambertMaterial({ map: iconTexture(spec) });
-    const m = new THREE.InstancedMesh(spec.fruit ? fruitGeo : iconGeo, material, total);
+      : spec.coin ? coinMaterials() : new THREE.MeshLambertMaterial({ map: iconTexture(spec) });
+    const m = new THREE.InstancedMesh(spec.fruit ? fruitGeo : spec.coin ? coinGeo : iconGeo, material, total);
     m.count = 0;
     m.castShadow = !spec.fruit;
     m.renderOrder = spec.fruit ? 2 : 0;
@@ -142,9 +146,9 @@ export function createBricks(scene) {
     return grid.hp[i] > 1 ? baseColor.clone().lerp(HARD_SHINE, Math.min(0.15, 0.05 * (grid.hp[i] - 1))) : baseColor;
   }
 
-  function place(m, slot, i, scale = 1, lift = 0) {
+  function place(m, slot, i, scale = 1, lift = 0, turn = 0) {
     tmp.position.set(toWorldX((i % COLS) + 0.5), toWorldY(Math.floor(i / COLS) + 0.5), 0.5 + lift);
-    tmp.rotation.set(0, 0, 0);
+    tmp.rotation.set(0, turn, 0);
     tmp.scale.setScalar(scale);
     tmp.updateMatrix();
     m.setMatrixAt(slot, tmp.matrix);
@@ -175,7 +179,7 @@ export function createBricks(scene) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       const cells = specialCells[type];
       m.count = cells.length;
-      cells.forEach((i, slot) => place(m, slot, i, scaleOf(type)));
+      cells.forEach((i, slot) => place(m, slot, i, scaleOf(type), SPECIALS[type].coin ? COIN_LIFT : 0));
       m.instanceMatrix.needsUpdate = true;
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -204,15 +208,21 @@ export function createBricks(scene) {
     mesh.instanceColor.needsUpdate = true;
   }
 
-  /** Specials breathe and fruit bob gently, so they read as "something will happen". */
+  /** Specials breathe, fruit bob gently and coins turn, so they read as "something will happen". */
   function update(time) {
     for (const [type, m] of Object.entries(specialMeshes)) {
       if (!m.count) continue;
       const cells = specialCells[type];
       const fruit = isFruit(type);
+      const coin = Boolean(SPECIALS[type].coin);
       for (let slot = 0; slot < m.count; slot++) {
         if (slotOf[cells[slot]] !== slot) continue;
         const phase = time * (fruit ? 3 : 6) + slot * 0.7;
+        if (coin) {
+          // Rock back and forth about the field's vertical axis so the face catches the light.
+          place(m, slot, cells[slot], scaleOf(type), COIN_LIFT, Math.sin(time * 2 + slot * 0.9) * 1.1);
+          continue;
+        }
         const s = scaleOf(type) * (1 + Math.sin(phase) * (fruit ? 0.04 : 0.07));
         place(m, slot, cells[slot], s, fruit ? Math.abs(Math.sin(phase)) * 0.25 : 0);
       }

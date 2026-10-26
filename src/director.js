@@ -8,6 +8,7 @@ const RAINBOW = [0xff4d4d, 0xff9f43, 0xfeca57, 0x1dd1a1, 0x48dbfb, 0x2e86de, 0xa
 const rainbow = (k) => RAINBOW[k % RAINBOW.length];
 const BALL_MILESTONES = [50, 100, 250, 500, 1000, 2000, 3000];
 const COMBO_MILESTONES = [100, 300, 1000];
+const COIN_BURSTS = 3; // gold ring + chip bursts per frame at most
 
 const specialHex = Object.fromEntries(Object.entries(SPECIALS).map(([t, s]) => [t, new THREE.Color(...s.tint).multiplyScalar(0.45).getHex()]));
 const STEEL_HEX = 0x6c7a96;
@@ -22,7 +23,7 @@ function buzz(audio, pattern) {
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
  */
-export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
+export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d }) {
   let slow = { scale: 1, until: 0 };
   let ballMark = 0;
   let comboMark = 0;
@@ -61,6 +62,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
   function handle(events, w) {
     let shards = 0;
     let booms = 0;
+    let coinGold = 0;
+    let coinX = 0;
+    let coinBursts = 0;
     for (const e of events) {
       switch (e.t) {
         case 'break': {
@@ -103,12 +107,12 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           }
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
-        case 'coin': {
-          audio.coin();
-          const at = stage.project(e.x, PADDLE_Y, 1.5);
-          ui.floatAt(at.x, at.y, [[{ small: `+${e.gold} 🪙` }]], 'gold');
+        case 'coin':
+          coins3d.pop(e.x); // every coin gets its own pop; the louder feedback is batched below
+          coinGold += e.gold;
+          coinX = e.x;
+          if (coinBursts < COIN_BURSTS) { fx.coinBurst(e.x); coinBursts++; }
           break;
-        }
         case 'fire-shell': audio.shoot(); break;
         case 'unit-hit': units3d.hit(e.c, e.r); audio.pop(0); break;
         case 'unit-down':
@@ -141,6 +145,15 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
         case 'clear': if (w.finale) fireworks(); break;
         default: break;
       }
+    }
+    if (coinGold) {
+      // One jingle, shake, buzz and "+N" per frame, however many coins landed together.
+      audio.coin();
+      stage.shake(Math.min(0.7, 0.4 + coinGold * 0.05));
+      buzz(audio, 12);
+      ui.pumpGold();
+      const at = stage.project(coinX, PADDLE_Y, 1.5);
+      ui.floatAt(at.x, at.y, [[{ emoji: '🪙' }, { big: `+${coinGold}` }]], 'gold');
     }
     if (booms >= 3) slowMo(0.5, 0.35);
     if (booms >= 8) stage.shake(1.2);

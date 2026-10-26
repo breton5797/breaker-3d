@@ -67,10 +67,11 @@ const ui = createUI({
   onAchievements: () => ui.showAchievements(save),
   onCredits: () => ui.showCredits(credits),
 });
-const director = createDirector({ stage, bricks, fx, audio, ui, units3d });
+const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d });
 
 function startLevel(i) {
   level = getLevel(i);
+  coins3d.reset();
   const p = level.params;
   world = createWorld(level.lines, {
     box: level.box, holes: level.holes,
@@ -285,6 +286,7 @@ function showMenu() {
   beacon.setLevel(backdrop.grid);
   photo.setLevel(preview);
   drops3d.update([], 0);
+  coins3d.reset();
   coins3d.update([], 0);
   units3d.setLevel(backdrop.units);
   units3d.update(backdrop.units, [], false, 0, 0);

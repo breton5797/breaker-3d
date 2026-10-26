@@ -31,7 +31,7 @@ export function stageParams(i) {
     holeCount: HOLE_STEPS.find(([upTo]) => n < upTo)?.[1] ?? 1,
     holeSize: 1, // fine cells: one ball fits
     brickHp: Math.min(3, 1 + Math.floor(2.5 * Math.pow(d, 1.2))),
-    items: Math.round(lerp(8, 5.5, d)), // fruit per stage
+    items: Math.round(lerp(16, 11, d)), // fruit per stage
     coins: Math.round(lerp(60, 40, d)), // gold coin bricks per stage
     bigItemShare: lerp(0.6, 0.3, d), // chance an item is x20 or more
     releaseRate: RELEASE_RATE, // minimum release speed of caught balls

@@ -53,7 +53,7 @@ describe('endless difficulty curve', () => {
   it('stage 1 is a beginner stage; by stage 200 the step knobs are at their hardest', () => {
     const easy = stageParams(0);
     expect(easy.holeCount).toBe(4);
-    expect(easy.items).toBe(8); // a tenth of the old 80 fruit
+    expect(easy.items).toBe(16); // twice the 8 of the 1/10 cut
     expect(easy.coins).toBeGreaterThanOrEqual(40);
     expect(easy.brickHp).toBe(1);
     expect(easy.unitCount).toBe(0);
