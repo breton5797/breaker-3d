@@ -85,6 +85,23 @@ export function launch(w) {
   return true;
 }
 
+/**
+ * Continue a lost run (a rewarded revive): one life back, the ball waits on
+ * the paddle, the bricks stay as they were. Only valid once the run is over.
+ * @returns {boolean} whether it revived
+ */
+export function revive(w) {
+  if (w.state !== 'over') return false;
+  w.lives = 1;
+  w.stun = 0;
+  w.shells = [];
+  w.drops = [];
+  w.coins = [];
+  w.state = 'ready';
+  w.events.push({ t: 'revive' });
+  return true;
+}
+
 /** @param {'split'|'meteor'} name */
 export function useSkill(w, name) {
   if (w.charges[name] <= 0 || (w.state !== 'play' && w.state !== 'ready')) return false;

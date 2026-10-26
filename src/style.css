@@ -291,6 +291,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .c-fire { background: #7a2a05; } .c-unit { background: linear-gradient(90deg, #46d16a, #e8433f, #1a1a1a); } .c-gold { background: #7a5505; }
 .controls { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.6; }
 .legal-links { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+/* Rewarded offers (revive, double gold) and the remove-ads purchase. */
+.reward-btn { display: block; width: 100%; margin: 0 0 10px; }
+#btn-revive:not([disabled]) { animation: pulse 1.1s ease-in-out infinite; }
+.store-btn { display: block; width: 100%; margin-top: 8px; }
+.store-btn.link { width: auto; margin: 6px auto 0; }
 .legal-links a { color: var(--muted); }
 
 @media (max-width: 520px) {

@@ -98,6 +98,8 @@
         <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
+        <button id="btn-remove-ads" class="ghost store-btn" hidden></button>
+        <button id="btn-restore" class="link store-btn" hidden>구매 복원</button>
         <button id="btn-credits" class="link credits-link">📷 사진 출처</button>
         <ul class="legend">
           <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>          <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 상자의 작은 구멍(아래·옆·위·모서리)으로 진입</li>
@@ -117,6 +119,7 @@
         <div id="stars" class="stars"></div>
         <h2 id="clear-score" class="big-score"></h2>
         <dl id="clear-stats" class="stats"></dl>
+        <button id="btn-double-gold" class="ghost reward-btn clear-actions" hidden></button>
         <div id="clear-actions" class="row clear-actions">
           <button id="btn-retry" class="ghost">다시</button>
           <button id="btn-next" class="primary">다음 스테이지</button>
@@ -127,6 +130,7 @@
       <div id="screen-over" class="panel" hidden>
         <p class="eyebrow danger">GAME OVER</p>
         <h2 id="over-score" class="big-score"></h2>
+        <button id="btn-revive" class="primary reward-btn" hidden></button>
         <div class="row">
           <button id="btn-over-menu" class="ghost">메뉴</button>
           <button id="btn-over-retry" class="primary">다시 도전</button>
