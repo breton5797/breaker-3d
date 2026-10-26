@@ -9,11 +9,15 @@ import {
   fuji, liberty, eiffel, himeji, tajMahal, brandenburgGate, bigBen, sungnyemun, gyeongbokgung, grandCanyon, goldenGate,
   stBasil, charlesBridge, forbiddenCity, sagradaFamilia,
 } from './landmarks/famous.js';
+import {
+  saturn, curiosity, earthrise, blackHole, dumbo, blackSmoker, jellyfish, spermWhale, lavaFountain, aurora, supercell, iceberg,
+} from './landmarks/wonders.js';
 
 export { COLS, toLines };
 
 // id names the background photo (public/landmarks/<id>.jpg).
 const map = (id, name, subtitle, build, palette) => Object.freeze({ id, name, subtitle, build, palette: Object.freeze(palette) });
+const wonder = (theme, ...args) => Object.freeze({ ...map(...args), theme });
 
 export const LEVELS = Object.freeze([
   map('giza', '기자 피라미드', '이집트 · 기원전 26세기', giza,
@@ -64,6 +68,35 @@ export const LEVELS = Object.freeze([
     ['#7fc4f0', '#c7e4f6', '#3f8f4a', '#9b8f7a', '#b8ad96', '#857862', '#3d3428', '#7aa8c9']),
   map('sagradaFamilia', '사그라다 파밀리아', '스페인 바르셀로나 · 1882년 착공', sagradaFamilia,
     ['#79c1ef', '#c6e3f6', '#9a8f7a', '#d9c7a1', '#c4b08a', '#9c8a66', '#4a4036', '#5f646e']),
+]);
+
+// 경이의 세계: space, the deep sea and natural wonders (same shape as LEVELS plus a theme).
+// Not part of LEVELS: the chapter sequencing places them.
+export const WONDERS = Object.freeze([
+  wonder('space', 'saturn', '토성', '태양계 여섯째 행성 · 고리 지름 28만km', saturn,
+    ['#070b24', '#1b2452', '#6b4a2e', '#e9b866', '#c7782f', '#f6e3b4', '#d8c9a2', '#8f7a58']),
+  wonder('space', 'curiosity', '화성 큐리오시티', '화성 게일 크레이터 · 2012년 착륙', curiosity,
+    ['#e3a77c', '#f2cfa4', '#b4502a', '#f1eee6', '#8a8f99', '#262931', '#3b3534', '#d9824e']),
+  wonder('space', 'earthrise', '지구돋이', '아폴로 8호 · 1968년 달 궤도에서', earthrise,
+    ['#03050d', '#111933', '#9a968f', '#2a6fe0', '#c99a52', '#f7f9fd', '#5c5955', '#0f2150']),
+  wonder('space', 'blackHole', '블랙홀 M87*', '처녀자리 은하 M87 · 5,500만 광년', blackHole,
+    ['#020206', '#140a1e', '#4a1208', '#b8240e', '#ff6a1a', '#ffc23d', '#6e1a0a', '#fff3c4']),
+  wonder('sea', 'dumbo', '덤보 문어', '심해 3,000m · 귀 모양 지느러미', dumbo,
+    ['#020a1c', '#0a2244', '#8f7fd8', '#f2c6cc', '#ec8f9a', '#1a1022', '#5d4fae', '#fff0e2']),
+  wonder('sea', 'blackSmoker', '블랙 스모커', '대서양 해저 열수구 · 350°C', blackSmoker,
+    ['#020814', '#08233f', '#3a4252', '#d8762f', '#8a4a24', '#262a34', '#5f86b8', '#ff3b3b']),
+  wonder('sea', 'jellyfish', '불꽃해파리', '태평양 심해 1,200m · 할리트레페스', jellyfish,
+    ['#03124a', '#0a2a7a', '#3f6fd8', '#c6deff', '#79a8ff', '#ffc928', '#fff0b0', '#ff6fb0']),
+  wonder('sea', 'spermWhale', '향유고래', '세계 최대 이빨고래 · 몸길이 18m', spermWhale,
+    ['#0a5fb8', '#3da0e8', '#86cdf5', '#2c3440', '#566270', '#0f141b', '#a9bccb', '#eaf6ff']),
+  wonder('nature', 'lavaFountain', '용암 분수', '미국 하와이 킬라우에아 · 높이 수백m', lavaFountain,
+    ['#9bb8cf', '#d5e2ea', '#5d6670', '#d81f17', '#ff6a1f', '#ffd03a', '#25252a', '#4c4c54']),
+  wonder('nature', 'aurora', '오로라', '미국 알래스카 · 북극광', aurora,
+    ['#0b1440', '#2a2a6e', '#eef3fb', '#2fe07a', '#b14ad8', '#b8ffc6', '#10241b', '#ff7ad0']),
+  wonder('nature', 'supercell', '슈퍼셀 뇌우', '미국 캔자스 · 회전하는 폭풍', supercell,
+    ['#2b3240', '#7b8796', '#4f5d2c', '#353c4b', '#5f6a7b', '#a4b0c0', '#1b1f28', '#ffee3a']),
+  wonder('nature', 'iceberg', '빙산', '북극해 · 90%가 물속에', iceberg,
+    ['#7ec8ef', '#cfeaf7', '#1c66a8', '#52c9d6', '#c4f1ff', '#ffffff', '#238fb0', '#fff4c2']),
 ]);
 
 /** Mixes hex colour `a` toward `b` by t (0..1). */
