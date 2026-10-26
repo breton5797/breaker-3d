@@ -103,6 +103,12 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d }) {
           }
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
+        case 'coin': {
+          audio.coin();
+          const at = stage.project(e.x, PADDLE_Y, 1.5);
+          ui.floatAt(at.x, at.y, [[{ small: `+${e.gold} 🪙` }]], 'gold');
+          break;
+        }
         case 'fire-shell': audio.shoot(); break;
         case 'unit-hit': units3d.hit(e.c, e.r); audio.pop(0); break;
         case 'unit-down':

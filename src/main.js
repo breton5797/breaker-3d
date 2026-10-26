@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLS, PADDLE_Y, PADDLE_H, BALL_R } from './sim/constants.js';
+import { COLS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { getLevel } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
 import { ballInside } from './sim/units.js';
@@ -9,11 +9,12 @@ import { createBalls3d } from './render/balls3d.js';
 import { createFx } from './render/fx.js';
 import { createDrops3d, createBeacon } from './render/drops3d.js';
 import { createPhoto } from './render/photo.js';
+import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
-import { loadSave, writeSave, recordClear, unlockAchievements } from './storage.js';
+import { loadSave, writeSave, recordClear, unlockAchievements, addGold } from './storage.js';
 import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned } from './achievements.js';
@@ -29,10 +30,11 @@ const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
 const beacon = createBeacon(stage.scene);
 const photo = createPhoto(stage.scene);
+const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const quality = createQualityGovernor();
-const PADDLE_HEX = 0xc4d2ff;
+const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
 const STUN_HEX = 0xff3040;
 
 let save = loadSave();
@@ -52,7 +54,7 @@ const ui = createUI({
   onPlay: (i) => startLevel(i),
   onNext: () => startLevel(level.index + 1),
   onRetry: () => startLevel(level.index),
-  onMenu: () => showMenu(),
+  onMenu: () => { bankLiveGold(); showMenu(); },
   onSkill: (name) => world && mode === 'play' && useSkill(world, name),
   onMute: () => {
     audio.unlock();
@@ -119,6 +121,14 @@ function applyQuality(levelIndex) {
   ui.toast('화질 자동 조정', 'small');
 }
 
+/** Leaving a stage mid-run (pause -> menu) keeps the gold caught so far, as a game over does. */
+function bankLiveGold() {
+  if (!world || (mode !== 'play' && mode !== 'paused') || world.gold <= 0) return;
+  save = addGold(save, world.gold);
+  writeSave(save);
+  world.gold = 0;
+}
+
 function togglePause() {
   if (mode === 'play') { mode = 'paused'; ui.showPause(true); }
   else if (mode === 'paused') { mode = 'play'; ui.showPause(false); }
@@ -136,7 +146,11 @@ function finishLevel(cleared) {
     // Fruit still in the air pops too, instead of freezing mid-fall.
     for (const d of w.drops) for (let k = 0; k < 24; k++) fx.shards(d.x, d.y, fruitFor(d.mult).color, 1.6);
     w.drops = [];
-    save = recordClear(save, level.index, w.score);
+    // Coins still falling (the finale shakes many loose) are banked, not lost.
+    for (const c of w.coins) for (let k = 0; k < 8; k++) fx.shards(c.x, c.y, 0xf2b705, 1.2);
+    w.gold += w.coins.length * COIN_VALUE;
+    w.coins = [];
+    save = addGold(recordClear(save, level.index, w.score), w.gold);
     writeSave(save);
     checkAchievements(true);
     const full = level.params.lives; // stars are relative to this stage's starting lives
@@ -150,10 +164,13 @@ function finishLevel(cleared) {
         ['최대 공 개수', ui.fmt(w.peakBalls)],
         ['최고 콤보', ui.fmt(w.bestCombo)],
         ['부순 벽돌', ui.fmt(w.broken)],
+        ['획득 골드', `🪙 ${ui.fmt(w.gold)}`],
         ['남은 목숨', '♥'.repeat(w.lives)],
       ],
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
+    save = addGold(save, w.gold); // gold caught is kept even when the run ends
+    writeSave(save);
     checkAchievements(false);
     setTimeout(() => ui.showOver(w.score), 900);
   }
@@ -214,6 +231,7 @@ function hud() {
     charges: world.charges,
     ready: world.state === 'ready',
     muted: audio.isMuted(),
+    gold: save.gold + world.gold,
   });
 }
 
@@ -236,12 +254,11 @@ function frame(now) {
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
     balls3d.update(world.balls, resting);
     drops3d.update(world.drops, now / 1000);
+    coins3d.update(world.coins, now / 1000);
     units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
     // A stunned paddle flickers red.
     const stunned = world.stun > 0 && Math.sin(now / 40) > 0;
-    stage.paddle.material.color.setHex(stunned ? STUN_HEX : PADDLE_HEX);
-    stage.paddle.position.x = toWorldX(world.paddle.x);
-    stage.paddle.scale.y = world.paddle.w / (1 + PADDLE_H);
+    stage.paddle.set(toWorldX(world.paddle.x), world.paddle.w, stunned ? STUN_HEX : PADDLE_HEX);
     hudTimer -= dt;
     if (hudTimer <= 0 && mode === 'play') { hud(); checkAchievements(false); hudTimer = 0.08; }
     // Only real-time play frames judge performance (menus and slow-mo don't count).
@@ -268,6 +285,7 @@ function showMenu() {
   beacon.setLevel(backdrop.grid);
   photo.setLevel(preview);
   drops3d.update([], 0);
+  coins3d.update([], 0);
   units3d.setLevel(backdrop.units);
   units3d.update(backdrop.units, [], false, 0, 0);
   balls3d.update(backdrop.balls, null);

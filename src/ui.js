@@ -82,6 +82,7 @@ export function createUI(h) {
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
     $('btn-achv').textContent = `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
+    $('title-gold').textContent = `🪙 ${fmt(save.gold)} 골드`;
     show('screen-title');
   }
 
@@ -146,7 +147,7 @@ export function createUI(h) {
     if (credit) el.textContent = `📷 ${credit.artist} · ${credit.license}`;
   }
 
-  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean}} s */
+  /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean, gold:number}} s */
   function setHud(s) {
     $('score').textContent = fmt(s.score);
     const ballEl = $('ball-count');
@@ -165,6 +166,7 @@ export function createUI(h) {
     $('skill-meteor').disabled = s.charges.meteor <= 0;
     $('hint').hidden = !s.ready;
     $('btn-mute').textContent = s.muted ? '🔇' : '🔊';
+    $('gold').textContent = `🪙 ${fmt(s.gold)}`;
   }
 
   /**

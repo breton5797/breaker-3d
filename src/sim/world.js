@@ -34,6 +34,8 @@ export function createWorld(lines, opts = {}) {
     state: 'ready', // ready | play | clear | over
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
+    coins: [], // falling gold coins { x, y }
+    gold: 0, // gold caught this stage
     collected: 0,
     catchStreak: 0, // fruits caught in a row without missing one
     bestStreak: 0,
@@ -208,6 +210,7 @@ export function stepWorld(w, dt) {
   if (w.state === 'play' && w.balls.n === 0 && !zapsLeft) {
     w.lives--;
     w.drops = [];
+    w.coins = [];
     w.shells = [];
     w.queued = 0;
     w.events.push({ t: 'lost' });

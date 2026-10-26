@@ -133,6 +133,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes bannerIn { from { transform: translateX(-50%) scale(0.3); opacity: 0; } }
 @keyframes ribbon { to { background-position: 200% 0; } }
 
+/* Gold */
+.gold-count { font-size: 13px; font-weight: 800; color: var(--gold); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.title-gold { margin: -10px 0 14px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+.floater.gold .floater-small { color: var(--gold); }
+.c-coin { background: #7a5a05; }
+
 /* Photo credits */
 .credits-link { display: block; margin: -4px auto 10px; }
 .credits-note { margin: 0 0 12px; font-size: 12px; color: var(--muted); }

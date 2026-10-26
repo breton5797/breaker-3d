@@ -91,6 +91,8 @@ export function createAudio() {
       }
       burst(0.35, 5000, 0.25);
     },
+    /** Gold coin caught: a short bright two-note ding. */
+    coin() { tone(1760, 0.08, 'sine', 0.1); setTimeout(() => { voices = 0; tone(2349, 0.12, 'sine', 0.09); }, 50); },
     achievement() {
       [0, 4, 7, 12].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(12 + s), 0.25, 'sine', 0.14); }, k * 80));
     },

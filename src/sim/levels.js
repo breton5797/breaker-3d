@@ -30,6 +30,7 @@ const CHAR_CELL = {
   E: CELL.ITEM30,
   I: CELL.ITEM50,
   M: CELL.ITEM100,
+  $: CELL.COIN,
 };
 
 /**
@@ -88,7 +89,7 @@ function findFloorRow(cells) {
 }
 
 // Cells that stay a single fine cell when upscaling; the rest of their block becomes brick.
-const SINGLE = new Set(['A', 'C', 'D', 'E', 'I', 'M', 'B', '-', '|', 'G', 'F', '2', '3', '5', ...UNIT_CHARS]);
+const SINGLE = new Set(['A', 'C', 'D', 'E', 'I', 'M', '$', 'B', '-', '|', 'G', 'F', '2', '3', '5', ...UNIT_CHARS]);
 
 /** Upscales a coarse stage SCALE times: every cell becomes a SCALE x SCALE block of finer bricks. */
 function upscale(lines) {
@@ -126,6 +127,22 @@ function seedItems(lines, count, bigShare, seed) {
     const y = Math.floor(rng() * g.length);
     if (isPlainBrick(g[y][x])) {
       g[y][x] = pickItem(rng, bigShare);
+      placed++;
+    }
+  }
+  return toLines(g);
+}
+
+/** Turns `count` random plain bricks into gold coin bricks ('$'). */
+function seedCoins(lines, count, seed) {
+  const rng = mulberry32(seed);
+  const g = lines.map((l) => [...l]);
+  let placed = 0;
+  for (let tries = 0; placed < count && tries < 5000; tries++) {
+    const x = Math.floor(rng() * g[0].length);
+    const y = Math.floor(rng() * g.length);
+    if (isPlainBrick(g[y][x])) {
+      g[y][x] = '$';
       placed++;
     }
   }
@@ -182,13 +199,9 @@ export const SLOTS = [
   { slot: 'tl', side: 'tl', odds: [2.13, 1.27] },
   { slot: 'tr', side: 'tr', odds: [2.87, 1.3] },
 ];
-const FLOOR_UNTIL = 60; // before this stage one hole is always in the floor
-const ODDS_START = 10; // % of random serves that should get in at stage 1...
-const ODDS_END = 1; // ...falling smoothly to this by stage 200, then holding
-const ODDS_CLOSE = 0.12; // a hole set within this share of the target counts as a match
-
-/** Target entrance odds (%) for stage n: a smooth slide from ODDS_START to ODDS_END. */
-export const targetOdds = (n) => Math.max(ODDS_END, ODDS_START * (ODDS_END / ODDS_START) ** (n / 199));
+const FLOOR_UNTIL = 10; // before this stage one hole is always in the floor
+const HARDEST_AT = 199; // from this stage on the hardest hole spots are used
+const SPREAD = 0.04; // share of the ranking around the stage's spot to pick from (variety)
 
 function combinations(list, k, from = 0, acc = [], out = []) {
   if (acc.length === k) { out.push(acc); return out; }
@@ -197,21 +210,24 @@ function combinations(list, k, from = 0, acc = [], out = []) {
 }
 
 /**
- * Picks this stage's hole slots: among every set of `count` slots whose
- * combined odds land close to targetOdds(n), one at random (so the walls vary
- * from stage to stage while the difficulty slides smoothly). Early stages
- * always keep a floor hole.
+ * Picks this stage's hole slots. Every set of `count` slots is ranked from
+ * easiest to hardest to get into (summed odds); stage n takes a set from the
+ * point n / HARDEST_AT along that ranking, at random within a small window,
+ * so the holes move to harder spots as stages rise while the walls still vary.
+ * Early stages always keep a floor hole.
  */
 function pickSlots(n, count, size) {
   const rng = mulberry32(n * 131 + 7);
-  const target = targetOdds(n);
+  const odds = (set) => set.reduce((sum, s) => sum + s.odds[size === 2 ? 0 : 1], 0);
   const sets = combinations(SLOTS, count)
     .filter((set) => n >= FLOOR_UNTIL || set.some((s) => s.side === 'bottom'))
-    .map((set) => ({ set, miss: Math.abs(set.reduce((sum, s) => sum + s.odds[size === 2 ? 0 : 1], 0) - target) / target }))
-    .sort((a, b) => a.miss - b.miss);
-  const close = sets.filter((x) => x.miss <= ODDS_CLOSE);
-  const pool = close.length ? close : sets.slice(0, 3);
-  return pool[Math.floor(rng() * pool.length)].set;
+    .map((set) => ({ set, odds: odds(set) }))
+    .sort((a, b) => b.odds - a.odds);
+  const at = Math.round(Math.min(1, n / HARDEST_AT) * (sets.length - 1));
+  const half = Math.max(1, Math.round(sets.length * SPREAD));
+  const lo = Math.max(0, at - half);
+  const hi = Math.min(sets.length - 1, at + half);
+  return sets[lo + Math.floor(rng() * (hi - lo + 1))].set;
 }
 
 /**
@@ -313,7 +329,7 @@ export function getLevel(i, { slots } = {}) {
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize);
   const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
   const coarse = carveOpenings(mural, holes);
-  const seeded = seedUnits(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.unitTop, p.unitCount, n + 701);
+  const seeded = seedUnits(seedCoins(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.coins, n + 401), p.unitTop, p.unitCount, n + 701);
   const lines = frame(upscale(seeded), box, holes);
   return {
     index: n,
