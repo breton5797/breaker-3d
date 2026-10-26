@@ -3,11 +3,11 @@
 // from open murals to ones braced with more steel.
 import { COLS, toLines } from './mapkit.js';
 import {
-  giza, stonehenge, moai, parthenon, sphinx, colosseum, chichenItza, angkorWat, petra, machuPicchu, greatWall,
+  giza, stonehenge, moai, sphinx, chichenItza, angkorWat, petra, machuPicchu, greatWall,
 } from './landmarks/ancient.js';
 import {
-  fuji, liberty, eiffel, pisa, tajMahal, bigBen, sungnyemun, nSeoulTower, operaHouse, goldenGate, stBasil,
-  forbiddenCity, sagradaFamilia,
+  fuji, liberty, eiffel, himeji, tajMahal, brandenburgGate, bigBen, sungnyemun, gyeongbokgung, grandCanyon, goldenGate,
+  stBasil, charlesBridge, forbiddenCity, sagradaFamilia,
 } from './landmarks/famous.js';
 
 export { COLS, toLines };
@@ -28,26 +28,26 @@ export const LEVELS = Object.freeze([
     ['#78b9ee', '#bcd9f2', '#8c96b0', '#5fb3a1', '#c9b79c', '#ffd23f', '#2b6cb0', '#6b7a99']),
   map('eiffel', '에펠탑', '프랑스 파리 · 1889년', eiffel,
     ['#8ec5f5', '#cfe6fb', '#5daa4f', '#8b5e3c', '#b07a4f', '#3d3d3d', '#5d4030', '#cccccc']),
-  map('pisa', '피사의 사탑', '이탈리아 피사 · 1173년 착공', pisa,
-    ['#7fc4f0', '#c4e4f7', '#62b04f', '#f2ead8', '#d9ccb0', '#a89c84', '#8a5a44', '#e0d6c0']),
+  map('himeji', '히메지성', '일본 효고현 · 1609년', himeji,
+    ['#86c6f0', '#c9e6f7', '#4f8f45', '#f4f4ef', '#7d8794', '#8a8272', '#3d4650', '#3f7a3a']),
   map('tajMahal', '타지마할', '인도 아그라 · 17세기', tajMahal,
     ['#f7b4a7', '#fbd9c4', '#4f9a4a', '#f7f4ee', '#e3d9c8', '#b9aa94', '#5aa9e6', '#d6b04a']),
-  map('parthenon', '파르테논 신전', '그리스 아테네 · 기원전 5세기', parthenon,
-    ['#6fb8f0', '#b3dcf7', '#b9a27d', '#ece4d2', '#d8ccb2', '#b4a685', '#8f8166', '#7d9a52']),
+  map('brandenburgGate', '브란덴부르크 문', '독일 베를린 · 1791년', brandenburgGate,
+    ['#8fc4ec', '#cfe3f3', '#a9a49a', '#dcc9a3', '#efe3c6', '#a8916a', '#4d7a6a', '#c9b48c']),
   map('bigBen', '빅벤', '영국 런던 · 1859년', bigBen,
     ['#3a4a8c', '#e98a5c', '#6d7891', '#c9a86a', '#a88a55', '#5a4a35', '#2f5d8a', '#f4efe3']),
   map('sungnyemun', '숭례문', '한국 서울 · 1398년', sungnyemun,
     ['#7ec3ee', '#c3e2f5', '#a7a196', '#b8322c', '#cfc8bb', '#4c5a52', '#2b2f33', '#3e8f6b']),
-  map('nSeoulTower', 'N서울타워', '한국 서울 남산 · 1975년', nSeoulTower,
-    ['#16204a', '#26346b', '#2f6b45', '#e8ecf5', '#ffd166', '#9aa6c4', '#3a3f5c', '#cfd8ff']),
-  map('operaHouse', '시드니 오페라하우스', '호주 시드니 · 1973년', operaHouse,
-    ['#69b8f2', '#b9def7', '#8a8f99', '#f7f7f2', '#d9c3a3', '#cfd3d6', '#2a7fc9', '#6c8f5a']),
+  map('gyeongbokgung', '경복궁 근정전', '한국 서울 · 1867년 중건', gyeongbokgung,
+    ['#79bff0', '#c4e3f6', '#cbc3b3', '#b53a2e', '#e3ddd0', '#4d5257', '#2f8f6f', '#4f7d4a']),
+  map('grandCanyon', '그랜드캐니언', '미국 애리조나 · 콜로라도강', grandCanyon,
+    ['#7cbcec', '#f6d6b0', '#6f8f4a', '#c4643c', '#e8c99a', '#8a3e28', '#3f8fb8', '#9c86a8']),
   map('goldenGate', '금문교', '미국 샌프란시스코 · 1937년', goldenGate,
     ['#9fb7c9', '#dfe7ec', '#7a8f5a', '#c0362c', '#e6e6e6', '#8a241d', '#2c6a8f', '#555b66']),
   map('stBasil', '성 바실리 대성당', '러시아 모스크바 · 1561년', stBasil,
     ['#7cc3f0', '#bfe1f5', '#a03c32', '#e2453c', '#c96a4a', '#2e8b57', '#2b6cb0', '#ffd23f']),
-  map('colosseum', '콜로세움', '이탈리아 로마 · 80년', colosseum,
-    ['#7ec8f0', '#c2e5f7', '#b7a57a', '#d8c39a', '#c2ab7f', '#8c7650', '#a08a60', '#6a8f4a']),
+  map('charlesBridge', '카를교', '체코 프라하 · 1357년 착공', charlesBridge,
+    ['#7fb6e8', '#f5d29a', '#8b8170', '#b39a78', '#6f675c', '#3c3a3a', '#3d6f8f', '#5c9a7a']),
   map('sphinx', '스핑크스', '이집트 기자 · 기원전 26세기', sphinx,
     ['#79c2ef', '#c8e6f5', '#e7c483', '#e2b66d', '#a97d42', '#c09050', '#d8ac68', '#3f6fa8']),
   map('chichenItza', '치첸이트사', '멕시코 · 마야 문명', chichenItza,
