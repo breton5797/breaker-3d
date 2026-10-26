@@ -53,6 +53,15 @@ describe('space: gravity wells', () => {
     expect(speed(w.balls, 0)).toBeCloseTo(s0, 5);
   });
 
+  it('never bends a ball flat (it could bounce wall to wall in a cleared row forever)', () => {
+    const { w } = world('space');
+    const well = w.gimmick.wells[0];
+    // Passing just under the well, almost sideways: the pull would flatten it further.
+    addBall(w.balls, well.x - 6, well.y - 0.6, 40, -3);
+    for (let k = 0; k < 120; k++) bendBall(w.gimmick, w.balls, 0, 1 / 60);
+    expect(Math.abs(w.balls.vy[0]) / speed(w.balls, 0)).toBeGreaterThanOrEqual(MIN_VY - 1e-6);
+  });
+
   it('leaves balls far from every well alone', () => {
     const { w } = world('space');
     const far = { x: 2, y: 2 };

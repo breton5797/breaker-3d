@@ -14,7 +14,7 @@ const WELL_PULL = 320; // pull strength (cells/s² scale)
 const BANDS = 2;
 const BAND_ROWS = 4;
 const CURRENT = 60; // sideways push (cells/s²)
-export const MIN_VY = 0.3; // a current never flattens a ball below this share of its speed
+export const MIN_VY = 0.3; // wells and currents never flatten a ball below this share of its speed
 export const STORM_PERIOD = 5; // seconds between strikes (the first comes after exactly this long)
 export const STORM_WARNING = 0.9; // seconds the doomed column flickers before the bolt
 const STORM_DEPTH = 6; // bricks a bolt breaks, top down
@@ -74,10 +74,12 @@ export function bendBall(g, b, i, dt) {
       const d = Math.hypot(dx, dy);
       if (d >= well.r || d < 0.2) continue;
       const speed = Math.hypot(b.vx[i], b.vy[i]);
+      const vySign = Math.sign(b.vy[i]) || 1;
       const a = (WELL_PULL * (1 - d / well.r)) / Math.max(d, 1.5);
       b.vx[i] += (dx / d) * a * dt;
       b.vy[i] += (dy / d) * a * dt;
-      setSpeed(b, i, speed, 0, 0);
+      // Never flat: a sideways ball in a cleared row would bounce wall to wall for good.
+      setSpeed(b, i, speed, MIN_VY, Math.sign(b.vy[i]) || vySign);
     }
   } else if (g.bands) {
     for (const band of g.bands) {

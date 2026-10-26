@@ -7,6 +7,7 @@ import { toWorldX, toWorldY } from './stage.js';
 // a storm warning is a flickering red column.
 
 const WARN_FLICKER = 18; // flicker speed of the doomed column (rad/s)
+const WARN_SAFETY = 4; // seconds: hide a warning whose bolt never came (stage ended)
 
 function chevronTexture() {
   const c = document.createElement('canvas');
@@ -42,7 +43,12 @@ export function createGimmicks3d(scene) {
   function clear() {
     for (const m of [...wells.map((w) => w.group), ...bands.map((b) => b.mesh)]) {
       root.remove(m);
-      m.traverse((o) => { if (o.isMesh) o.material.dispose(); });
+      m.traverse((o) => {
+        if (!o.isMesh) return;
+        o.geometry.dispose();
+        o.material.map?.dispose(); // each band has its own chevron texture clone
+        o.material.dispose();
+      });
     }
     wells = [];
     bands = [];
@@ -86,12 +92,16 @@ export function createGimmicks3d(scene) {
     }
   }
 
-  /** Lightning is about to hit column c (rows bottom..top) in `seconds`. */
-  function warnColumn(c, bottom, top, seconds) {
+  /**
+   * Lightning is about to hit column c (rows bottom..top). The warning stays up
+   * until the bolt lands (hideWarning on the 'storm' event), so pauses and slow-mo,
+   * which stretch sim time, never leave a bolt unannounced.
+   */
+  function warnColumn(c, bottom, top) {
     warn.visible = true;
     warn.scale.set(1, top - bottom + 1, 1);
     warn.position.set(toWorldX(c + 0.5), toWorldY((bottom + top + 1) / 2), 1.3);
-    warnLeft = seconds;
+    warnLeft = WARN_SAFETY;
   }
 
   function update(time, dt) {

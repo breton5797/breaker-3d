@@ -1,4 +1,5 @@
-import { levelName, LEVELS } from './sim/levels.js';
+import { levelName } from './sim/levels.js';
+import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 
@@ -137,7 +138,7 @@ export function createUI(h) {
 
   /** Credits screen: one row per landmark photo (author, licence, link to its Commons page). */
   function showCredits(credits) {
-    const rows = LEVELS.filter((m) => credits[m.id]).map((m) => {
+    const rows = LAP.filter((m) => credits[m.id]).map((m) => {
       const c = credits[m.id];
       const li = document.createElement('li');
       const name = document.createElement('b');

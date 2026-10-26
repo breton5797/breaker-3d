@@ -205,7 +205,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           break;
         case 'boss-shot': audio.shoot(); fx.split(e.c, e.r, 5); break;
         case 'storm-warn':
-          gimmicks3d.warnColumn(e.c, e.bottom, e.top, 0.9);
+          gimmicks3d.warnColumn(e.c, e.bottom, e.top);
           audio.rumble();
           break;
         case 'storm':

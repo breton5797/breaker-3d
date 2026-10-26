@@ -237,7 +237,10 @@ export function createBricks(scene) {
       for (const p of pops) {
         p.t += dt;
         const u = p.t / POP_TIME;
-        if (u >= 1) { mesh.setMatrixAt(p.i, hidden); continue; }
+        if (u >= 1) {
+          if (grid.cells[p.i] === CELL.EMPTY) mesh.setMatrixAt(p.i, hidden); // (a regrown brick stays)
+          continue;
+        }
         // Up to 1.22x by a third of the way, then shrink to nothing.
         const s = u < 0.33 ? 1 + 0.22 * (u / 0.33) : 1.22 * (1 - (u - 0.33) / 0.67);
         place(mesh, p.i, p.i, s, 0.25 * Math.sin(u * Math.PI));
@@ -295,6 +298,7 @@ export function createBricks(scene) {
   /** A boss regrew armour at cell i: put the brick back with a pale flash. */
   function restore(g, i) {
     grid = g;
+    pops = pops.filter((p) => p.i !== i); // its break animation must not hide it again
     place(mesh, i, i);
     flashes.set(i, FLASH_TIME * 2);
     mesh.setColorAt(i, popColor.copy(brickColor(g, i)).lerp(HARD_SHINE, 0.6));
