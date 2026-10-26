@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { COLS, ROWS, CELL } from '../src/sim/constants.js';
 import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX, SLOTS } from '../src/sim/levels.js';
-import { tint } from '../src/sim/maps.js';
+import { tint, LAP, WONDERS } from '../src/sim/maps.js';
 import { isInside } from '../src/sim/box.js';
 import { stageSlot } from '../src/sim/sequence.js';
 
@@ -60,6 +60,30 @@ describe('landmark maps', () => {
     }
   });
 
+  it('after the landmarks comes the "경이의 세계" chapter, each map with its gimmick theme', () => {
+    const regular = [];
+    for (let i = 0; regular.length < LAP.length; i++) if (!stageSlot(i).boss) regular.push(i);
+    const firstWonder = getLevel(regular[LEVELS.length]);
+    expect(firstWonder.name).toBe(WONDERS[0].name);
+    expect(firstWonder.theme).toBe('space');
+    expect(firstWonder.chapterStart).toBe(true);
+    expect(getLevel(regular[LEVELS.length + 1]).chapterStart).toBe(false);
+    WONDERS.forEach((wnd, k) => {
+      const lvl = getLevel(regular[LEVELS.length + k]);
+      expect(lvl.name).toBe(wnd.name);
+      expect(lvl.theme).toBe(wnd.theme);
+      expect(lvl.photo).toBe(wnd.id);
+    });
+    expect(getLevel(0).theme).toBeNull(); // landmarks have no gimmick
+  });
+
+  it('wonders come back unchanged on later laps (no "토성 · 노을")', () => {
+    const regular = [];
+    for (let i = 0; regular.length < LAP.length * 2; i++) if (!stageSlot(i).boss) regular.push(i);
+    expect(getLevel(regular[LAP.length]).name).toBe(`${LEVELS[0].name} · 노을`);
+    expect(getLevel(regular[LAP.length + LEVELS.length]).name).toBe(WONDERS[0].name);
+  });
+
   it('regular stages show the landmarks in order (bosses take every 10th stage between them)', () => {
     const regular = [];
     for (let i = 0; regular.length < LEVELS.length; i++) if (!stageSlot(i).boss) regular.push(i);
@@ -78,8 +102,8 @@ describe('landmark maps', () => {
     expect(tint('#000000', '#ffffff', 0.5)).toBe('#808080');
   });
 
-  // Every regular map (24 of them, with the first bosses in between) and all four bosses.
-  const stages = [...Array(LEVELS.length + 2).keys(), 29, 39];
+  // Every regular map of a lap (24 landmarks + 12 wonders, with bosses in between) and all four bosses.
+  const stages = [...Array(LAP.length + 4).keys()];
   for (const i of stages) {
     it(`stage ${i + 1} sits in a steel box and every brick is reachable through its holes`, () => {
       const { lvl, g } = build(i);

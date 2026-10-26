@@ -361,5 +361,7 @@ export function getLevel(i, { slots } = {}) {
     box,
     holes: holes.map(({ pocket, ...h }) => h),
     boss: slot.boss ? bossSpec(n) : null,
+    theme: map.theme ?? null, // chapter gimmick: 'space' | 'sea' | 'nature' (gimmicks.js)
+    chapterStart: Boolean(map.chapterStart),
   };
 }

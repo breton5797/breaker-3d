@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { toWorldX, toWorldY } from './stage.js';
 
-// Visuals for the chapter gimmicks (sim/gimmicks.js). Matte and translucent,
-// darkening rather than glowing: wells are dark spinning rings, currents are
-// flowing chevron bands, a storm warning is a flickering red column.
+// Visuals for the chapter gimmicks (sim/gimmicks.js). Matte and plain
+// translucent, never additive or glowing: wells are pale spinning rings round a
+// dark eye (they sit on dark space photos), currents are flowing chevron bands,
+// a storm warning is a flickering red column.
 
 const WARN_FLICKER = 18; // flicker speed of the doomed column (rad/s)
 
@@ -55,11 +56,11 @@ export function createGimmicks3d(scene) {
     if (!g) return;
     for (const well of g.wells ?? []) {
       const group = new THREE.Group();
-      group.position.set(toWorldX(well.x), toWorldY(well.y), 0.08);
+      group.position.set(toWorldX(well.x), toWorldY(well.y), 1.25); // above the bricks, or the mural hides it
       const rings = [1, 0.68, 0.38].map((s, k) => {
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(well.r * s * 0.82, well.r * s, 48, 1, 0, Math.PI * 1.6),
-          new THREE.MeshBasicMaterial({ color: 0x05060f, transparent: true, opacity: 0.35 + k * 0.15, depthWrite: false, side: THREE.DoubleSide }),
+          new THREE.MeshBasicMaterial({ color: 0xc9b8ff, transparent: true, opacity: 0.3 + k * 0.12, depthWrite: false, side: THREE.DoubleSide }),
         );
         group.add(ring);
         return ring;
@@ -77,7 +78,7 @@ export function createGimmicks3d(scene) {
       tex.repeat.set(band.dir * w / 4, 1);
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(w, h),
-        new THREE.MeshBasicMaterial({ map: tex, color: 0x6fd3ff, transparent: true, opacity: 0.22, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ map: tex, color: 0x6fd3ff, transparent: true, opacity: 0.4, depthWrite: false }),
       );
       mesh.position.set(toWorldX(band.left + w / 2), toWorldY(band.bottom + h / 2), 1.15);
       root.add(mesh);

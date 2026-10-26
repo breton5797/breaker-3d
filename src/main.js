@@ -147,6 +147,12 @@ function startLevel(i) {
     haptics.play('stun');
     setTimeout(() => ui.toast('⚠ BOSS 출현! 심장(빨간 핵)을 부숴라', 'mega danger'), 900);
   } else audio.stageIntro();
+  if (level.chapterStart) {
+    setTimeout(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
+    setTimeout(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
+  }
+  const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
+  if (GIMMICK_TIPS[level.theme]) setTimeout(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
     setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);

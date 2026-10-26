@@ -166,5 +166,89 @@
     "license": "CC BY-SA 3.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
     "source": "https://commons.wikimedia.org/wiki/File:The_Vltava,_Charles_Bridge,_Old_Town_Bridge_Tower_and_Church_of_St._Francis_of_Assisi._Prague,_Czech_Republic.jpg"
+  },
+  "saturn": {
+    "file": "Saturn during Equinox.jpg",
+    "artist": "NASA / JPL / Space Science Institute",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Saturn_during_Equinox.jpg"
+  },
+  "curiosity": {
+    "file": "Curiosity selfie on Mars.jpg",
+    "artist": "NASA",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Curiosity_selfie_on_Mars.jpg"
+  },
+  "earthrise": {
+    "file": "NASA-Apollo8-Dec24-Earthrise.jpg",
+    "artist": "NASA/Bill Anders",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg"
+  },
+  "blackHole": {
+    "file": "Black hole - Messier 87 crop max res.jpg",
+    "artist": "Event Horizon Telescope, uploader cropped and converted TIF to JPG",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Black_hole_-_Messier_87_crop_max_res.jpg"
+  },
+  "dumbo": {
+    "file": "Dumbo-hires.jpg",
+    "artist": "NOAA Okeanos Explorer",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Dumbo-hires.jpg"
+  },
+  "blackSmoker": {
+    "file": "Blacksmoker in Atlantic Ocean.jpg",
+    "artist": "P. Rona / OAR/National Undersea Research Program (NURP); NOAA",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Blacksmoker_in_Atlantic_Ocean.jpg"
+  },
+  "jellyfish": {
+    "file": "Halitrephes Maasi.jpg",
+    "artist": "NOAA Office of Ocean Exploration and Research",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Halitrephes_Maasi.jpg"
+  },
+  "spermWhale": {
+    "file": "Mother and baby sperm whale.jpg",
+    "artist": "Gabriel Barathieu",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Mother_and_baby_sperm_whale.jpg"
+  },
+  "lavaFountain": {
+    "file": "Pahoeoe fountain edit2.jpg",
+    "artist": "J.D. Griggs",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Pahoeoe_fountain_edit2.jpg"
+  },
+  "aurora": {
+    "file": "Aurora borealis over Eielson Air Force Base, Alaska.jpg",
+    "artist": "United States Air Force photo by Senior Airman Joshua Strang",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Aurora_borealis_over_Eielson_Air_Force_Base,_Alaska.jpg"
+  },
+  "supercell": {
+    "file": "Supercell-thunderstorm-in-Kansas.jpg",
+    "artist": "NOAA National Severe Storms Laboratory",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Supercell-thunderstorm-in-Kansas.jpg"
+  },
+  "iceberg": {
+    "file": "Iceberg in the Arctic with its underside exposed.jpg",
+    "artist": "AWeith",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Iceberg_in_the_Arctic_with_its_underside_exposed.jpg"
   }
 }

@@ -37,6 +37,19 @@ export const SOURCES = {
   machuPicchu: 'Machu Picchu',
   greatWall: 'Great Wall of China',
   sagradaFamilia: 'Sagrada Família',
+  // 경이의 세계 (src/sim/landmarks/wonders.js): pinned NASA / NOAA / USGS files and CC BY(-SA) photos.
+  saturn: 'File:Saturn during Equinox.jpg',
+  curiosity: 'File:Curiosity selfie on Mars.jpg',
+  earthrise: 'File:NASA-Apollo8-Dec24-Earthrise.jpg',
+  blackHole: 'File:Black hole - Messier 87 crop max res.jpg',
+  dumbo: 'File:Dumbo-hires.jpg',
+  blackSmoker: 'File:Blacksmoker in Atlantic Ocean.jpg',
+  jellyfish: 'File:Halitrephes Maasi.jpg',
+  spermWhale: 'File:Mother and baby sperm whale.jpg',
+  lavaFountain: 'File:Pahoeoe fountain edit2.jpg',
+  aurora: 'File:Aurora borealis over Eielson Air Force Base, Alaska.jpg',
+  supercell: 'File:Supercell-thunderstorm-in-Kansas.jpg',
+  iceberg: 'File:Iceberg in the Arctic with its underside exposed.jpg',
 };
 
 const api = async (host, params) => {
