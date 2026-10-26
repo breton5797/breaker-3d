@@ -208,7 +208,7 @@ const hit = new THREE.Vector3();
 function pointerToField(e) {
   ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, stage.camera);
-  return raycaster.ray.intersectPlane(paddlePlane, hit) ? hit.x + COLS / 2 : null;
+  return raycaster.ray.intersectPlane(paddlePlane, hit) ? hit.x * stage.reach + COLS / 2 : null;
 }
 
 window.addEventListener('pointermove', (e) => {

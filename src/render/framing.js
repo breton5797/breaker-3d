@@ -1,4 +1,27 @@
 import * as THREE from 'three';
+import { COLS, ROWS } from '../sim/constants.js';
+import { BOARD, SLAB_DEPTH, RAIL_W } from './environment.js';
+
+/**
+ * Camera style per screen shape.
+ * - Wide screens are limited by height: the whole board fits with room to spare,
+ *   so they get the strong perspective and the room around the board.
+ * - Tall screens are limited by width, and perspective widens the near edge so
+ *   the far half (where the steel box sits) comes out small. They get a flatter,
+ *   longer-lens view cropped to the box plus a sliver of each side lane, and the
+ *   camera follows the paddle further so a paddle at either wall stays in view.
+ *   `reach` gears the finger up a little there, so the screen edge reaches the wall.
+ * @param {number} w @param {number} h screen size (CSS px)
+ */
+export function viewFor(w, h) {
+  if (w >= h) return { reach: 1, fov: 48, tilt: 0.58, sway: 0.12, halfW: COLS / 2 + RAIL_W, near: BOARD.near, nearZ: -SLAB_DEPTH, margin: 0.02, align: 'centre' };
+  return { reach: 1.08, fov: 30, tilt: 0.3, sway: 0.3, halfW: 43, near: -ROWS / 2, nearZ: 0, margin: 0.005, align: 'bottom' };
+}
+
+/** The region a view must keep on screen (frameTable's box). */
+export function framingBox(view) {
+  return { halfW: view.halfW, near: view.near, far: ROWS / 2 + RAIL_W, nearZ: view.nearZ, farZ: 2.2 };
+}
 
 // Camera framing: the closest camera (along the tilted view direction) that
 // still shows the whole table, centred between the HUD insets. Solved
