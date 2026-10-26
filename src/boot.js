@@ -30,7 +30,9 @@ if (!hasWebGL()) {
   canvas.addEventListener('webglcontextrestored', () => clearTimeout(lostTimer));
 }
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// The offline cache is for the web; the app already has every file on the device.
+const inApp = Boolean(window.Capacitor?.isNativePlatform?.());
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !inApp) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
       // no offline cache (private mode, file://): the game still works online

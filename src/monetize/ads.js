@@ -27,12 +27,12 @@ function oneAtATime(show) {
  * @param {{ native:boolean, admob?:object, adUnitId?:string }} opts admob: the
  *   @capacitor-community/admob plugin object; adUnitId: the rewarded ad unit for this platform
  */
-export function createAds({ native, admob, adUnitId } = { native: false }) {
+export function createAds({ native, admob, adUnitId, isTesting = false } = { native: false }) {
   if (!native || !admob || !adUnitId) return noAds;
   return {
     available: () => true,
     showRewarded: oneAtATime(async () => {
-      await admob.prepareRewardVideoAd({ adId: adUnitId });
+      await admob.prepareRewardVideoAd({ adId: adUnitId, isTesting });
       const reward = await admob.showRewardVideoAd();
       return Boolean(reward && (reward.amount ?? 1) > 0);
     }),

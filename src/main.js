@@ -23,6 +23,7 @@ import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned } from './achievements.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
+import { Capacitor } from '@capacitor/core';
 import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
 import { PRODUCT_REMOVE_ADS } from './monetize/store.js';
@@ -42,7 +43,14 @@ const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const haptics = createHaptics();
-const { ads, store } = createMonetization({ dev: import.meta.env.DEV, search: location.search });
+const { ads, store, ready: monetizationReady } = createMonetization({
+  dev: import.meta.env.DEV,
+  search: location.search,
+  native: Capacitor.isNativePlatform() ? { platform: Capacitor.getPlatform() } : null,
+  env: import.meta.env,
+});
+// The app's ads and store come up a moment after launch: refresh the title's shop button then.
+monetizationReady.then(() => { if (mode === 'title') showStore(); });
 // This attempt at the current stage: revives used and gold already banked (a game over banks it).
 let run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
 const fullscreen = createFullscreen();
@@ -103,9 +111,10 @@ const ui = createUI({
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
 ui.setVibe(haptics.supported, haptics.enabled);
-ui.setFullscreen(fullscreen.supported, fullscreen.active);
+// An app is already full screen: no button there.
+ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
 // Esc or the system back gesture also leaves fullscreen; keep the labels and the framing in step.
-fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported, on); stage.resize(); });
+fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), on); stage.resize(); });
 
 function startLevel(i) {
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };

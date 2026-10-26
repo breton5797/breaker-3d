@@ -295,6 +295,31 @@
 - **골드 이중 적립 버그 예방**: 게임 오버 때 적립한 골드는 0으로 비워, 부활 후 클리어 시 다시 적립되지 않게.
 - 웹(GitHub Pages)에서는 광고·상점 버튼이 모두 숨겨져 지금과 같음. 테스트 272 → 283개.
 
+## v26 — 안드로이드·iOS 앱 (Capacitor 8)
+
+- **앱 껍데기**: Capacitor 8.5 (`capacitor.config.json`, 앱 ID `io.github.breton5797.breaker3d` — 스토어 등록 후엔 변경 불가),
+  `android/`(Gradle, minSdk 24 / target 36), `ios/`(Swift Package Manager). 웹 빌드(`dist`)를 그대로 앱에 넣음.
+- **광고**: `@capacitor-community/admob` 8.2 — 시작 시 Google 동의(UMP, 유럽·영국 등) → iPhone 추적 허용(ATT) → SDK 시작.
+  동의가 없으면 보상형 광고를 제공하지 않음. 광고 등급 상한 PG(전체 이용가). 광고 단위는 빌드 환경변수
+  `VITE_ADMOB_REWARDED_ANDROID` / `_IOS`로 넣고, 없거나 형식이 틀리면 Google 테스트 광고(돈 안 됨).
+  앱 ID는 안드로이드 `-PADMOB_APP_ID=…`, iOS `Info.plist`의 `GADApplicationIdentifier` (지금은 테스트 ID).
+- **결제**: `@capgo/native-purchases` 8.9 (Google Play Billing / StoreKit 2, 서버 불필요). 상품 `remove_ads`(1회 구매).
+  가격은 스토어가 주는 값만 표시(애플 규정). 안드로이드는 결제 대기(PENDING)는 소유로 치지 않음.
+- 앱에서는 전체 화면 버튼·오프라인 캐시를 쓰지 않음, 노치·홈바 안전 영역을 피해 화면 배치.
+- **빌드 확인**: iOS — 이 Mac에서 시뮬레이터 빌드 성공·실행(동의 화면까지 확인). 안드로이드 — 이 Mac엔 Java/SDK가 없어
+  GitHub Actions(`.github/workflows/android.yml`)가 디버그 APK를 빌드해 아티팩트로 보관.
+- 아이콘·스플래시: `assets/` 원본에서 `npm run app:assets`로 생성. 개인정보 처리방침에 앱 광고·결제 항목 추가.
+
+### 앱 출시 체크리스트 (사용자가 해야 하는 일)
+1. 계정: Google Play 개발자($25, 1회), Apple Developer Program($99/년), AdMob 계정.
+2. AdMob: 앱 2개(안드로이드·iOS) 등록 → 앱 ID와 **보상형** 광고 단위 ID 발급 → 동의 메시지(GDPR)·IDFA 설명 메시지 게시.
+   발급한 ID를 알려 주면 빌드 설정에 넣음. `app-ads.txt`는 개발자 웹사이트(GitHub Pages 가능)에 올려야 함.
+3. 스토어 상품: 두 스토어에 관리형 상품(비소모성) **`remove_ads`** 생성, 가격 설정.
+4. 사업자: 유료 판매(광고 제거)는 사업자등록·통신판매업 신고 후 스토어 판매자 정보(정산 계좌, 세금) 입력.
+5. 등급: Google Play·App Store의 등급 설문(IARC/자체등급)으로 국내 등급분류 대체. 웹 버전은 광고가 없어 비영리 면제 유지.
+6. 서명: 안드로이드 업로드 키스토어 생성 → GitHub Secrets 등록하면 릴리스용 `.aab` CI 빌드 추가 가능. iOS는 Xcode에서 팀 선택 후 Archive.
+7. 스토어 등록 자료: 아이콘(생성됨), 스크린샷, 설명, 개인정보 처리방침 URL(`/privacy.html`), 데이터 보안(광고 ID 수집) 양식.
+
 ## 구조
 
 - `src/sim/` — 순수 로직(렌더 무관, 테스트 대상). 셀 그리드 + 공 풀(TypedArray, 최대 3000개),
