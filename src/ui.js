@@ -191,6 +191,14 @@ export function createUI(h) {
     if (all.length > 4) all[0].remove();
   }
 
+  /** Bounces the HUD gold counter (a coin was just banked). */
+  function pumpGold() {
+    const el = $('gold');
+    el.classList.remove('pump');
+    void el.offsetWidth; // restart the animation
+    el.classList.add('pump');
+  }
+
   /** Small label that pops up at a screen point and floats away (e.g. over the paddle). */
   function floatAt(x, y, lines, cls = '') {
     const el = document.createElement('div');
@@ -256,6 +264,7 @@ export function createUI(h) {
     showPause: (on) => show(on ? 'screen-pause' : null),
     showAchievements,
     showCredits,
+    pumpGold,
     setPhotoCredit,
     floatAt,
     setFinale,

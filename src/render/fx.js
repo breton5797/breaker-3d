@@ -172,6 +172,12 @@ export function createFx(scene) {
       ring(x, PADDLE_Y, size * 1.6, [1, 0.75, 0.2], 0.9);
       for (let k = 0; k < Math.min(120, mult * 2); k++) debris.spawn(x, PADDLE_Y, 0xfff1a8, 1.5);
     },
+    /** Coin caught: a gold ring snaps out from the paddle and a spray of gold chips flies up. */
+    coinBurst: (x) => {
+      ring(x, PADDLE_Y, 6, [1, 0.78, 0.15], 0.5);
+      ring(x, PADDLE_Y, 11, [1, 0.9, 0.5], 0.85);
+      for (let k = 0; k < 40; k++) debris.spawn(x, PADDLE_Y + 0.5, k % 3 ? 0xf4c21f : 0xfff1a8, 1.2 + Math.random());
+    },
     laser: (axis, c, r) => (axis === 'h'
       ? beam(COLS / 2, r + 0.5, COLS, 1, [1, 0.2, 0.3])
       : beam(c + 0.5, ROWS / 2, 1, ROWS, [1, 0.2, 0.3])),
