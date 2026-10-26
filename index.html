@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-    <meta name="theme-color" content="#05070f" />
+    <meta name="theme-color" content="#06080f" />
+    <!-- Home-screen launch without browser bars (iPhone has no element fullscreen; this is its way). -->
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BREAKER 3D" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icon-180.png" />
     <title>BREAKER 3D</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070f'/%3E%3Crect x='5' y='6' width='10' height='6' rx='1' fill='%23ff5c8a'/%3E%3Crect x='17' y='6' width='10' height='6' rx='1' fill='%236c8cff'/%3E%3Ccircle cx='16' cy='19' r='3' fill='%23fff'/%3E%3Crect x='9' y='25' width='14' height='3' rx='1.5' fill='%2339e6ff'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
@@ -12,6 +19,7 @@
   </head>
   <body>
     <canvas id="game" aria-label="게임 화면"></canvas>
+    <div id="lens" aria-hidden="true"></div>
 
     <header id="hud" hidden>
       <div class="hud-left">
@@ -56,6 +64,7 @@
         <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
         <p id="title-gold" class="title-gold"></p>
         <button id="btn-start" class="primary">시작하기</button>
+        <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
         <button id="btn-credits" class="link credits-link">📷 사진 출처</button>
@@ -113,6 +122,7 @@
           <button id="btn-resume" class="primary">계속하기</button>
         </div>
         <button id="btn-vibe" class="link" hidden>📳 진동 켜짐</button>
+        <button id="btn-full-pause" class="link fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
       </div>
     </section>
 

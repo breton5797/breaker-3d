@@ -2,12 +2,19 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H } from '../sim/constants.js';
 import { createCamFx } from './camfx.js';
+import { frameTable, placeCamera } from './framing.js';
+import { buildRoom, BOARD, SLAB_DEPTH } from './environment.js';
 
-const FOV = 42;
-export const TILT = 0.5; // radians the table leans away from the viewer
+const FOV = 48;
+export const TILT = 0.58; // radians the table leans away from the viewer
+const SWAY = 0.12; // camera drifts this much with the paddle (parallax)
+const HUD_TOP_PX = 84; // screen kept clear for the top HUD bar
+const SKILLS_PX = 140; // ...and for the skill buttons under the table on portrait screens
 
-// No glow, bloom or reflections: everything is matte and lit by a soft sky
-// light plus one angled sun. Depth reads from face shading and soft shadows.
+// No glow, bloom or light bleed: matte surfaces lit by a cool sky, a warm
+// angled key light and a soft overhead spot that falls off into the room.
+// Steel parts get soft image-based reflections; depth reads from shading,
+// soft shadows, the board's thickness and fog over the far floor.
 
 /** Sim cell coords -> world coords (field centred on the origin, z up out of the table). */
 export const toWorldX = (x) => x - COLS / 2;
@@ -47,9 +54,9 @@ function buildArena(scene) {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // Chunky two-tone frame: a dark base with a lighter cap reads as a solid rim.
-  const railBase = new THREE.MeshLambertMaterial({ color: 0x2a3366 });
-  const railCap = new THREE.MeshLambertMaterial({ color: 0x8a9cff });
+  // Chunky two-tone frame: a dark painted base with a brushed-steel cap.
+  const railBase = new THREE.MeshStandardMaterial({ color: 0x2a3366, roughness: 0.6, metalness: 0.2 });
+  const railCap = new THREE.MeshStandardMaterial({ color: 0x9aa8e8, roughness: 0.32, metalness: 0.75 });
   const W = 1.4;
   [[-COLS / 2 - W / 2, 0, W, ROWS + W * 2], [COLS / 2 + W / 2, 0, W, ROWS + W * 2], [0, ROWS / 2 + W / 2, COLS, W]]
     .forEach(([x, y, w, h]) => {
@@ -59,6 +66,7 @@ function buildArena(scene) {
       base.receiveShadow = true;
       const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, h, 0.3), railCap);
       cap.position.set(x, y, 2.1);
+      cap.castShadow = true;
       scene.add(base, cap);
     });
 
@@ -87,8 +95,7 @@ const CAP_R = 0.95;
 function buildPaddle(scene) {
   const group = new THREE.Group();
   group.position.set(0, toWorldY(PADDLE_Y), 0);
-  const satin = { specular: 0x3a3f4a, shininess: 28 };
-  const bodyMat = new THREE.MeshPhongMaterial({ color: 0xc4d2ff, ...satin });
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc4d2ff, roughness: 0.3, metalness: 0.65 });
   const body = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 1.2, BODY_H, 4, 0.56), bodyMat);
   body.position.z = BODY_H / 2;
   const belly = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 1.26, BODY_H * 0.3, 2, 0.12), new THREE.MeshLambertMaterial({ color: 0x55607e }));
@@ -96,7 +103,7 @@ function buildPaddle(scene) {
   const stripe = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 0.4, 0.22, 2, 0.08), new THREE.MeshLambertMaterial({ color: 0x39c6e6 }));
   stripe.position.z = BODY_H + 0.04;
   const capGeo = new THREE.CylinderGeometry(CAP_R, CAP_R, CAP_LEN, 24);
-  const capMat = new THREE.MeshPhongMaterial({ color: 0xd8463c, ...satin });
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xd8463c, roughness: 0.38, metalness: 0.15 });
   const ringGeo = new THREE.CylinderGeometry(CAP_R + 0.05, CAP_R + 0.05, 0.18, 24);
   const ringMat = new THREE.MeshLambertMaterial({ color: 0x2c3148 });
   const caps = [-1, 1].map((side) => {
@@ -149,35 +156,21 @@ function buildPaddle(scene) {
   return { set, punch, shakeOff, update };
 }
 
-/** Vertical backdrop gradient behind the table (deep navy to near-black). */
-function backdropTexture() {
-  const c = document.createElement('canvas');
-  c.width = 2;
-  c.height = 256;
-  const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, '#1b2350');
-  grad.addColorStop(0.55, '#0b1028');
-  grad.addColorStop(1, '#04060e');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 2, 256);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 /** @param {HTMLCanvasElement} canvas */
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Filmic-neutral tone curve: bright highlights roll off instead of clipping flat.
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 0.95;
 
   const scene = new THREE.Scene();
-  scene.background = backdropTexture();
 
-  scene.add(new THREE.HemisphereLight(0xeef2ff, 0x50506a, 3.4));
-  const key = new THREE.DirectionalLight(0xffffff, 3.0);
+  // Cool sky from above, warm key from the near-left: the colour contrast models volume.
+  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x2a2438, 2.1));
+  const key = new THREE.DirectionalLight(0xfff0dc, 2.4);
   key.position.set(-40, -60, 120);
   // Soft shadows across the whole table; the shadow camera frames the field.
   key.castShadow = true;
@@ -189,26 +182,36 @@ export function createStage(canvas) {
     left: -COLS / 2 - 8, right: COLS / 2 + 8, top: ROWS / 2 + 8, bottom: -ROWS / 2 - 8, near: 1, far: 400,
   });
   scene.add(key, key.target);
+  const lightDir = key.target.position.clone().sub(key.position).normalize();
+  const room = buildRoom(scene, renderer, lightDir);
 
   const arena = buildArena(scene);
-  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 800);
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 2, 1500);
 
-  let dist = 80;
+  let framing = { dist: 80, lookY: -1.5 };
   const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const camFx = createCamFx({ reduced });
   let zoom = 1;
-  const look = new THREE.Vector3();
 
   function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    // Fit the tilted field: height is foreshortened by cos(TILT), width must fit the aspect.
-    const byH = ((ROWS / 2) * Math.cos(TILT) * 1.12) / t + (ROWS / 2) * Math.sin(TILT);
-    const byW = ((COLS / 2) * 1.08) / (t * camera.aspect) + (ROWS / 2) * Math.sin(TILT);
-    dist = Math.max(byH, byW);
+    // Closest camera that shows the whole board (rails included) between the HUD bars.
+    framing = frameTable({
+      fov: FOV,
+      aspect: camera.aspect,
+      tilt: TILT,
+      // Near edge = the bottom of the board's front face, so its thickness stays in view.
+      box: { halfW: COLS / 2 + 1.4, near: BOARD.near, far: ROWS / 2 + 1.4, nearZ: -SLAB_DEPTH, farZ: 2.2 },
+      margin: 0.02,
+      insetTop: HUD_TOP_PX / h,
+      insetBottom: (w < h ? SKILLS_PX : 12) / h,
+      // Tall screens: rest the board near the thumb; the spare height shows the room beyond it.
+      align: w < h ? 'bottom' : 'centre',
+    });
+    room.setDistance(framing.dist);
     camera.updateProjectionMatrix();
   }
   resize();
@@ -221,12 +224,12 @@ export function createStage(canvas) {
   function render(dt, paddleX) {
     camFx.step(dt);
     arena.paddle.update(dt);
-    const sway = toWorldX(paddleX) * 0.08;
-    const d = dist * zoom;
+    const sway = toWorldX(paddleX) * SWAY;
+    placeCamera(camera, { dist: framing.dist * zoom, lookY: framing.lookY }, TILT, sway);
     const o = camFx.offset;
-    camera.position.set(sway + o.x, -Math.sin(TILT) * d + o.y, Math.cos(TILT) * d + o.z);
-    look.set(sway * 0.5, -1.5, 0);
-    camera.lookAt(look);
+    camera.position.x += o.x;
+    camera.position.y += o.y;
+    camera.position.z += o.z;
     renderer.render(scene, camera);
   }
 
