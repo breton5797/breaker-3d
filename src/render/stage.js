@@ -2,12 +2,11 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H } from '../sim/constants.js';
 import { createCamFx } from './camfx.js';
-import { frameTable, placeCamera } from './framing.js';
-import { buildRoom, BOARD, SLAB_DEPTH } from './environment.js';
+import { frameTable, placeCamera, viewFor, framingBox } from './framing.js';
+import { buildRoom } from './environment.js';
 
-const FOV = 48;
-export const TILT = 0.58; // radians the table leans away from the viewer
-const SWAY = 0.12; // camera drifts this much with the paddle (parallax)
+// Camera style (field of view, tilt, paddle follow, crop) depends on the screen shape: see viewFor.
+export const TILT = viewFor(2, 1).tilt; // wide-screen tilt; upright fruit cut-outs are turned to face it
 const HUD_TOP_PX = 84; // screen kept clear for the top HUD bar
 const SKILLS_PX = 140; // ...and for the skill buttons under the table on portrait screens
 
@@ -186,7 +185,8 @@ export function createStage(canvas) {
   const room = buildRoom(scene, renderer, lightDir);
 
   const arena = buildArena(scene);
-  const camera = new THREE.PerspectiveCamera(FOV, 1, 2, 1500);
+  const camera = new THREE.PerspectiveCamera(48, 1, 2, 1500);
+  let view = viewFor(window.innerWidth, window.innerHeight);
 
   let framing = { dist: 80, lookY: -1.5 };
   const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -198,18 +198,19 @@ export function createStage(canvas) {
     const h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Closest camera that shows the whole board (rails included) between the HUD bars.
+    view = viewFor(w, h);
+    camera.fov = view.fov;
+    // Closest camera that keeps the view's region (whole board, or the steel box on tall
+    // screens) between the HUD bars; tall screens rest it near the thumb.
     framing = frameTable({
-      fov: FOV,
+      fov: view.fov,
       aspect: camera.aspect,
-      tilt: TILT,
-      // Near edge = the bottom of the board's front face, so its thickness stays in view.
-      box: { halfW: COLS / 2 + 1.4, near: BOARD.near, far: ROWS / 2 + 1.4, nearZ: -SLAB_DEPTH, farZ: 2.2 },
-      margin: 0.02,
+      tilt: view.tilt,
+      box: framingBox(view),
+      margin: view.margin,
       insetTop: HUD_TOP_PX / h,
       insetBottom: (w < h ? SKILLS_PX : 12) / h,
-      // Tall screens: rest the board near the thumb; the spare height shows the room beyond it.
-      align: w < h ? 'bottom' : 'centre',
+      align: view.align,
     });
     room.setDistance(framing.dist);
     camera.updateProjectionMatrix();
@@ -224,8 +225,8 @@ export function createStage(canvas) {
   function render(dt, paddleX) {
     camFx.step(dt);
     arena.paddle.update(dt);
-    const sway = toWorldX(paddleX) * SWAY;
-    placeCamera(camera, { dist: framing.dist * zoom, lookY: framing.lookY }, TILT, sway);
+    const sway = toWorldX(paddleX) * view.sway;
+    placeCamera(camera, { dist: framing.dist * zoom, lookY: framing.lookY }, view.tilt, sway);
     const o = camFx.offset;
     camera.position.x += o.x;
     camera.position.y += o.y;
@@ -244,6 +245,8 @@ export function createStage(canvas) {
     /** Directional punch of the camera (world units/s); it springs back on its own. */
     kick: (x, y, z) => camFx.kick(x, y, z),
     setZoom: (z) => { zoom = z; },
+    /** Finger-to-paddle gearing for this screen (1 = one-to-one; see viewFor). */
+    get reach() { return view.reach; },
     /** @param {{ shadows:boolean, pixelRatio:number }} q a QUALITY_LEVELS entry */
     setQuality: (q) => {
       key.castShadow = q.shadows;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { frameTable, placeCamera } from '../src/render/framing.js';
+import { frameTable, placeCamera, viewFor, framingBox } from '../src/render/framing.js';
 
 const BOX = { halfW: 49.4, near: -64, far: 65.4, nearZ: 0, farZ: 2.2 };
 
@@ -67,5 +67,91 @@ describe('table framing', () => {
 
   it('a wider screen does not push the camera further away', () => {
     expect(corners(2.4).f.dist).toBeLessThanOrEqual(corners(1.6).f.dist + 1e-6);
+  });
+});
+
+describe('per-screen view (tall phones zoom onto the steel box)', () => {
+  const STEEL = { left: -41, right: 42, bottom: -14, top: 58 }; // the box (world units), rows 50..122
+  const HUD = 84;
+  const SKILLS = 140;
+  const ROWS_HALF = 64;
+
+  /** Camera for a screen, with the paddle (centre px, sim x) pushing the sway. */
+  function shoot(w, h, paddleSimX = 48) {
+    const v = viewFor(w, h);
+    const f = frameTable({
+      fov: v.fov, aspect: w / h, tilt: v.tilt, box: framingBox(v), margin: v.margin,
+      insetTop: HUD / h, insetBottom: (w < h ? SKILLS : 12) / h, align: v.align,
+    });
+    const cam = new THREE.PerspectiveCamera(v.fov, w / h, 2, 1500);
+    placeCamera(cam, f, v.tilt, (paddleSimX - 48) * v.sway);
+    cam.updateMatrixWorld();
+    const px = (x, y, z = 1) => { const p = new THREE.Vector3(x, y, z).project(cam); return { x: ((p.x + 1) / 2) * w, y: ((1 - p.y) / 2) * h }; };
+    return { v, px };
+  }
+
+  const phones = [[360, 780], [390, 844], [432, 927], [768, 1024]];
+
+  for (const [w, h] of phones) {
+    it(`${w}x${h}: the whole steel box is on screen, clear of the HUD`, () => {
+      const { px } = shoot(w, h);
+      for (const [x, y] of [[STEEL.left, STEEL.top], [STEEL.right, STEEL.top], [STEEL.left, STEEL.bottom], [STEEL.right, STEEL.bottom]]) {
+        const p = px(x, y);
+        expect(p.x).toBeGreaterThanOrEqual(0);
+        expect(p.x).toBeLessThanOrEqual(w);
+        expect(p.y).toBeGreaterThanOrEqual(HUD);
+      }
+    });
+
+    it(`${w}x${h}: fills the screen (box spans 85% of the width, or the board reaches the HUD)`, () => {
+      const { px } = shoot(w, h);
+      const wide = px(STEEL.right, STEEL.top).x - px(STEEL.left, STEEL.top).x > w * 0.85;
+      const tall = px(0, ROWS_HALF + 1.4, 2.2).y <= HUD + h * 0.02;
+      expect(wide || tall).toBe(true);
+    });
+
+    for (const half of [4, 8]) {
+      it(`${w}x${h}: a paddle (half width ${half}) pushed to either wall stays fully visible`, () => {
+        const right = shoot(w, h, 96 - half);
+        expect(right.px(48, 6 - 64 + 0.5, 0.5).x).toBeLessThanOrEqual(w);
+        const left = shoot(w, h, half);
+        expect(left.px(-48, 6 - 64 + 0.5, 0.5).x).toBeGreaterThanOrEqual(0);
+      });
+    }
+  }
+
+  for (const [w, h] of phones) {
+    it(`${w}x${h}: a finger at the screen edge drives the paddle into the wall`, () => {
+      for (const side of [1, -1]) {
+        // Paddle already near that wall (the camera has followed it there, see the sway below).
+        const { v } = shoot(w, h);
+        const f = frameTable({
+          fov: v.fov, aspect: w / h, tilt: v.tilt, box: framingBox(v), margin: v.margin,
+          insetTop: HUD / h, insetBottom: (w < h ? SKILLS : 12) / h, align: v.align,
+        });
+        const cam = new THREE.PerspectiveCamera(v.fov, w / h, 2, 1500);
+        placeCamera(cam, f, v.tilt, (side > 0 ? 39 : -39) * v.sway);
+        cam.updateMatrixWorld();
+        // Ray through the screen edge (1px in) at the paddle's screen height, onto the paddle plane.
+        const ray = new THREE.Raycaster();
+        const paddleY = new THREE.Vector3(0, 6 - 64, 0.5).project(cam).y;
+        ray.setFromCamera(new THREE.Vector2(side * (1 - 2 / w), paddleY), cam);
+        const hit = new THREE.Vector3();
+        ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.5), hit);
+        const simX = 48 + hit.x * v.reach;
+        if (side > 0) expect(simX).toBeGreaterThanOrEqual(96 - 9);
+        else expect(simX).toBeLessThanOrEqual(9);
+      }
+    });
+  }
+
+  it('wide screens map the finger one-to-one', () => {
+    expect(viewFor(1440, 900).reach).toBe(1);
+  });
+
+  it('wide screens keep the full board and the stronger perspective', () => {
+    const v = viewFor(1440, 900);
+    expect(framingBox(v).halfW).toBeGreaterThan(49);
+    expect(v.tilt).toBeGreaterThan(viewFor(390, 844).tilt);
   });
 });
