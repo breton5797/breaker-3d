@@ -46,6 +46,7 @@ export const CELL = Object.freeze({
   ITEM50: 15,
   ITEM100: 16,
   UNIT: 17,
+  COIN: 18,
 });
 
 // Item bricks drop a capsule; catching it with the paddle multiplies the ball count.
@@ -60,6 +61,7 @@ export const ITEM_MULT = Object.freeze({
 // How much each caught fruit multiplies the swarm, keyed by its ITEM_MULT id:
 // cherry x2, strawberry x3, orange x5, apple x7, watermelon x9, pineapple x10.
 export const FRUIT_GAINS = Object.freeze({ 5: 2, 10: 3, 20: 5, 30: 7, 50: 9, 100: 10 });
+export const COIN_VALUE = 1; // gold per coin caught (a coin brick drops one coin)
 export const DROP_SPEED = 16; // cells per second an item capsule falls
 export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
 // Caught multipliers queue their balls; each second about RELEASE_DRAIN of

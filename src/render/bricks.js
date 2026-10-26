@@ -20,6 +20,7 @@ export const SPECIALS = {
   [CELL.LASER_V]: { tint: [2.4, 0.4, 0.6], label: '↕', bg: '#e02a5a' },
   [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c' },
   [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00' },
+  [CELL.COIN]: { tint: [2.8, 2.1, 0.3], label: '🪙', bg: '#c99a06' },
   // Multiplier items are drawn as fruit (see src/fruits.js), never as numbers.
   [CELL.ITEM5]: fruitSpec(5),
   [CELL.ITEM10]: fruitSpec(10),

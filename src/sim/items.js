@@ -1,4 +1,4 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS, COIN_VALUE } from './constants.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 import { isInside } from './box.js';
@@ -53,9 +53,27 @@ export function releaseQueued(w, dt) {
   if (w.queued === 0) w.releaseAcc = 0;
 }
 
+/** Falls every gold coin; the paddle banks it as gold, a miss is simply lost. */
+function updateCoins(w, dt) {
+  if (!w.coins.length) return;
+  const p = w.paddle;
+  const kept = [];
+  for (const coin of w.coins) {
+    const y = coin.y - w.dropSpeed * dt;
+    if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && Math.abs(coin.x - p.x) <= p.w / 2 + DROP_CATCH) {
+      w.gold += COIN_VALUE;
+      w.events.push({ t: 'coin', x: coin.x, gold: COIN_VALUE, total: w.gold });
+    } else if (y >= -1) {
+      kept.push({ ...coin, y });
+    }
+  }
+  w.coins = kept;
+}
+
 /** Falls every item capsule; the paddle catches, the floor swallows. */
 export function updateDrops(w, dt) {
   releaseQueued(w, dt);
+  updateCoins(w, dt);
   if (!w.drops.length) return;
   const p = w.paddle;
   const kept = [];

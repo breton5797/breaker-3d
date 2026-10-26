@@ -80,6 +80,10 @@ export function breakCell(w, c, r, ball = -1) {
       w.events.push({ t: 'drop', c, r, mult });
     }
   }
+  if (type === CELL.COIN) {
+    w.coins = [...w.coins, { x: c + 0.5, y: r + 0.5 }];
+    w.events.push({ t: 'coin-drop', c, r });
+  }
   if (ITEM_MULT[type]) {
     w.drops = [...w.drops, { x: c + 0.5, y: r + 0.5, mult: ITEM_MULT[type] }];
     w.events.push({ t: 'drop', c, r, mult: ITEM_MULT[type] });

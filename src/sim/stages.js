@@ -9,12 +9,9 @@ import { RELEASE_RATE } from './constants.js';
 const RAMP_STAGES = 200; // step knobs reach their hardest value here
 const UNITS_FROM = 5; // stages 1-5 have no enemy units
 const STAGES_PER_TIER = 19; // a new unit tier every 19 stages; tier 10 arrives at stage 177
-// The entrances harden a little at a time: stage 1 has six holes, one fewer
-// every HOLES_EVERY stages down to one; holes fit two balls side by side until
-// SMALL_FROM, then only one.
-const HOLES_START = 6;
-const HOLES_EVERY = 30;
-const SMALL_FROM = 100;
+// Entrances are one ball wide: four holes up to stage 10, three up to 20, two
+// up to 30 and a single one after that (levels.js moves it to harder spots).
+const HOLE_STEPS = [[10, 4], [20, 3], [30, 2]]; // [up to stage, holes]
 
 const lerp = (a, b, t) => a + (b - a) * t;
 /** Rises from 0 toward 1 forever, strictly increasing. */
@@ -22,7 +19,7 @@ const approach = (n, scale) => 1 - Math.exp(-n / scale);
 
 /**
  * @param {number} i zero-based stage index (0, 1, 2, ... no upper limit)
- * @returns {{ holeCount:number, holeSize:number, brickHp:number, items:number, bigItemShare:number,
+ * @returns {{ holeCount:number, holeSize:number, brickHp:number, items:number, coins:number, bigItemShare:number,
  *   releaseRate:number, lives:number, paddleW:number, unitTop:number, unitCount:number,
  *   dropSpeed:number, aggression:number }}
  */
@@ -31,10 +28,11 @@ export function stageParams(i) {
   const d = Math.min(1, n / (RAMP_STAGES - 1));
   const armed = n >= UNITS_FROM;
   return {
-    holeCount: Math.max(1, HOLES_START - Math.floor(n / HOLES_EVERY)),
-    holeSize: n < SMALL_FROM ? 2 : 1, // fine cells: two balls side by side, then one
+    holeCount: HOLE_STEPS.find(([upTo]) => n < upTo)?.[1] ?? 1,
+    holeSize: 1, // fine cells: one ball fits
     brickHp: Math.min(3, 1 + Math.floor(2.5 * Math.pow(d, 1.2))),
-    items: Math.round(lerp(80, 55, d)),
+    items: Math.round(lerp(8, 5.5, d)), // fruit per stage
+    coins: Math.round(lerp(60, 40, d)), // gold coin bricks per stage
     bigItemShare: lerp(0.6, 0.3, d), // chance an item is x20 or more
     releaseRate: RELEASE_RATE, // minimum release speed of caught balls
     lives: n < 10 ? 5 : n < 50 ? 4 : 3,

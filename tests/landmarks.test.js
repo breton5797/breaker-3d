@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { COLS, ROWS, CELL } from '../src/sim/constants.js';
-import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX } from '../src/sim/levels.js';
+import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX, SLOTS } from '../src/sim/levels.js';
 import { tint } from '../src/sim/maps.js';
 import { isInside } from '../src/sim/box.js';
 
@@ -109,7 +109,7 @@ describe('the box', () => {
   });
 
   it('every hole is 1-2 cells wide and opens onto a clear pocket inside', () => {
-    for (const i of [0, 7, 40, 99, 100, 160, 333]) {
+    for (const i of [0, 7, 15, 25, 40, 99, 160, 333]) {
       const { lvl, g } = build(i);
       for (const h of lvl.holes) {
         expect(h.size).toBe(lvl.params.holeSize);
@@ -134,17 +134,26 @@ describe('the box', () => {
 });
 
 describe('entrance difficulty', () => {
-  it('holes shrink from six two-ball holes to a single one-ball hole, never easier', () => {
-    expect(stageParams(0)).toMatchObject({ holeCount: 6, holeSize: 2 });
-    expect(stageParams(199)).toMatchObject({ holeCount: 1, holeSize: 1 });
-    let prev = stageParams(0);
-    for (let i = 1; i < 500; i++) {
-      const p = stageParams(i);
-      expect(p.holeCount).toBeLessThanOrEqual(prev.holeCount);
-      expect(p.holeSize).toBeLessThanOrEqual(prev.holeSize);
-      expect(prev.holeCount - p.holeCount).toBeLessThanOrEqual(1);
-      prev = p;
-    }
+  it('one-ball holes: 4 up to stage 10, 3 up to 20, 2 up to 30, then a single hole', () => {
+    const count = (stage) => stageParams(stage - 1).holeCount;
+    for (const s of [1, 10]) expect(count(s)).toBe(4);
+    for (const s of [11, 20]) expect(count(s)).toBe(3);
+    for (const s of [21, 30]) expect(count(s)).toBe(2);
+    for (const s of [31, 100, 1000]) expect(count(s)).toBe(1);
+    for (let i = 0; i < 500; i++) expect(stageParams(i).holeSize).toBe(1);
+  });
+
+  it('the single hole moves to harder spots as stages rise', () => {
+    const odds = (i) => getLevel(i).holes.reduce((sum, h) => sum + SLOTS.find((s) => s.slot === h.slot).odds[1], 0);
+    const band = (from, to) => {
+      let sum = 0;
+      for (let i = from; i < to; i++) sum += odds(i);
+      return sum / (to - from);
+    };
+    expect(band(30, 60)).toBeGreaterThan(band(100, 130));
+    expect(band(100, 130)).toBeGreaterThan(band(200, 230));
+    // By stage 200 only the hardest spots (side walls and the ceiling) are left.
+    for (let i = 199; i < 230; i++) for (const h of getLevel(i).holes) expect(['left', 'right', 'top']).toContain(h.side);
   });
 
   it('built stages have exactly the planned holes, all on different spots', () => {
@@ -156,13 +165,13 @@ describe('entrance difficulty', () => {
     }
   });
 
-  it('early stages always keep one hole in the floor, right above the paddle', () => {
-    for (let i = 0; i < 60; i++) expect(getLevel(i).holes.some((h) => h.side === 'bottom')).toBe(true);
+  it('the first ten stages always keep one hole in the floor, right above the paddle', () => {
+    for (let i = 0; i < 10; i++) expect(getLevel(i).holes.some((h) => h.side === 'bottom')).toBe(true);
   });
 
   it('across stages the holes appear on every side and at every corner', () => {
     const seen = new Set();
-    for (let i = 0; i < 120; i++) for (const h of getLevel(i).holes) seen.add(h.side);
+    for (let i = 0; i < 300; i++) for (const h of getLevel(i).holes) seen.add(h.side);
     expect([...seen].sort()).toEqual([...SIDES].sort());
   });
 });

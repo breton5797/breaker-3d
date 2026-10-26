@@ -10,13 +10,15 @@ function inspect(i) {
   const lvl = getLevel(i);
   const g = parseLevel(lvl.lines, { brickHp: lvl.params.brickHp, box: lvl.box, holes: lvl.holes });
   let items = 0;
+  let coins = 0;
   let topTier = 0;
   let units = 0;
   for (let k = 0; k < g.cells.length; k++) {
     if (ITEM_MULT[g.cells[k]]) items++;
+    if (g.cells[k] === CELL.COIN) coins++;
     if (g.cells[k] === CELL.UNIT) { units++; topTier = Math.max(topTier, g.tier[k]); }
   }
-  return { lvl, g, items, units, topTier };
+  return { lvl, g, items, coins, units, topTier };
 }
 
 describe('endless difficulty curve', () => {
@@ -35,6 +37,7 @@ describe('endless difficulty curve', () => {
       expect(p.holeSize).toBeLessThanOrEqual(prev.holeSize);
       expect(p.brickHp).toBeGreaterThanOrEqual(prev.brickHp);
       expect(p.items).toBeLessThanOrEqual(prev.items);
+      expect(p.coins).toBeLessThanOrEqual(prev.coins);
       expect(p.bigItemShare).toBeLessThanOrEqual(prev.bigItemShare);
       expect(p.lives).toBeLessThanOrEqual(prev.lives);
       expect(p.paddleW).toBeLessThanOrEqual(prev.paddleW);
@@ -49,7 +52,9 @@ describe('endless difficulty curve', () => {
 
   it('stage 1 is a beginner stage; by stage 200 the step knobs are at their hardest', () => {
     const easy = stageParams(0);
-    expect(easy.holeCount).toBe(6);
+    expect(easy.holeCount).toBe(4);
+    expect(easy.items).toBe(8); // a tenth of the old 80 fruit
+    expect(easy.coins).toBeGreaterThanOrEqual(40);
     expect(easy.brickHp).toBe(1);
     expect(easy.unitCount).toBe(0);
     expect(easy.lives).toBeGreaterThanOrEqual(5);
@@ -88,12 +93,14 @@ describe('endless difficulty curve', () => {
   const sample = [...Array(18).keys(), 19, 33, 49, 74, 99, 124, 149, 174, 199, 299, 999];
   for (const i of sample) {
     it(`stage ${i + 1} is built to its parameters`, () => {
-      const { lvl, items, units, topTier } = inspect(i);
+      const { lvl, items, coins, units, topTier } = inspect(i);
       const p = lvl.params;
       expect(lvl.lines.length).toBeLessThanOrEqual(ROWS - 14);
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
       expect(lvl.holes).toHaveLength(p.holeCount);
       expect(items).toBeGreaterThanOrEqual(Math.floor(p.items * 0.8));
+      expect(items).toBeLessThanOrEqual(p.items + p.unitCount); // only seeded fruit (veteran units drop extra later)
+      expect(coins).toBeGreaterThanOrEqual(Math.floor(p.coins * 0.8));
       expect(units).toBe(p.unitCount);
       expect(topTier).toBe(p.unitTop);
       expect(lvl.name.length).toBeGreaterThan(0);

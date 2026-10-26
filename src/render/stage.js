@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H } from '../sim/constants.js';
 
 const FOV = 42;
@@ -68,15 +69,63 @@ function buildArena(scene) {
   danger.position.set(0, toWorldY(0.4), 0.02);
   scene.add(danger);
 
-  const paddle = new THREE.Mesh(
-    new THREE.CapsuleGeometry(PADDLE_H / 2, 1, 6, 16), // length 1 + PADDLE_H, stretched to the paddle width
-    new THREE.MeshLambertMaterial({ color: 0xc4d2ff }),
-  );
-  paddle.rotation.z = Math.PI / 2;
-  paddle.position.set(0, toWorldY(PADDLE_Y), 0.5);
-  paddle.castShadow = true;
-  scene.add(paddle);
-  return { paddle };
+  return { paddle: buildPaddle(scene) };
+}
+
+const CAP_LEN = 1.6; // length of each red end cap (cells)
+const BODY_H = 1.8; // height of the bar above the table (the camera sees its front face)
+const CAP_R = 0.95;
+
+/**
+ * A chunky three-piece paddle: a rounded metal body with a raised stripe and
+ * a darker belly, and red end caps with dark joint rings. The body and caps
+ * get a faint satin sheen (a soft surface highlight, no glow) so their curves
+ * read from the near-overhead camera; the body stretches with the paddle
+ * width, the caps don't.
+ */
+function buildPaddle(scene) {
+  const group = new THREE.Group();
+  group.position.set(0, toWorldY(PADDLE_Y), 0);
+  const satin = { specular: 0x3a3f4a, shininess: 28 };
+  const bodyMat = new THREE.MeshPhongMaterial({ color: 0xc4d2ff, ...satin });
+  const body = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 1.2, BODY_H, 4, 0.56), bodyMat);
+  body.position.z = BODY_H / 2;
+  const belly = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 1.26, BODY_H * 0.3, 2, 0.12), new THREE.MeshLambertMaterial({ color: 0x55607e }));
+  belly.position.z = BODY_H * 0.2;
+  const stripe = new THREE.Mesh(new RoundedBoxGeometry(1, PADDLE_H * 0.4, 0.22, 2, 0.08), new THREE.MeshLambertMaterial({ color: 0x39c6e6 }));
+  stripe.position.z = BODY_H + 0.04;
+  const capGeo = new THREE.CylinderGeometry(CAP_R, CAP_R, CAP_LEN, 24);
+  const capMat = new THREE.MeshPhongMaterial({ color: 0xd8463c, ...satin });
+  const ringGeo = new THREE.CylinderGeometry(CAP_R + 0.05, CAP_R + 0.05, 0.18, 24);
+  const ringMat = new THREE.MeshLambertMaterial({ color: 0x2c3148 });
+  const caps = [-1, 1].map((side) => {
+    const cap = new THREE.Group();
+    const shell = new THREE.Mesh(capGeo, capMat);
+    shell.rotation.z = Math.PI / 2; // cylinder axis along the paddle
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.z = Math.PI / 2;
+    ring.position.x = -side * (CAP_LEN / 2);
+    cap.add(shell, ring);
+    cap.position.z = CAP_R;
+    cap.userData.side = side;
+    return cap;
+  });
+  group.add(body, belly, stripe, ...caps);
+  group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  scene.add(group);
+
+  /** @param {number} x world x @param {number} width cells @param {number} color body colour (hex) */
+  function set(x, width, color) {
+    group.position.x = x;
+    const len = Math.max(0.6, width - CAP_LEN * 2 + 0.6);
+    body.scale.x = len;
+    belly.scale.x = len;
+    stripe.scale.x = Math.max(0.3, len * 0.7);
+    for (const cap of caps) cap.position.x = cap.userData.side * (width / 2 - CAP_LEN / 2);
+    bodyMat.color.setHex(color);
+  }
+  set(0, 12, 0xc4d2ff); // title-screen default until a stage sets the real width
+  return { set };
 }
 
 /** Vertical backdrop gradient behind the table (deep navy to near-black). */
