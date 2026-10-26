@@ -193,9 +193,19 @@ export function createStage(canvas) {
   const camFx = createCamFx({ reduced });
   let zoom = 1;
 
+  /** Safe-area insets (notch, home bar) in CSS px; 0 in an ordinary browser tab. */
+  const insetProbe = document.createElement('div');
+  insetProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0';
+  document.body.append(insetProbe);
+  const safeInsets = () => {
+    const cs = getComputedStyle(insetProbe);
+    return { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 };
+  };
+
   function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const safe = safeInsets();
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     view = viewFor(w, h);
@@ -208,8 +218,8 @@ export function createStage(canvas) {
       tilt: view.tilt,
       box: framingBox(view),
       margin: view.margin,
-      insetTop: HUD_TOP_PX / h,
-      insetBottom: (w < h ? SKILLS_PX : 12) / h,
+      insetTop: (HUD_TOP_PX + safe.top) / h,
+      insetBottom: ((w < h ? SKILLS_PX : 12) + safe.bottom) / h,
       align: view.align,
     });
     room.setDistance(framing.dist);

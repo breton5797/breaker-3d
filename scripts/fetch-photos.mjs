@@ -19,16 +19,16 @@ export const SOURCES = {
   moai: 'Moai',
   liberty: 'Statue of Liberty',
   eiffel: 'Eiffel Tower',
-  pisa: 'Leaning Tower of Pisa',
+  himeji: 'File:Himeji castle in may 2015.jpg',
   tajMahal: 'Taj Mahal',
-  parthenon: 'Parthenon',
+  brandenburgGate: 'File:Brandenburger Tor morgens.jpg',
   bigBen: 'Big Ben',
   sungnyemun: 'Namdaemun',
-  nSeoulTower: 'File:Namsan Tower, Seoul - Namsan2299.jpg',
-  operaHouse: 'Sydney Opera House',
+  gyeongbokgung: 'File:Front view of the Imperial Throne Hall Geunjeongjeon at Gyeongbokgung Palace with blue sky in Seoul.jpg',
+  grandCanyon: 'File:Grand Canyon National Park, View from Hermits Rest 4235 - Flickr - Grand Canyon NPS.jpg',
   goldenGate: 'Golden Gate Bridge',
   stBasil: "Saint Basil's Cathedral",
-  colosseum: 'Colosseum',
+  charlesBridge: 'File:The Vltava, Charles Bridge, Old Town Bridge Tower and Church of St. Francis of Assisi. Prague, Czech Republic.jpg',
   sphinx: 'Great Sphinx of Giza',
   chichenItza: 'File:Chichen-Itza-Castillo-Seen-From-East.JPG',
   angkorWat: 'Angkor Wat',
@@ -67,6 +67,7 @@ async function commonsInfo(file) {
     license: plain(m.LicenseShortName?.value),
     licenseUrl: m.LicenseUrl?.value ?? '',
     artist: plain(m.Artist?.value) || 'Unknown',
+    restrictions: plain(m.Restrictions?.value), // e.g. ita-mibac, trademarked, personality rights
   };
 }
 
@@ -74,13 +75,16 @@ async function main() {
   const only = process.argv[2]?.split(',');
   await mkdir(OUT, { recursive: true });
   let credits = {};
-  if (only) credits = JSON.parse(await readFile(new URL('credits.json', OUT), 'utf8').catch(() => '{}'));
+  if (only) {
+    const old = JSON.parse(await readFile(new URL('credits.json', OUT), 'utf8').catch(() => '{}'));
+    credits = Object.fromEntries(Object.entries(old).filter(([id]) => id in SOURCES)); // drop retired landmarks
+  }
   for (const [id, title] of Object.entries(SOURCES)) {
     if (only && !only.includes(id)) continue;
     const file = title.startsWith('File:') ? title.slice(5) : await leadImage(title);
     const info = file && await commonsInfo(file);
-    if (!info || !FREE_LICENSE.test(info.license)) {
-      console.log(`SKIP ${id}: ${file ?? 'no image'} (${info?.license ?? 'not on Commons'})`);
+    if (!info || !FREE_LICENSE.test(info.license) || info.restrictions) {
+      console.log(`SKIP ${id}: ${file ?? 'no image'} (${info?.license ?? 'not on Commons'}${info?.restrictions ? `; restricted: ${info.restrictions}` : ''})`);
       continue;
     }
     const res = await fetch(info.thumb, { headers: { 'User-Agent': UA } });
@@ -105,6 +109,8 @@ function creditsMarkdown(credits) {
     '',
     'Landmark background photos come from Wikimedia Commons under the licences below.',
     'They were resized (768 px), cropped to the play area and tinted for the sunset/night stages.',
+    'The modified photos are shared under the same licence as each original (as CC BY-SA requires).',
+    'Licences and authors were re-checked against the Commons file pages on 2026-10-26.',
     '',
     '| Landmark | Photo | Author | Licence |',
     '|---|---|---|---|',

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { COLS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { getLevel } from './sim/levels.js';
-import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill } from './sim/world.js';
+import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
 import { createBricks } from './render/bricks.js';
@@ -23,6 +23,10 @@ import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned } from './achievements.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
+import { Capacitor } from '@capacitor/core';
+import { createMonetization } from './monetize/platform.js';
+import { rewardOffers } from './monetize/rewards.js';
+import { PRODUCT_REMOVE_ADS } from './monetize/store.js';
 
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
@@ -39,6 +43,16 @@ const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const haptics = createHaptics();
+const { ads, store, ready: monetizationReady } = createMonetization({
+  dev: import.meta.env.DEV,
+  search: location.search,
+  native: Capacitor.isNativePlatform() ? { platform: Capacitor.getPlatform() } : null,
+  env: import.meta.env,
+});
+// The app's ads and store come up a moment after launch: refresh the title's shop button then.
+monetizationReady.then(() => { if (mode === 'title') showStore(); });
+// This attempt at the current stage: revives used and gold already banked (a game over banks it).
+let run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
 const fullscreen = createFullscreen();
 const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
@@ -84,6 +98,10 @@ const ui = createUI({
     stage.shake(kind === 'slam' ? 0.7 : 0.25);
     haptics.play(kind === 'slam' ? 'boom' : 'coin');
   },
+  onRevive: () => rewardThen('btn-revive', 'revive', reviveRun),
+  onDoubleGold: () => rewardThen('btn-double-gold', 'doubleGold', doubleClearGold),
+  onRemoveAds: () => buyRemoveAds(),
+  onRestore: () => restorePurchases(),
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
@@ -93,11 +111,13 @@ const ui = createUI({
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
 ui.setVibe(haptics.supported, haptics.enabled);
-ui.setFullscreen(fullscreen.supported, fullscreen.active);
+// An app is already full screen: no button there.
+ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
 // Esc or the system back gesture also leaves fullscreen; keep the labels and the framing in step.
-fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported, on); stage.resize(); });
+fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), on); stage.resize(); });
 
 function startLevel(i) {
+  run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
   level = getLevel(i);
   coins3d.reset();
   const p = level.params;
@@ -185,6 +205,7 @@ function finishLevel(cleared) {
     w.coins = [];
     save = addGold(recordClear(save, level.index, w.score), w.gold);
     writeSave(save);
+    run.clearGold = w.gold + run.goldBanked; // all gold this attempt (before and after a revive)
     checkAchievements(true);
     const full = level.params.lives; // stars are relative to this stage's starting lives
     const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
@@ -192,21 +213,96 @@ function finishLevel(cleared) {
       score: w.score,
       stars,
       hasNext: true, // endless
+      goldOffer: offers().doubleGold,
       stats: [
         ['클리어 시간', `${elapsed.toFixed(1)}초`],
         ['최대 공 개수', ui.fmt(w.peakBalls)],
         ['최고 콤보', ui.fmt(w.bestCombo)],
         ['부순 벽돌', ui.fmt(w.broken)],
-        ['획득 골드', `🪙 ${ui.fmt(w.gold)}`],
+        ['획득 골드', `🪙 ${ui.fmt(run.clearGold)}`],
         ['남은 목숨', '♥'.repeat(w.lives)],
       ],
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
     save = addGold(save, w.gold); // gold caught is kept even when the run ends
     writeSave(save);
+    run.goldBanked += w.gold;
+    w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
-    setTimeout(() => ui.showOver(w.score), 900);
+    setTimeout(() => ui.showOver(w.score, offers().revive), 900);
   }
+}
+
+// ---------- rewards and the remove-ads purchase ----------
+
+function offers() {
+  return rewardOffers({
+    adsAvailable: ads.available(),
+    adsRemoved: save.adsRemoved,
+    revivesUsed: run.revivesUsed,
+    goldEarned: run.clearGold,
+    goldDoubled: run.goldDoubled,
+  });
+}
+
+/** Plays a rewarded ad (or skips it once ads were removed), then grants the reward. */
+async function rewardThen(buttonId, placement, grant) {
+  const via = offers()[placement];
+  if (!via) return;
+  if (via === 'ad') {
+    ui.rewardState(buttonId, 'loading');
+    audio.setMuted(true); // the ad brings its own sound
+    const earned = await ads.showRewarded(placement);
+    audio.setMuted(save.muted);
+    if (!earned) { ui.rewardState(buttonId, 'failed'); return; }
+  }
+  grant(buttonId);
+}
+
+function reviveRun() {
+  if (!world || !revive(world)) return;
+  run.revivesUsed++;
+  mode = 'play';
+  ui.resumePlay();
+  audio.achievement();
+  haptics.play('skill');
+  ui.toast('부활! ♥+1', 'mega');
+}
+
+function doubleClearGold(buttonId) {
+  if (run.goldDoubled || run.clearGold <= 0) return;
+  run.goldDoubled = true;
+  save = addGold(save, run.clearGold);
+  writeSave(save);
+  audio.coin();
+  haptics.play('coin');
+  ui.rewardState(buttonId, 'done', `골드 2배 받음 (+${ui.fmt(run.clearGold)})`);
+  ui.toast([{ emoji: '🪙' }, ` +${ui.fmt(run.clearGold)}`], 'mega');
+}
+
+function showStore() {
+  ui.setStore({ available: store.available(), price: store.price(PRODUCT_REMOVE_ADS), adsRemoved: save.adsRemoved });
+}
+
+function grantRemoveAds() {
+  save = { ...save, adsRemoved: true };
+  writeSave(save);
+  showStore();
+}
+
+async function buyRemoveAds() {
+  if (!(await store.buy(PRODUCT_REMOVE_ADS))) return;
+  grantRemoveAds();
+  audio.achievement();
+  ui.toast('광고 제거 완료! 보상은 이제 광고 없이 받아요', 'small');
+}
+
+async function restorePurchases() {
+  const owned = await store.restore();
+  if (owned.includes(PRODUCT_REMOVE_ADS)) {
+    grantRemoveAds();
+    ui.toast('구매를 복원했어요', 'small');
+  } else ui.toast('복원할 구매가 없어요', 'small');
 }
 
 // ---------- input ----------
@@ -332,6 +428,7 @@ function showMenu() {
   balls3d.update(backdrop.balls, null);
   trails3d.update(backdrop.balls);
   ui.showTitle(save);
+  showStore();
 }
 
 showMenu();

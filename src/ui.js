@@ -46,6 +46,10 @@ export function createUI(h) {
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('btn-vibe', h.onVibe);
+  bind('btn-revive', h.onRevive);
+  bind('btn-double-gold', h.onDoubleGold);
+  bind('btn-remove-ads', h.onRemoveAds);
+  bind('btn-restore', h.onRestore);
   bind('btn-full', h.onFullscreen);
   bind('btn-full-pause', h.onFullscreen);
   bind('skill-split', () => h.onSkill('split'));
@@ -295,8 +299,9 @@ export function createUI(h) {
    * stat rows tick in, then the buttons arrive and "next" starts to pulse.
    * A tap on the panel skips to the end.
    */
-  function showClear({ score, stars, stats, hasNext }) {
+  function showClear({ score, stars, stats, hasNext, goldOffer = null }) {
     playing(false);
+    setReward('btn-double-gold', goldOffer, '골드 2배');
     const panel = $('screen-clear');
     const scoreEl = $('clear-score');
     scoreEl.textContent = '0';
@@ -370,9 +375,40 @@ export function createUI(h) {
     if (finishSequence && !(e.target instanceof Element && e.target.closest('button'))) finishSequence();
   });
 
-  function showOver(score) {
+  /** A reward button: hidden when not offered, "watch an ad" or free when ads were removed. */
+  function setReward(id, offer, label) {
+    const el = $(id);
+    el.hidden = !offer;
+    el.disabled = false;
+    el.textContent = offer === 'ad' ? `📺 광고 보고 ${label}` : `🎁 ${label}`;
+  }
+
+  /** While a rewarded ad loads and plays: the button waits; afterwards it says what happened. */
+  function rewardState(id, state, doneLabel = '') {
+    const el = $(id);
+    el.disabled = state !== 'ready';
+    if (state === 'loading') el.textContent = '광고 불러오는 중…';
+    if (state === 'done') el.textContent = `✓ ${doneLabel}`;
+    if (state === 'failed') { el.disabled = false; el.textContent = '광고를 불러오지 못했어요 · 다시 시도'; }
+  }
+
+  /** Title-screen purchase buttons; hidden where there is no store (web). */
+  function setStore({ available, price, adsRemoved }) {
+    $('btn-remove-ads').hidden = !available || adsRemoved;
+    $('btn-restore').hidden = !available || adsRemoved;
+    $('btn-remove-ads').textContent = `🚫 광고 제거${price ? ` · ${price}` : ''}`;
+  }
+
+  /** Back to the board after a revive. */
+  function resumePlay() {
+    show(null);
+    playing(true);
+  }
+
+  function showOver(score, reviveOffer = null) {
     playing(false);
     $('over-score').textContent = fmt(score);
+    setReward('btn-revive', reviveOffer, '이어하기 ♥+1');
     show('screen-over');
     replay($('screen-over'), 'drop');
     $('btn-over-retry').classList.add('pulse');
@@ -391,6 +427,9 @@ export function createUI(h) {
     showCredits,
     pumpGold,
     damageFlash,
+    rewardState,
+    setStore,
+    resumePlay,
     placeHint,
     setFullscreen,
     setVibe,

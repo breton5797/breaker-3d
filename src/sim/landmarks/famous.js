@@ -58,23 +58,28 @@ export function eiffel() {
   return decorate(g, 33, [['-', 4, 'e'], ['B', 4, 'd'], ['F', 2, 'c']]);
 }
 
-/** Leaning Tower of Pisa: arcaded galleries tilting over the lawn. */
-export function pisa() {
+/** Himeji Castle: the white heron keep, roof over roof on its stone base. */
+export function himeji() {
   const g = canvas(H);
-  paint(g, (x, y) => (y >= 39 ? 'c' : null));
-  const cx = (y) => 24 + (39 - y) * 0.13;
-  paint(g, (x, y) => {
-    const dx = x - cx(y);
-    if (y >= 6 && y < 39 && Math.abs(dx) <= 6) {
-      const row = Math.floor(y) % 5;
-      if (row === 0) return 'e';
-      return row >= 2 && row <= 3 && Math.floor(dx + 6) % 2 === 0 ? 'f' : 'd';
-    }
-    if (y >= 2 && y < 6 && Math.abs(dx) <= 4) return 'e';
-    if (y >= 1 && y < 2 && Math.abs(dx) <= 2) return 'g';
-    return null;
-  });
-  return decorate(g, 34, [['B', 4, 'd'], ['|', 5, 'd'], ['G', 1, 'e']]);
+  paint(g, (x, y) => (y >= 38 ? 'c' : null));
+  paint(g, (x, y) => (y >= 30 && y < 38 && Math.abs(x - 24) <= 17 + (y - 30) * 0.8 ? 'f' : null));
+  // [cx, wall top, wall bottom, wall half-width] from the bottom tier up; a roof two rows tall caps
+  // each wall and the next tier rises from that roof.
+  const tier = (cx, top, bottom, hw) => {
+    paint(g, (x, y) => {
+      if (y < top || y >= bottom || Math.abs(x - cx) > hw) return null;
+      return Math.floor(y) === top + 1 && Math.floor(x - cx + hw) % 3 === 1 ? 'g' : 'd';
+    });
+    paint(g, (x, y) => (y >= top - 2 && y < top && Math.abs(x - cx) <= hw + 1 + (y - top + 2) * 1.2 ? 'e' : null));
+  };
+  tier(12, 23, 30, 4);
+  tier(12, 18, 21, 3);
+  [[28, 26, 30, 12], [28, 21, 24, 10], [28, 16, 19, 8], [28, 12, 14, 6], [28, 7, 10, 4]].forEach((t) => tier(...t));
+  paint(g, (x, y) => (inTri(x, y, 28, 2, 5, 5) || inTri(x, y, 28, 17, 19.5, 3) ? 'e' : null));
+  paint(g, (x, y) => (inEllipse(x, y, 3, 38, 6, 6) || inEllipse(x, y, 46, 37, 5, 7) ? 'h' : null));
+  put(g, 24, 4, 'G');
+  put(g, 32, 4, 'G');
+  return decorate(g, 34, [['B', 4, 'd'], ['|', 5, 'd'], ['F', 2, 'h']]);
 }
 
 /** Taj Mahal: the white dome and minarets above the reflecting pool. */
@@ -142,31 +147,119 @@ export function sungnyemun() {
   return decorate(g, 37, [['B', 4, 'd'], ['-', 4, 'f'], ['F', 2, 'c']]);
 }
 
-/** N Seoul Tower on Namsan at night (the antenna is steel). */
-export function nSeoulTower() {
+/** Geunjeongjeon of Gyeongbokgung: the two-roofed throne hall on its stone terraces, Bugaksan behind. */
+export function gyeongbokgung() {
   const g = canvas(H);
-  paint(g, (x, y) => (inEllipse(x, y, 24, 41, 27, 16) ? (y > 34 ? 'f' : 'c') : null));
-  paint(g, (x, y) => (y >= 38 ? (Math.floor(x * 3 + y * 7) % 5 === 0 ? 'e' : 'g') : null));
-  rect(g, 19, 26, 10, 3, 'd');
-  rect(g, 23, 9, 2, 17, 'd');
-  paint(g, (x, y) => (inEllipse(x, y, 24, 10, 5, 2.4) ? (Math.floor(y) === 10 ? 'f' : 'e') : null));
-  rect(g, 21, 6, 6, 2, 'd');
-  rect(g, 23, 0, 1, 6, 'S');
-  rect(g, 24, 0, 1, 6, 'f');
-  return decorate(g, 38, [['h', 14, '.'], ['B', 4, 'd'], ['F', 4, 'e'], ['G', 2, 'c']]);
+  paint(g, (x, y) => (y >= 17 + 9 * Math.abs(Math.sin((x - 24) / 16)) + Math.sin(x / 2) ? 'h' : null));
+  paint(g, (x, y) => (y >= 37 ? 'c' : null));
+  rect(g, 4, 34, 40, 3, 'e');
+  rect(g, 8, 31, 32, 3, 'e');
+  for (let x = 5; x < 43; x += 4) put(g, x, 33, 'S');
+  for (let x = 9; x < 39; x += 4) put(g, x, 30, 'S');
+  rect(g, 22, 31, 4, 6, 'c');
+  [10, 15, 33, 38].forEach((x) => rect(g, x, 38, 1, 1, 'e'));
+  const body = (top, bottom, hw, posts) => paint(g, (x, y) => {
+    if (y < top || y >= bottom || Math.abs(x - 24) > hw) return null;
+    if (posts.includes(Math.floor(x))) return 'd';
+    return y < top + 1 ? 'g' : Math.floor(x) % 2 ? 'd' : 'g';
+  });
+  // Flared roof: the eaves sweep up at both ends.
+  const roof = (top, bottom, hw0, grow) => paint(g, (x, y) => {
+    if (y < top || y >= bottom) return null;
+    const hw = hw0 + (y - top) * grow;
+    const tip = y >= bottom - 1.5 && Math.abs(x - 24) <= hw + 2;
+    return Math.abs(x - 24) <= hw || tip ? 'f' : null;
+  });
+  body(25, 31, 14, [11, 16, 21, 27, 32, 37]);
+  roof(20, 25, 12, 1.2);
+  body(16, 20, 9, [15, 20, 28, 33]);
+  roof(9, 16, 6, 1.3);
+  rect(g, 17, 8, 15, 1, 'f');
+  put(g, 16, 8, 'G');
+  put(g, 32, 8, 'G');
+  return decorate(g, 38, [['B', 4, 'd'], ['-', 4, 'f'], ['F', 2, 'h']]);
 }
 
-/** Sydney Opera House: white sail shells on the harbour. */
-export function operaHouse() {
+/** Grand Canyon: banded buttes above the Colorado River (steel ledges in the cliffs). */
+export function grandCanyon() {
   const g = canvas(H);
-  paint(g, (x, y) => (y >= 30 && y < 33 ? 'h' : y >= 33 ? 'g' : null));
-  rect(g, 4, 28, 40, 5, 'e');
-  [[8, 9, 6], [14, 13, 8], [22, 17, 10], [31, 12, 8], [38, 8, 6]].forEach(([cx, h, w]) => {
-    paint(g, (x, y) => (y <= 28 && x >= cx && inEllipse(x, y, cx, 28, w, h) ? (Math.floor(x + y) % 3 === 0 ? 'f' : 'd') : null));
+  paint(g, (x, y) => (y >= 15 + Math.sin(x / 5) + 0.6 * Math.sin(x * 1.3) ? 'h' : null));
+  const strata = (x, y, cx) => (Math.floor(y) % 4 === 0 ? 'e' : x > cx ? 'f' : 'd');
+  // A butte narrows in steps of three rows towards its flat top.
+  const butte = (cx, top, base, hw) => paint(g, (x, y) => {
+    if (y < top || y >= base) return null;
+    const step = Math.floor((y - top) / 3);
+    return Math.abs(x - cx) <= hw * Math.min(1, 0.35 + step * 0.16) ? strata(x, y, cx) : null;
   });
-  rect(g, 4, 32, 6, 1, 'S');
-  rect(g, 38, 32, 6, 1, 'S');
-  return decorate(g, 39, [['-', 6, 'g'], ['B', 4, 'd'], ['F', 2, 'h']]);
+  butte(14, 17, 34, 11);
+  butte(32, 13, 34, 9);
+  butte(42, 20, 34, 8);
+  paint(g, (x, y) => (y >= 12 && x < Math.floor(y / 3) * 0.8 ? strata(x, y, 99) : null));
+  paint(g, (x, y) => (y >= 16 && 48 - x < Math.floor(y / 4) * 0.7 ? strata(x, y, 0) : null));
+  paint(g, (x, y) => (y >= 31 ? 'c' : null));
+  paint(g, (x, y) => (Math.abs(y - (35 + 1.6 * Math.sin(x / 6))) < 1.4 ? 'g' : null));
+  [[8, 24], [20, 27], [29, 22], [39, 28]].forEach(([x, y]) => rect(g, x, y, 3, 1, 'S'));
+  return decorate(g, 39, [['-', 6, 'g'], ['B', 4, 'd'], ['F', 2, 'e']]);
+}
+
+/** Brandenburg Gate: six Doric columns under the Quadriga (steel column cores). */
+export function brandenburgGate() {
+  const g = canvas(H);
+  paint(g, (x, y) => (y >= 39 ? 'c' : null));
+  [[0, 5], [43, 5]].forEach(([x0, w]) => {
+    rect(g, x0, 24, w, 15, 'h');
+    rect(g, x0, 22, w, 2, 'e');
+    for (let x = x0 + 1; x < x0 + w; x += 2) rect(g, x, 26, 1, 12, 'f');
+  });
+  rect(g, 6, 36, 36, 3, 'e');
+  for (let k = 0; k < 6; k++) {
+    const x = 8 + k * 6;
+    rect(g, x, 18, 3, 18, 'd');
+    rect(g, x + 2, 18, 1, 18, 'f');
+    rect(g, x + 1, 20, 1, 14, 'S');
+  }
+  rect(g, 6, 13, 36, 5, 'e');
+  for (let x = 7; x < 42; x += 2) put(g, x, 15, 'f');
+  rect(g, 6, 17, 36, 1, 'd');
+  rect(g, 13, 9, 22, 4, 'd');
+  rect(g, 15, 10, 18, 2, 'f');
+  paint(g, (x, y) => {
+    const horse = [16.5, 20.5, 27.5, 31.5].some((hx) => inEllipse(x, y, hx, 7, 2, 1.6) || inRect(x, y, hx - 1.5, 7, 1, 2) || inRect(x, y, hx + 0.5, 7, 1, 2))
+      || [17.5, 21.5, 26.5, 30.5].some((hx) => inEllipse(x, y, hx, 5, 1, 1.2));
+    return horse || inRect(x, y, 22, 4, 4, 5) ? 'g' : null;
+  });
+  rect(g, 23, 1, 2, 3, 'g');
+  put(g, 23, 0, 'G');
+  put(g, 24, 0, 'G');
+  return decorate(g, 14, [['-', 4, 'e'], ['B', 5, 'd'], ['F', 2, 'h']]);
+}
+
+/** Charles Bridge: Gothic arches over the Vltava up to the Old Town Bridge Tower (steel arch rings). */
+export function charlesBridge() {
+  const g = canvas(H);
+  paint(g, (x, y) => (inEllipse(x, y, 20, 14, 5, 5) || inRect(x, y, 15, 14, 10, 8) ? 'h' : null));
+  rect(g, 19, 6, 2, 4, 'h');
+  paint(g, (x, y) => (inRect(x, y, 11, 16, 26, 8) ? (Math.floor(x) % 3 === 0 && Math.floor(y) % 3 === 1 ? 'f' : 'c') : null));
+  paint(g, (x, y) => (y >= 31 ? (Math.floor(x * 2 + y * 5) % 7 === 0 ? 'h' : 'g') : null));
+  rect(g, 0, 22, 38, 3, 'd');
+  rect(g, 0, 21, 38, 1, 'c');
+  for (let x = 2; x < 37; x += 5) rect(g, x, 18, 1, 3, 'f');
+  // Arches between the piers: the opening shows the river, the ring is steel except at its crown.
+  for (let x0 = 0; x0 < 36; x0 += 9) {
+    paint(g, (x, y) => {
+      if (y < 25 || y >= 31 || x < x0 || x >= x0 + 9) return null;
+      const d = ((x - (x0 + 4.5)) / 3.5) ** 2 + ((y - 31) / 5.5) ** 2;
+      if (d <= 1) return y >= 31 - 1 ? 'g' : '.';
+      if (d <= 1.45) return Math.abs(x - (x0 + 4.5)) < 1.2 ? 'd' : 'S';
+      return 'd';
+    });
+  }
+  rect(g, 38, 9, 9, 22, 'e');
+  paint(g, (x, y) => (inEllipse(x, y, 42.5, 31, 2.5, 6) && y >= 25 ? 'f' : null));
+  [12, 17].forEach((y) => { rect(g, 40, y, 1, 2, 'f'); rect(g, 44, y, 1, 2, 'f'); });
+  paint(g, (x, y) => (inTri(x, y, 42.5, 0, 9, 5.5) ? 'f' : inTri(x, y, 37.5, 4, 9, 1.2) || inTri(x, y, 47.5, 4, 9, 1.2) ? 'f' : null));
+  put(g, 42, 0, 'G');
+  return decorate(g, 16, [['B', 5, 'd'], ['|', 4, 'd'], ['G', 2, 'e']]);
 }
 
 /** Golden Gate Bridge in the fog; the main cable is a dotted steel line. */

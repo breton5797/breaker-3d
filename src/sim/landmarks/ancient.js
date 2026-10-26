@@ -60,26 +60,6 @@ export function moai() {
   return decorate(g, 13, [['-', 6, 'g'], ['F', 2, 'h'], ['B', 4, 'd']]);
 }
 
-/** Parthenon: a temple of marble columns on the Acropolis (steel column cores). */
-export function parthenon() {
-  const g = canvas(H);
-  paint(g, (x, y) => (y >= 35 ? 'c' : null));
-  rect(g, 3, 32, 42, 1, 'e');
-  rect(g, 2, 33, 44, 1, 'e');
-  rect(g, 1, 34, 46, 1, 'e');
-  for (let k = 0; k < 8; k++) {
-    const x = 5 + k * 5;
-    rect(g, x, 17, 3, 15, 'd');
-    rect(g, x + 2, 17, 1, 15, 'f');
-    rect(g, x + 1, 19, 1, 11, 'S');
-  }
-  rect(g, 3, 14, 42, 3, 'e');
-  for (let x = 4; x < 44; x += 3) put(g, x, 15, 'g');
-  paint(g, (x, y) => (inTri(x, y, 24, 8, 12.5, 15) ? 'f' : inTri(x, y, 24, 6, 13.5, 21) ? 'd' : null));
-  put(g, 24, 6, 'G');
-  return decorate(g, 14, [['-', 4, 'e'], ['B', 5, 'd'], ['F', 2, 'c']]);
-}
-
 /** Great Sphinx of Giza with a pyramid behind it. */
 export function sphinx() {
   const g = canvas(H);
@@ -98,25 +78,6 @@ export function sphinx() {
   rect(g, 34, 24, 5, 4, 'g');
   [[4, 39], [17, 40], [41, 38], [27, 41]].forEach(([x, y]) => rect(g, x, y, 2, 1, 'S'));
   return decorate(g, 15, [['B', 5, 'd'], ['-', 6, 'h'], ['F', 2, 'c']]);
-}
-
-/** Colosseum: three arcaded tiers with a ruined crown (middle-tier arches are steel). */
-export function colosseum() {
-  const g = canvas(H);
-  paint(g, (x, y) => (y >= 38 ? 'c' : null));
-  const top = (x) => (x < 20 ? 10 + Math.floor((20 - x) * 0.4) : 10);
-  paint(g, (x, y) => (x > 2 && x < 46 && y >= top(x) && y < 38 ? 'd' : null));
-  [18, 26, 34].forEach((y) => paint(g, (x, yy) => (Math.floor(yy) === y && x > 2 && x < 46 ? 'e' : null)));
-  [[11, 17, 'f'], [19, 25, 'S'], [27, 33, 'f']].forEach(([t, b, ch]) => {
-    for (let x0 = 3; x0 + 4 <= 46; x0 += 4) {
-      paint(g, (x, y) => {
-        if (y < top(x) + 1) return null;
-        const open = inEllipse(x, y, x0 + 2, t + 3, 1.1, 1.6) || inRect(x, y, x0 + 1, t + 3, 2, b - t - 2);
-        return open ? ch : null;
-      });
-    }
-  });
-  return decorate(g, 16, [['B', 5, 'd'], ['|', 4, 'd'], ['G', 2, 'e']]);
 }
 
 /** Chichen Itza (El Castillo): a stepped pyramid with steel terrace lips. */
