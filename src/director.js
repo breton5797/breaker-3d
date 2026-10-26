@@ -206,11 +206,13 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     const n = w.balls.n;
     while (ballMark < BALL_MILESTONES.length && n >= BALL_MILESTONES[ballMark]) {
       ui.toast(`${ui.fmt(BALL_MILESTONES[ballMark])} BALLS!`, ballMark >= 4 ? 'mega' : '');
+      audio.milestone();
       haptics.play('milestone');
       ballMark++;
     }
     while (comboMark < COMBO_MILESTONES.length && w.combo >= COMBO_MILESTONES[comboMark]) {
       ui.toast(`COMBO ${ui.fmt(COMBO_MILESTONES[comboMark])}`, comboMark >= 2 ? 'mega' : '');
+      audio.milestone();
       haptics.play('milestone');
       comboMark++;
     }

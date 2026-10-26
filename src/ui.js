@@ -1,5 +1,6 @@
 import { levelName, LEVELS } from './sim/levels.js';
 import { ACHIEVEMENTS } from './achievements.js';
+import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
@@ -15,11 +16,20 @@ const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 
  * DOM layer. All dynamic text goes through textContent.
  * @param {{ onPlay:(i:number)=>void, onNext:()=>void, onRetry:()=>void, onMenu:()=>void,
  *   onSkill:(name:string)=>void, onMute:()=>void, onPause:()=>void, onResume:()=>void,
- *   onAchievements:()=>void, onCredits:()=>void }} h
+ *   onAchievements:()=>void, onCredits:()=>void, sfx:(name:string, ...args:unknown[])=>void,
+ *   impact:(kind:'slam'|'star')=>void }} h sfx plays a named sound (audio.js); impact shakes and buzzes
  */
 export function createUI(h) {
   const overlay = $('overlay');
   let lastBalls = 0;
+  let sequence = []; // timers of the clear-screen choreography still pending
+  let finishSequence = null; // jumps the choreography to its end (tap to skip)
+
+  function stopSequence() {
+    sequence.forEach(clearTimeout);
+    sequence = [];
+    finishSequence = null;
+  }
 
   const bind = (id, fn) => $(id).addEventListener('click', (e) => { e.stopPropagation(); fn(); });
   bind('btn-next', h.onNext);
@@ -44,6 +54,7 @@ export function createUI(h) {
   ['hud', 'skills', 'overlay'].forEach((id) => $(id).addEventListener('pointerdown', (e) => e.stopPropagation()));
 
   function show(screen) {
+    stopSequence();
     overlay.hidden = !screen;
     overlay.classList.toggle('clear-bg', screen === 'screen-clear');
     SCREENS.forEach((s) => { $(s).hidden = s !== screen; });
@@ -261,32 +272,100 @@ export function createUI(h) {
     if (left !== null) $('finale-left').textContent = fmt(left);
   }
 
+  /** Restarts a one-shot CSS animation class on an element. */
+  function replay(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  /**
+   * Stage clear: the panel slams in, stars pop one by one, the score rolls up,
+   * stat rows tick in, then the buttons arrive and "next" starts to pulse.
+   * A tap on the panel skips to the end.
+   */
   function showClear({ score, stars, stats, hasNext }) {
     playing(false);
-    $('clear-score').textContent = fmt(score);
-    const starsEl = $('stars');
-    starsEl.replaceChildren(...[0, 1, 2].map((k) => {
+    const panel = $('screen-clear');
+    const scoreEl = $('clear-score');
+    scoreEl.textContent = '0';
+    const starEls = [0, 1, 2].map(() => {
       const s = document.createElement('span');
       s.textContent = '★';
-      if (k < stars) { s.className = 'on'; s.style.animationDelay = `${0.2 + k * 0.18}s`; }
       return s;
-    }));
-    const dl = $('clear-stats');
-    dl.replaceChildren(...stats.flatMap(([k, v]) => {
+    });
+    $('stars').replaceChildren(...starEls);
+    const rows = stats.map(([k, v]) => {
       const dt = document.createElement('dt');
       dt.textContent = k;
       const dd = document.createElement('dd');
       dd.textContent = v;
       return [dt, dd];
-    }));
+    });
+    $('clear-stats').replaceChildren(...rows.flat());
     $('btn-next').hidden = !hasNext;
+    $('btn-next').classList.remove('pulse');
+    const actions = document.querySelectorAll('.clear-actions');
+    actions.forEach((el) => el.classList.add('pending'));
     show('screen-clear');
+    replay(panel, 'slam');
+
+    let scoreRaf = 0;
+    const steps = {
+      slam: () => { h.sfx('clearSlam'); h.impact('slam'); },
+      star: (e) => {
+        const el = starEls[e.index];
+        el.className = e.earned ? 'on' : 'dim';
+        h.sfx('star', e.index, e.earned);
+        if (e.earned) h.impact('star');
+      },
+      score: () => {
+        const start = performance.now();
+        let lastTick = 0;
+        const roll = (now) => {
+          const t = now - start;
+          scoreEl.textContent = fmt(countUp(score, t, SCORE_COUNT_MS));
+          if (t - lastTick > 70 && t < SCORE_COUNT_MS) { lastTick = t; h.sfx('tick', Math.floor(t / 70)); }
+          if (t < SCORE_COUNT_MS) scoreRaf = requestAnimationFrame(roll);
+          else replay(scoreEl, 'landed');
+        };
+        scoreRaf = requestAnimationFrame(roll);
+      },
+      stat: (e) => { rows[e.index].forEach((el) => el.classList.add('in')); h.sfx('tick', e.index); },
+      buttons: () => {
+        actions.forEach((el) => el.classList.remove('pending'));
+        if (hasNext) $('btn-next').classList.add('pulse');
+        h.sfx('buttonsIn');
+      },
+    };
+    const timeline = clearTimeline({ stars, statCount: rows.length });
+    sequence = timeline.map((e) => setTimeout(() => steps[e.kind](e), e.at));
+    // Tap to skip: everything lands at once (quietly), buttons ready.
+    finishSequence = () => {
+      sequence.forEach(clearTimeout);
+      sequence = [];
+      cancelAnimationFrame(scoreRaf);
+      scoreEl.textContent = fmt(score);
+      starEls.forEach((el, k) => { el.className = k < stars ? 'on' : 'dim'; });
+      rows.flat().forEach((el) => el.classList.add('in'));
+      actions.forEach((el) => el.classList.remove('pending'));
+      if (hasNext) $('btn-next').classList.add('pulse');
+      finishSequence = null;
+    };
   }
+
+  // Tapping the clear panel (not a button) while it is still playing skips to the end.
+  $('screen-clear').addEventListener('click', (e) => {
+    if (finishSequence && !(e.target instanceof Element && e.target.closest('button'))) finishSequence();
+  });
 
   function showOver(score) {
     playing(false);
     $('over-score').textContent = fmt(score);
     show('screen-over');
+    replay($('screen-over'), 'drop');
+    $('btn-over-retry').classList.add('pulse');
+    h.sfx('gameOver');
   }
 
   return {

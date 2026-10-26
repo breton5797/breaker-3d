@@ -14,6 +14,7 @@ import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
 import { createHaptics } from './haptics.js';
 import { createFullscreen } from './fullscreen.js';
+import { bindUiSounds } from './uiSounds.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
@@ -68,6 +69,7 @@ const ui = createUI({
     audio.setMuted(!audio.isMuted());
     save = { ...save, muted: audio.isMuted() };
     writeSave(save);
+    if (!audio.isMuted()) audio.toggle(); // sound just came back: let it be heard
   },
   onVibe: () => {
     haptics.setEnabled(!haptics.enabled);
@@ -77,11 +79,18 @@ const ui = createUI({
     haptics.play('launch'); // a little buzz confirms it's on
   },
   onFullscreen: () => { fullscreen.toggle(); },
+  sfx: (name, ...args) => audio[name]?.(...args),
+  impact: (kind) => {
+    stage.shake(kind === 'slam' ? 0.7 : 0.25);
+    haptics.play(kind === 'slam' ? 'boom' : 'coin');
+  },
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
   onCredits: () => ui.showCredits(credits),
 });
+// Every button press clicks (the press itself unlocks audio on the first tap).
+bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
 ui.setVibe(haptics.supported, haptics.enabled);
 ui.setFullscreen(fullscreen.supported, fullscreen.active);
@@ -108,6 +117,7 @@ function startLevel(i) {
   quality.reset();
   mode = 'play';
   ui.startStage(level);
+  audio.stageIntro();
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
     setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
@@ -152,8 +162,9 @@ function bankLiveGold() {
 }
 
 function togglePause() {
-  if (mode === 'play') { mode = 'paused'; haptics.stop(); ui.showPause(true); }
-  else if (mode === 'paused') { mode = 'play'; ui.showPause(false); }
+  // Sounds here (not on the buttons) so P / Esc / window blur get them too.
+  if (mode === 'play') { mode = 'paused'; haptics.stop(); audio.pause(); ui.showPause(true); }
+  else if (mode === 'paused') { mode = 'play'; audio.resume(); ui.showPause(false); }
 }
 
 function finishLevel(cleared) {

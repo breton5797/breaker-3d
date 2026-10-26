@@ -107,5 +107,53 @@ export function createAudio() {
     fanfare() {
       [0, 2, 4, 5, 7, 10].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(5 + s), 0.3, 'triangle', 0.18); }, k * 90));
     },
+
+    // ---------- menus and screens ----------
+    /** Plain button press: a short, soft click. */
+    tap() { tone(1200, 0.05, 'sine', 0.12, 900); },
+    /** Forward (start, next, retry): a bright two-note "go". */
+    confirm() { tone(note(9), 0.08, 'triangle', 0.16); setTimeout(() => { voices = 0; tone(note(12), 0.14, 'triangle', 0.16); }, 60); },
+    /** Back to a menu: the same two notes, falling. */
+    back() { tone(note(9), 0.08, 'triangle', 0.13); setTimeout(() => { voices = 0; tone(note(5), 0.12, 'triangle', 0.13); }, 60); },
+    /** A panel or list sliding open. */
+    open() { burst(0.22, 3200, 0.12); tone(500, 0.18, 'sine', 0.08, 900); },
+    toggle() { tone(1500, 0.04, 'square', 0.05); setTimeout(() => { voices = 0; tone(1900, 0.05, 'square', 0.05); }, 45); },
+    pause() { tone(660, 0.18, 'sine', 0.14, 330); },
+    resume() { tone(330, 0.16, 'sine', 0.14, 660); },
+    /** Stage start: a rising whoosh under the stage name. */
+    stageIntro() {
+      burst(0.6, 1800, 0.2);
+      tone(220, 0.55, 'sawtooth', 0.05, 880);
+      setTimeout(() => { voices = 0; tone(note(12), 0.25, 'triangle', 0.14); }, 480);
+    },
+    /** Ball or combo milestone toast. */
+    milestone() { [0, 7, 12].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(10 + s), 0.12, 'square', 0.06); }, k * 50)); },
+
+    // ---------- stage clear screen ----------
+    /** The clear panel slams in: a low thump, a cymbal-ish wash and a big chord. */
+    clearSlam() {
+      voices = 0;
+      tone(110, 0.45, 'sine', 0.5, 45);
+      burst(0.9, 6000, 0.35);
+      [0, 4, 7, 12].forEach((s) => tone(note(7 + s), 0.7, 'triangle', 0.1)); // 6 voices in all: exactly the frame budget
+    },
+    /** Star k (0..2) earned: each rings a step higher. Unearned stars get a dull knock. */
+    star(k, earned = true) {
+      voices = 0;
+      if (!earned) { tone(180, 0.12, 'sine', 0.12, 140); return; }
+      tone(note(12 + k * 2), 0.35, 'triangle', 0.17);
+      tone(note(16 + k * 2), 0.35, 'sine', 0.08);
+      burst(0.12, 8000, 0.1);
+    },
+    /** Count-up tick (score digits rolling, stat rows landing). */
+    tick(k = 0) { voices = 0; tone(1800 + (k % 6) * 120, 0.03, 'square', 0.04); },
+    /** The buttons pop in at the end of the clear screen. */
+    buttonsIn() { voices = 0; tone(note(14), 0.1, 'triangle', 0.12); setTimeout(() => { voices = 0; tone(note(19), 0.18, 'triangle', 0.12); }, 70); },
+    /** Game over: a slow falling minor run and a low thud. */
+    gameOver() {
+      voices = 0;
+      tone(90, 0.6, 'sine', 0.4, 40);
+      [12, 10, 7, 3].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(s) * 0.5, 0.4, 'triangle', 0.14); }, 120 + k * 180));
+    },
   };
 }
