@@ -36,6 +36,8 @@ export function createUI(h) {
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('btn-vibe', h.onVibe);
+  bind('btn-full', h.onFullscreen);
+  bind('btn-full-pause', h.onFullscreen);
   bind('skill-split', () => h.onSkill('split'));
   bind('skill-meteor', () => h.onSkill('meteor'));
   // Taps on HUD controls must not also launch the ball.
@@ -221,6 +223,22 @@ export function createUI(h) {
     setTimeout(() => el.remove(), 1300);
   }
 
+  /** Fullscreen buttons (title + pause); hidden where the browser can't do it (iPhone). */
+  function setFullscreen(supported, on) {
+    document.querySelectorAll('.fs-btn').forEach((el) => {
+      el.hidden = !supported;
+      el.setAttribute('aria-pressed', String(on));
+      el.innerHTML = `<span aria-hidden="true">⛶</span> ${on ? '전체 화면 끄기' : '전체 화면'}`;
+    });
+  }
+
+  /** Pins the "tap to launch" hint at a screen point (just above the paddle). */
+  function placeHint(x, y) {
+    const el = $('hint');
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }
+
   /** Red edges pulse in when the player is hurt (a darkening vignette, not a glow). */
   function damageFlash(heavy) {
     const el = $('damage');
@@ -283,6 +301,8 @@ export function createUI(h) {
     showCredits,
     pumpGold,
     damageFlash,
+    placeHint,
+    setFullscreen,
     setVibe,
     setPhotoCredit,
     floatAt,

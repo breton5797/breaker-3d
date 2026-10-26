@@ -13,6 +13,7 @@ import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
 import { createHaptics } from './haptics.js';
+import { createFullscreen } from './fullscreen.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
@@ -37,6 +38,7 @@ const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const haptics = createHaptics();
+const fullscreen = createFullscreen();
 const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
 const STUN_HEX = 0xff3040;
@@ -74,6 +76,7 @@ const ui = createUI({
     ui.setVibe(haptics.supported, haptics.enabled);
     haptics.play('launch'); // a little buzz confirms it's on
   },
+  onFullscreen: () => { fullscreen.toggle(); },
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
@@ -81,6 +84,9 @@ const ui = createUI({
 });
 const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
 ui.setVibe(haptics.supported, haptics.enabled);
+ui.setFullscreen(fullscreen.supported, fullscreen.active);
+// Esc or the system back gesture also leaves fullscreen; keep the labels and the framing in step.
+fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported, on); stage.resize(); });
 
 function startLevel(i) {
   level = getLevel(i);
@@ -237,8 +243,14 @@ function keyboardPaddle(dt) {
   if (dir) setPaddleX(world, world.paddle.x + dir * KEY_SPEED * dt);
 }
 
+const HINT_ABOVE = 9; // cells above the paddle where the launch hint floats
+
 function hud() {
   const g = world.grid;
+  if (world.state === 'ready') {
+    const at = stage.project(COLS / 2, PADDLE_Y + HINT_ABOVE, 1);
+    ui.placeHint(at.x, at.y);
+  }
   ui.setHud({
     score: world.score,
     balls: world.state === 'ready' ? 1 : world.balls.n,
@@ -315,4 +327,4 @@ showMenu();
 requestAnimationFrame(frame);
 
 // Dev-only handle for browser E2E checks; stripped from production builds.
-if (import.meta.env.DEV) window.__breaker = { get world() { return world; } };
+if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage };

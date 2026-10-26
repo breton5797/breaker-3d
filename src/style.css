@@ -19,6 +19,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
 body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+/* Lens falloff: the corners of the view darken a little, like a real camera (darkening only, never a glow). */
+#lens { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 52%, transparent 60%, rgba(0, 0, 0, 0.38) 100%); }
 button { font: inherit; color: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 
@@ -81,7 +83,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- hint & toasts ---------- */
 .hint {
-  position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%);
+  /* Placed by script just above the paddle (see ui.placeHint); this is the fallback. */
+  position: fixed; left: 50%; top: 80%; transform: translate(-50%, -100%);
   padding: 8px 16px; border-radius: 999px; background: rgba(12, 16, 36, 0.7); border: 1px solid var(--line);
   font-size: 14px; color: var(--muted); animation: blink 1.4s ease-in-out infinite; pointer-events: none; white-space: nowrap;
 }
