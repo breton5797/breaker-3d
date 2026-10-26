@@ -11,6 +11,8 @@ import { createDrops3d, createBeacon } from './render/drops3d.js';
 import { createPhoto } from './render/photo.js';
 import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
+import { createTrails3d } from './render/trails3d.js';
+import { createHaptics } from './haptics.js';
 import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createDirector } from './director.js';
@@ -25,6 +27,7 @@ const MAX_DT = 1 / 30;
 
 const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
+const trails3d = createTrails3d(stage.scene);
 const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
@@ -33,6 +36,7 @@ const photo = createPhoto(stage.scene);
 const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
+const haptics = createHaptics();
 const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
 const STUN_HEX = 0xff3040;
@@ -42,6 +46,7 @@ let save = loadSave();
 let credits = {};
 loadCredits().then((c) => { credits = c; if (level && (mode === 'play' || mode === 'paused')) ui.setPhotoCredit(credits[level.photo] ?? null); });
 audio.setMuted(save.muted);
+haptics.setEnabled(save.vibrate);
 
 let level = null;
 let world = null;
@@ -62,12 +67,20 @@ const ui = createUI({
     save = { ...save, muted: audio.isMuted() };
     writeSave(save);
   },
+  onVibe: () => {
+    haptics.setEnabled(!haptics.enabled);
+    save = { ...save, vibrate: haptics.enabled };
+    writeSave(save);
+    ui.setVibe(haptics.supported, haptics.enabled);
+    haptics.play('launch'); // a little buzz confirms it's on
+  },
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
   onCredits: () => ui.showCredits(credits),
 });
-const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d });
+const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics });
+ui.setVibe(haptics.supported, haptics.enabled);
 
 function startLevel(i) {
   level = getLevel(i);
@@ -108,6 +121,7 @@ function checkAchievements(cleared) {
   save = unlockAchievements(save, fresh);
   writeSave(save);
   audio.achievement();
+  haptics.play('achievement');
   fresh.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
     setTimeout(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name}`], 'small'), 400 + k * 700);
@@ -118,6 +132,7 @@ function checkAchievements(cleared) {
 function applyQuality(levelIndex) {
   const q = QUALITY_LEVELS[levelIndex];
   balls3d.setShadows(q.ballShadows);
+  trails3d.setEnabled(q.trails);
   stage.setQuality(q);
   ui.toast('화질 자동 조정', 'small');
 }
@@ -131,7 +146,7 @@ function bankLiveGold() {
 }
 
 function togglePause() {
-  if (mode === 'play') { mode = 'paused'; ui.showPause(true); }
+  if (mode === 'play') { mode = 'paused'; haptics.stop(); ui.showPause(true); }
   else if (mode === 'paused') { mode = 'play'; ui.showPause(false); }
 }
 
@@ -254,6 +269,7 @@ function frame(now) {
     }
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
     balls3d.update(world.balls, resting);
+    trails3d.update(world.balls);
     drops3d.update(world.drops, now / 1000);
     coins3d.update(world.coins, now / 1000);
     units3d.update(world.units, world.shells, ballInside(world), now / 1000, dt);
@@ -291,6 +307,7 @@ function showMenu() {
   units3d.setLevel(backdrop.units);
   units3d.update(backdrop.units, [], false, 0, 0);
   balls3d.update(backdrop.balls, null);
+  trails3d.update(backdrop.balls);
   ui.showTitle(save);
 }
 

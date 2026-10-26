@@ -1,5 +1,5 @@
 const KEY = 'breaker3d.v1';
-const EMPTY = Object.freeze({ unlocked: 1, best: {}, muted: false, achievements: [], gold: 0 });
+const EMPTY = Object.freeze({ unlocked: 1, best: {}, muted: false, vibrate: true, achievements: [], gold: 0 });
 const ACHIEVEMENT_ID = /^[a-z0-9_]{1,40}$/;
 
 /** Reads saved progress; anything malformed falls back to a fresh save. */
@@ -17,7 +17,7 @@ export function loadSave() {
     const ids = Array.isArray(raw.achievements) ? raw.achievements : [];
     const achievements = [...new Set(ids.filter((id) => typeof id === 'string' && ACHIEVEMENT_ID.test(id)))];
     const gold = Number.isInteger(raw.gold) && raw.gold > 0 ? Math.min(raw.gold, 1e12) : 0;
-    return { unlocked, best, muted: raw.muted === true, achievements, gold };
+    return { unlocked, best, muted: raw.muted === true, vibrate: typeof raw.vibrate === 'boolean' ? raw.vibrate : raw.muted !== true, achievements, gold };
   } catch {
     return { ...EMPTY };
   }

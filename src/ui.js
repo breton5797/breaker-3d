@@ -35,6 +35,7 @@ export function createUI(h) {
   bind('btn-credits-back', h.onMenu);
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
+  bind('btn-vibe', h.onVibe);
   bind('skill-split', () => h.onSkill('split'));
   bind('skill-meteor', () => h.onSkill('meteor'));
   // Taps on HUD controls must not also launch the ball.
@@ -220,6 +221,22 @@ export function createUI(h) {
     setTimeout(() => el.remove(), 1300);
   }
 
+  /** Red edges pulse in when the player is hurt (a darkening vignette, not a glow). */
+  function damageFlash(heavy) {
+    const el = $('damage');
+    el.classList.remove('hurt', 'heavy');
+    void el.offsetWidth; // restart the animation
+    el.classList.add('hurt');
+    if (heavy) el.classList.add('heavy');
+  }
+
+  /** Vibration switch on the pause screen; hidden where the browser can't vibrate (iOS). */
+  function setVibe(supported, on) {
+    const el = $('btn-vibe');
+    el.hidden = !supported;
+    el.textContent = on ? '📳 진동 켜짐' : '📴 진동 꺼짐';
+  }
+
   /** Finale banner with a live brick countdown; pass null to hide it. */
   function setFinale(left) {
     $('finale-banner').hidden = left === null;
@@ -265,6 +282,8 @@ export function createUI(h) {
     showAchievements,
     showCredits,
     pumpGold,
+    damageFlash,
+    setVibe,
     setPhotoCredit,
     floatAt,
     setFinale,

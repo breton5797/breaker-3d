@@ -66,4 +66,8 @@ describe('quality governor', () => {
     g.reset();
     expect(feed(g, 16.7, 2)).toEqual([]);
   });
+
+  it('ball trails are drawn only on the top two levels', () => {
+    expect(QUALITY_LEVELS.map((q) => q.trails)).toEqual([true, true, false, false]);
+  });
 });

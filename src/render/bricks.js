@@ -35,6 +35,9 @@ const STEEL = new THREE.Color(0x7a869e);
 const ICON_SCALE = 1.8; // special blocks are drawn bigger than one fine cell so icons stay legible
 const FRUIT_SCALE = 3.2; // fruit items are the thing to hunt for, so they stand out most
 const HARD_SHINE = new THREE.Color(0xffffff);
+const POP_TIME = 0.14; // a broken brick swells and blanches, then vanishes
+const POP_MAX = 400; // past this many at once, bricks just vanish (big chain reactions)
+const FLASH_TIME = 0.12; // an armoured brick blinks pale when a ball chips it
 
 /** Bevel shading baked into a texture: lit top-left edge, shaded bottom-right edge. */
 function bevelTexture() {
@@ -135,15 +138,21 @@ export function createBricks(scene) {
   }));
 
   let palette = [];
+  let grid = null;
+  let pops = []; // { i, t } broken plain bricks still animating
+  let flashes = new Map(); // cell -> seconds of hit flash left
+  let lastTime = null;
+  const popColor = new THREE.Color();
   let slotOf = new Int32Array(total).fill(-1); // cell -> special instance slot
   let specialCells = {}; // type -> cell indices (slot order)
   const baseColor = new THREE.Color();
+  const shinyColor = new THREE.Color();
 
   function brickColor(grid, i) {
     if (grid.cells[i] === CELL.STEEL) return STEEL;
     baseColor.set(palette[grid.color[i] % palette.length]);
     // Tougher bricks gleam a little and dull with every hit.
-    return grid.hp[i] > 1 ? baseColor.clone().lerp(HARD_SHINE, Math.min(0.15, 0.05 * (grid.hp[i] - 1))) : baseColor;
+    return grid.hp[i] > 1 ? shinyColor.copy(baseColor).lerp(HARD_SHINE, Math.min(0.15, 0.05 * (grid.hp[i] - 1))) : baseColor;
   }
 
   function place(m, slot, i, scale = 1, lift = 0, turn = 0) {
@@ -158,8 +167,11 @@ export function createBricks(scene) {
   const scaleOf = (type) => (isFruit(type) ? FRUIT_SCALE : ICON_SCALE);
 
   /** Rebuilds every instance for a new level. */
-  function setLevel(grid, pal) {
+  function setLevel(g, pal) {
+    grid = g;
     palette = pal;
+    pops = [];
+    flashes = new Map();
     slotOf = new Int32Array(total).fill(-1);
     specialCells = Object.fromEntries(Object.keys(SPECIALS).map((t) => [t, []]));
     for (let i = 0; i < total; i++) {
@@ -189,6 +201,8 @@ export function createBricks(scene) {
   /** Hides a destroyed cell. `type` is the cell type it had. */
   function remove(i, type) {
     if (type === CELL.BRICK) {
+      flashes.delete(i);
+      if (pops.length < POP_MAX) { pops.push({ i, t: 0 }); return; }
       mesh.setMatrixAt(i, hidden);
       mesh.instanceMatrix.needsUpdate = true;
       return;
@@ -203,13 +217,53 @@ export function createBricks(scene) {
   }
 
   /** A hard brick lost armour: drop its shine. */
-  function dent(grid, i) {
-    mesh.setColorAt(i, brickColor(grid, i));
+  function dent(g, i) {
+    grid = g;
+    flashes.set(i, FLASH_TIME);
+    mesh.setColorAt(i, popColor.copy(brickColor(g, i)).lerp(HARD_SHINE, 0.6));
     mesh.instanceColor.needsUpdate = true;
+  }
+
+  /** Swell-and-vanish for broken bricks, and the fading pale blink on chipped ones. */
+  function animateHits(dt) {
+    if (pops.length) {
+      const live = [];
+      for (const p of pops) {
+        p.t += dt;
+        const u = p.t / POP_TIME;
+        if (u >= 1) { mesh.setMatrixAt(p.i, hidden); continue; }
+        // Up to 1.22x by a third of the way, then shrink to nothing.
+        const s = u < 0.33 ? 1 + 0.22 * (u / 0.33) : 1.22 * (1 - (u - 0.33) / 0.67);
+        place(mesh, p.i, p.i, s, 0.25 * Math.sin(u * Math.PI));
+        mesh.setColorAt(p.i, popColor.set(palette[grid.color[p.i] % palette.length]).lerp(HARD_SHINE, 0.55 * (1 - u)));
+        live.push(p);
+      }
+      pops = live;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.instanceColor.needsUpdate = true;
+    }
+    if (flashes.size) {
+      for (const [i, left] of flashes) {
+        const next = left - dt;
+        const cell = grid.cells[i];
+        const solid = cell === CELL.BRICK || cell === CELL.STEEL;
+        if (next <= 0 || !solid) {
+          flashes.delete(i);
+          if (solid) mesh.setColorAt(i, brickColor(grid, i));
+          continue;
+        }
+        flashes.set(i, next);
+        mesh.setColorAt(i, popColor.copy(brickColor(grid, i)).lerp(HARD_SHINE, 0.6 * (next / FLASH_TIME)));
+      }
+      mesh.instanceColor.needsUpdate = true;
+    }
   }
 
   /** Specials breathe, fruit bob gently and coins turn, so they read as "something will happen". */
   function update(time) {
+    const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, time - lastTime));
+    lastTime = time;
+    if (grid) animateHits(dt);
     for (const [type, m] of Object.entries(specialMeshes)) {
       if (!m.count) continue;
       const cells = specialCells[type];

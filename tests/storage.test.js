@@ -16,7 +16,7 @@ beforeEach(() => { globalThis.localStorage = fakeStorage(); });
 
 describe('save data', () => {
   it('a fresh save has no achievements', () => {
-    expect(loadSave()).toEqual({ unlocked: 1, best: {}, muted: false, achievements: [], gold: 0 });
+    expect(loadSave()).toEqual({ unlocked: 1, best: {}, muted: false, vibrate: true, achievements: [], gold: 0 });
   });
 
   it('round-trips achievements', () => {
@@ -33,7 +33,7 @@ describe('save data', () => {
 
   it('old saves without achievements still load', () => {
     localStorage.setItem(KEY, JSON.stringify({ unlocked: 7, best: { 2: 900 }, muted: true }));
-    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, achievements: [], gold: 0 });
+    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, vibrate: false, achievements: [], gold: 0 });
   });
 
   it('unlockAchievements returns a new save and never duplicates', () => {
@@ -61,5 +61,20 @@ describe('save data', () => {
     localStorage.setItem(KEY, JSON.stringify({ unlocked: 2, gold: 'lots' }));
     expect(loadSave().gold).toBe(0);
     expect(addGold(loadSave(), -3).gold).toBe(0); // never negative
+  });
+
+  it('vibration defaults on, can be switched off, and only false turns it off', () => {
+    expect(loadSave().vibrate).toBe(true);
+    writeSave({ ...loadSave(), vibrate: false });
+    expect(loadSave().vibrate).toBe(false);
+    localStorage.setItem(KEY, JSON.stringify({ unlocked: 2, vibrate: 'no' }));
+    expect(loadSave().vibrate).toBe(true);
+  });
+
+  it('players who muted before vibration had its own switch stay buzz-free (mute used to silence both)', () => {
+    localStorage.setItem(KEY, JSON.stringify({ unlocked: 2, muted: true }));
+    expect(loadSave().vibrate).toBe(false);
+    localStorage.setItem(KEY, JSON.stringify({ unlocked: 2, muted: true, vibrate: true }));
+    expect(loadSave().vibrate).toBe(true);
   });
 });
