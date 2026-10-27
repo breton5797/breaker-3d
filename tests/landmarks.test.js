@@ -109,7 +109,8 @@ describe('landmark maps', () => {
       const { lvl, g } = build(i);
       expect(lvl.lines.length).toBeLessThanOrEqual(ROWS - 14);
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
-      expect(g.total).toBeGreaterThan(800);
+      // Boss arenas keep their top half open for the boss, so they hold fewer bricks.
+      expect(g.total).toBeGreaterThan(lvl.boss ? 300 : 800);
       expect(reachableShare(g)).toBeGreaterThan(0.99);
     });
   }

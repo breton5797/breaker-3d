@@ -13,7 +13,7 @@ import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
 import { createGimmicks3d } from './render/gimmicks3d.js';
-import { coreHpLeft } from './sim/boss.js';
+import { createBoss3d } from './render/boss3d.js';
 import { createHaptics } from './haptics.js';
 import { createFullscreen } from './fullscreen.js';
 import { bindUiSounds } from './uiSounds.js';
@@ -37,6 +37,7 @@ const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
 const trails3d = createTrails3d(stage.scene);
 const gimmicks3d = createGimmicks3d(stage.scene);
+const boss3d = createBoss3d(stage.scene);
 const balls3d = createBalls3d(stage.scene);
 const fx = createFx(stage.scene);
 const drops3d = createDrops3d(stage.scene);
@@ -112,7 +113,7 @@ const ui = createUI({
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
-const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d });
+const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d });
 ui.setVibe(haptics.supported, haptics.enabled);
 // An app is already full screen: no button there.
 ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
@@ -136,6 +137,7 @@ function startLevel(i) {
   ui.setPhotoCredit(credits[level.photo] ?? null);
   units3d.setLevel(world.units);
   gimmicks3d.setLevel(world.gimmick);
+  boss3d.setBoss(world.boss);
   director.reset();
   stage.setZoom(1);
   elapsed = 0;
@@ -145,7 +147,8 @@ function startLevel(i) {
   if (level.boss) {
     audio.bossWarn();
     haptics.play('stun');
-    setTimeout(() => ui.toast('⚠ BOSS 출현! 심장(빨간 핵)을 부숴라', 'mega danger'), 900);
+    setTimeout(() => ui.toast('⚠ BOSS 출현! 몸통을 맞혀라', 'mega danger'), 900);
+    setTimeout(() => ui.toast('빨간 영역 = 공격 예고, 피하세요!', 'small'), 2200);
   } else audio.stageIntro();
   if (level.chapterStart) {
     setTimeout(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
@@ -383,7 +386,7 @@ function hud() {
     muted: audio.isMuted(),
     gold: save.gold + world.gold,
   });
-  ui.setBoss(world.boss ? level.name : null, world.boss ? coreHpLeft(world) / world.boss.coreHpMax : 1);
+  ui.setBoss(world.boss?.alive ? level.name : null, world.boss ? world.boss.hp / world.boss.hpMax : 1);
 }
 
 let last = performance.now();
@@ -421,6 +424,7 @@ function frame(now) {
   }
   bricks.update(now / 1000);
   gimmicks3d.update(now / 1000, dt);
+  boss3d.update(world ? world.boss : null, world ? world.paddle.x : 0, now / 1000, dt);
   beacon.update(now / 1000);
   fx.update(dt * (mode === 'outro' ? 0.6 : scale));
   stage.render(dt, world ? world.paddle.x : COLS / 2);
@@ -442,6 +446,7 @@ function showMenu() {
   coins3d.update([], 0);
   units3d.setLevel(backdrop.units);
   gimmicks3d.setLevel(null);
+  boss3d.setBoss(null);
   units3d.update(backdrop.units, [], false, 0, 0);
   balls3d.update(backdrop.balls, null);
   trails3d.update(backdrop.balls);

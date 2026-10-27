@@ -7,7 +7,7 @@ import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells } from './units.js';
-import { createBoss, updateBoss } from './boss.js';
+import { createBoss, updateBoss, collideBoss } from './boss.js';
 import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
@@ -19,11 +19,11 @@ const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball
  *   dropSpeed?: number, aggression?: number, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
-  const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes, coreHp: opts.boss?.coreHp });
+  const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes });
   const rng = opts.rng ?? Math.random;
   return {
     grid,
-    boss: opts.boss ? createBoss(grid, opts.boss, rng, opts.brickHp ?? 1) : null,
+    boss: opts.boss && grid.box ? createBoss(opts.boss, grid, rng) : null,
     gimmick: opts.theme && opts.box ? createGimmick(opts.theme, { box: opts.box, rng }) : null,
     balls: createBalls(),
     rng,
@@ -197,7 +197,10 @@ function updateBalls(w, dt) {
     const dist = Math.hypot(b.vx[i], b.vy[i]) * dt;
     if (w.gimmick) bendBall(w.gimmick, b, i, dt);
     const steps = Math.max(1, Math.ceil(dist / MAX_SUBSTEP));
-    for (let s = 0; s < steps; s++) moveBall(w, i, dt / steps);
+    for (let s = 0; s < steps; s++) {
+      moveBall(w, i, dt / steps);
+      if (w.boss) collideBoss(w, i);
+    }
     if (b.y[i] < -1) { removeBall(b, i); continue; }
     i++;
   }
@@ -226,7 +229,8 @@ export function stepWorld(w, dt) {
   if (!w.finale && w.state === 'play' && !w.boss?.alive && (nearlyDone || stalled)) {
     startFinale(w);
   }
-  if (w.grid.remaining <= 0) {
+  // A boss stage ends only with the boss: an empty arena alone is not a win.
+  if (w.grid.remaining <= 0 && !w.boss?.alive) {
     w.state = 'clear';
     w.events.push({ t: 'clear' });
     return;

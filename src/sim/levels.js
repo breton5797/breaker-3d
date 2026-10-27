@@ -31,7 +31,6 @@ const CHAR_CELL = {
   E: CELL.ITEM30,
   I: CELL.ITEM50,
   M: CELL.ITEM100,
-  X: CELL.CORE,
   $: CELL.COIN,
 };
 
@@ -40,11 +39,10 @@ const CHAR_CELL = {
  * Letters a-h are bricks with an explicit palette index; '#' bricks get a
  * stripe colour from their line.
  * @param {string[]} lines
- * @param {{ brickHp?: number, box?: object|null, holes?: object[], coreHp?: number }} [opts] brickHp: hits a
- *   plain brick takes ('H' adds one more); box/holes: the steel box and its entrances (getLevel);
- *   coreHp: hits each cell of a boss core ('X') takes
+ * @param {{ brickHp?: number, box?: object|null, holes?: object[] }} [opts] brickHp: hits a
+ *   plain brick takes ('H' adds one more); box/holes: the steel box and its entrances (getLevel)
  */
-export function parseLevel(lines, { brickHp = 1, box = null, holes = [], coreHp = 1 } = {}) {
+export function parseLevel(lines, { brickHp = 1, box = null, holes = [] } = {}) {
   const size = GRID_COLS * ROWS;
   const cells = new Uint8Array(size);
   const hp = new Uint8Array(size);
@@ -66,7 +64,6 @@ export function parseLevel(lines, { brickHp = 1, box = null, holes = [], coreHp 
       hp[i] = unitTier ? UNIT_TIERS[unitTier - 1].hp
         : SPLIT_COUNT[type] ? SPLIT_USES
         : ch === 'H' ? brickHp + 1
-        : type === CELL.CORE ? coreHp
         : type === CELL.BRICK ? brickHp : 1;
       tier[i] = unitTier;
       color[i] = isLetter ? code - 97 : Math.floor(li / 5) % 8;
@@ -326,11 +323,12 @@ export const levelName = (i) => {
  * @param {number} i
  * @param {{ slots?: string[] }} [opts] force these hole slots (balance scripts and tests)
  */
-/** Boss core toughness and bomb tier rise with the stage. */
-const bossSpec = (n) => ({
-  coreHp: Math.min(12, 5 + Math.floor(n / 25)),
-  tier: Math.min(10, 2 + Math.floor(n / 25)),
-  dps: 6 + Math.floor(n / 30), // core damage per second: fights last ~20 s however big the swarm
+/** Boss toughness and attack strength rise with the stage. */
+const bossSpec = (kind, n) => ({
+  kind,
+  hp: 140 + Math.floor(n * 1.5),
+  dps: 6 + Math.floor(n / 30), // damage per second it can take: fights last ~25 s however big the swarm
+  tier: Math.min(10, 2 + Math.floor(n / 25)), // stun (and later lethal) strength of its attacks
 });
 
 export function getLevel(i, { slots } = {}) {
@@ -360,7 +358,7 @@ export function getLevel(i, { slots } = {}) {
     lines,
     box,
     holes: holes.map(({ pocket, ...h }) => h),
-    boss: slot.boss ? bossSpec(n) : null,
+    boss: slot.boss ? bossSpec(map.id, n) : null,
     theme: map.theme ?? null, // chapter gimmick: 'space' | 'sea' | 'nature' (gimmicks.js)
     chapterStart: Boolean(map.chapterStart),
   };

@@ -71,7 +71,8 @@ export const LEVELS = Object.freeze([
     ['#79c1ef', '#c6e3f6', '#9a8f7a', '#d9c7a1', '#c4b08a', '#9c8a66', '#4a4036', '#5f646e']),
 ]);
 
-// Bosses take turns on every 10th stage (sequence.js). No photo: they fight on the bare table.
+// Bosses take turns on every 10th stage (sequence.js): a moving creature (boss.js) over
+// its arena (landmarks/bosses.js). No photo: they fight on the bare table.
 const boss = (id, name, subtitle, build, palette) => Object.freeze({ ...map(id, `BOSS · ${name}`, subtitle, build, palette), photo: null });
 
 export const BOSSES = Object.freeze([

@@ -136,10 +136,8 @@ export function createAudio() {
       tone(55, 1.4, 'sawtooth', 0.12, 50);
       [0, 1, 2, 3].forEach((k) => setTimeout(() => { voices = 0; tone(k % 2 ? 520 : 700, 0.28, 'square', 0.07); }, k * 300));
     },
-    /** A ball chips the boss core: a dull metal clank. */
+    /** A ball hits the boss: a dull metal clank. */
     coreHit() { tone(180 + Math.random() * 30, 0.08, 'square', 0.06, 120); },
-    /** A core cell gives way. */
-    coreDown() { burst(0.25, 2500, 0.3); tone(240, 0.25, 'sawtooth', 0.1, 70); },
     /** The boss falls: a long crash, a low boom and a rising victory chord. */
     bossDown() {
       voices = 0;

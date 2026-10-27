@@ -2,18 +2,36 @@ import { describe, it, expect } from 'vitest';
 import { stageSlot, BOSS_EVERY } from '../src/sim/sequence.js';
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, drainEvents } from '../src/sim/world.js';
-import { hitCell, breakCell } from '../src/sim/cells.js';
 import { addBall } from '../src/sim/balls.js';
-import { updateBoss, REGEN_EVERY, CORE_BLAST, SHOT_EVERY } from '../src/sim/boss.js';
+import {
+  updateBoss, collideBoss, damageBoss, BOSS_KINDS, PLATES, PHASE2, PHASE3, ATTACK_EVERY, WARN_TIME,
+} from '../src/sim/boss.js';
 import { CELL, COLS } from '../src/sim/constants.js';
+
+/** Seeded random so movement and attacks are repeatable. */
+function rng(seed = 3) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
 
 const bossWorld = (n = 9) => {
   const level = getLevel(n);
-  const w = createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss, rng: () => 0.5 });
+  const w = createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss, rng: rng() });
   return { level, w };
 };
-const coreCells = (w) => [...w.grid.cells.keys()].filter((i) => w.grid.cells[i] === CELL.CORE);
-const at = (i) => ({ c: i % COLS, r: Math.floor(i / COLS) });
+const inner = (box) => ({ left: box.left + 1, right: box.right - 1, bottom: box.bottom + 1, top: box.top - 1 });
+const highestBrickRow = (w) => {
+  for (let r = w.grid.box.top - 1; r > w.grid.box.bottom; r--) {
+    for (let c = w.grid.box.left + 1; c < w.grid.box.right; c++) if (w.grid.cells[r * COLS + c] !== CELL.EMPTY) return r;
+  }
+  return w.grid.box.bottom;
+};
+/** Runs the boss alone (no balls) for `seconds`, collecting events. */
+const run = (w, seconds, dt = 1 / 60) => {
+  const ev = [];
+  for (let t = 0; t < seconds; t += dt) { updateBoss(w, dt); ev.push(...drainEvents(w)); }
+  return ev;
+};
 
 describe('stage order with bosses', () => {
   it('every 10th stage is a boss (stage 10, 20, 30 ...)', () => {
@@ -30,121 +48,217 @@ describe('stage order with bosses', () => {
     expect(contents).toEqual([...Array(contents.length).keys()]);
   });
 
-  it('the bosses take turns', () => {
-    expect(stageSlot(9).bossIndex).toBe(0);
-    expect(stageSlot(19).bossIndex).toBe(1);
-    expect(stageSlot(29).bossIndex).toBe(2);
+  it('the four bosses take turns', () => {
+    expect([9, 19, 29, 39, 49].map((n) => getLevel(n).boss.kind)).toEqual([...BOSS_KINDS, BOSS_KINDS[0]]);
   });
 });
 
-describe('boss stage', () => {
-  it('is announced as a boss and carries a core', () => {
+describe('boss character', () => {
+  it('a boss stage carries a living boss with armour plates, floating above the bricks', () => {
     const { level, w } = bossWorld();
-    expect(level.boss).toBeTruthy();
     expect(level.name).toMatch(/^BOSS/);
-    expect(coreCells(w).length).toBeGreaterThan(0);
     expect(w.boss.alive).toBe(true);
-    for (const i of coreCells(w)) expect(w.grid.hp[i]).toBe(level.boss.coreHp);
+    expect(w.boss.phase).toBe(1);
+    expect(w.boss.hp).toBe(level.boss.hp);
+    expect(w.boss.plates).toHaveLength(PLATES);
+    expect(w.boss.y - w.boss.r).toBeGreaterThan(highestBrickRow(w));
   });
 
   it('regular stages have no boss', () => {
-    expect(getLevel(8).boss).toBeNull();
     const level = getLevel(10);
-    const w = createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss });
-    expect(w.boss).toBeNull();
+    expect(level.boss).toBeNull();
+    expect(createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss }).boss).toBeNull();
   });
 
-  it('a ball chips the core one point at a time (fire balls too)', () => {
-    const { w } = bossWorld();
-    const i = coreCells(w)[0];
-    const { c, r } = at(i);
-    addBall(w.balls, c + 0.5, r - 0.5, 0, 30, 5); // a fire ball
-    const hp = w.grid.hp[i];
-    expect(hitCell(w, c, r, 0)).toBe(true); // bounces off
-    expect(w.grid.hp[i]).toBe(hp - 1);
-    expect(w.grid.cells[i]).toBe(CELL.CORE);
-  });
-
-  it('explosions only crack it (no one-shot core)', () => {
-    const { w } = bossWorld();
-    const i = coreCells(w)[0];
-    const { c, r } = at(i);
-    const hp = w.grid.hp[i];
-    breakCell(w, c, r, -1);
-    expect(w.grid.cells[i]).toBe(CELL.CORE);
-    expect(w.grid.hp[i]).toBe(hp - CORE_BLAST);
-  });
-
-  it('while the core lives, broken armour grows back, nearest the core first', () => {
-    const { w } = bossWorld();
-    w.state = 'play';
-    const armour = w.boss.armour.slice(0, 5);
-    for (const i of armour) breakCell(w, i % COLS, Math.floor(i / COLS), -1);
-    const low = w.grid.remaining;
-    drainEvents(w);
-    updateBoss(w, REGEN_EVERY + 0.01);
-    expect(w.grid.remaining).toBeGreaterThan(low);
-    expect(drainEvents(w).some((e) => e.t === 'regen')).toBe(true);
-    expect(w.grid.cells[armour[0]]).toBe(CELL.BRICK);
-  });
-
-  it('killing every core brings the boss down: no more regrowth, the rest shatters', () => {
-    const { w } = bossWorld();
-    w.state = 'play';
-    w.boss.budget = Infinity; // this test is about the knockout, not the damage budget
-    for (const i of coreCells(w)) {
-      w.grid.hp[i] = 1;
-      hitCell(w, i % COLS, Math.floor(i / COLS), -1);
+  it('moves around, always inside the box and above the bricks', () => {
+    for (const n of [9, 19, 29, 39]) {
+      const { w } = bossWorld(n);
+      w.state = 'play';
+      const box = inner(w.grid.box);
+      const floor = highestBrickRow(w);
+      const xs = new Set();
+      for (let t = 0; t < 20; t += 1 / 30) {
+        updateBoss(w, 1 / 30);
+        drainEvents(w);
+        xs.add(Math.round(w.boss.x));
+        expect(w.boss.x - w.boss.r).toBeGreaterThanOrEqual(box.left - 1e-6);
+        expect(w.boss.x + w.boss.r).toBeLessThanOrEqual(box.right + 1 + 1e-6);
+        expect(w.boss.y + w.boss.r).toBeLessThanOrEqual(box.top + 1 + 1e-6);
+        expect(w.boss.y - w.boss.r).toBeGreaterThan(floor);
+      }
+      expect(xs.size).toBeGreaterThan(5); // it really travels
     }
-    const ev = drainEvents(w);
-    expect(ev.some((e) => e.t === 'boss-down')).toBe(true);
-    expect(w.boss.alive).toBe(false);
-    expect(w.finale).toBe(true);
-    const armour = w.boss.armour[0];
-    breakCell(w, armour % COLS, Math.floor(armour / COLS), -1);
-    const remaining = w.grid.remaining;
-    updateBoss(w, REGEN_EVERY * 3);
-    expect(w.grid.remaining).toBeLessThanOrEqual(remaining);
   });
 
-  it('a swarm cannot melt the core: it takes at most its damage budget per second (the rest bounce off a shield)', () => {
+  it('its plates never swing through the steel walls or into the bricks (they would push balls through)', () => {
+    for (const n of [9, 19, 29, 39, 99, 199]) {
+      const { w } = bossWorld(n);
+      w.state = 'play';
+      const box = w.grid.box;
+      const floor = highestBrickRow(w);
+      const reach = w.boss.plateOrbit + w.boss.plateR + 0.28;
+      for (let t = 0; t < 20; t += 1 / 30) {
+        updateBoss(w, 1 / 30);
+        drainEvents(w);
+        expect(w.boss.x - reach).toBeGreaterThanOrEqual(box.left + 1 - 1e-6);
+        expect(w.boss.x + reach).toBeLessThanOrEqual(box.right + 1e-6);
+        expect(w.boss.y + reach).toBeLessThanOrEqual(box.top + 1e-6);
+        expect(w.boss.y - reach).toBeGreaterThanOrEqual(floor + 1 - 1e-6);
+      }
+    }
+  });
+
+  it('a ball bounces off the body and deals one point of damage', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    w.boss.plates = []; // keep the plates out of this test
+    const { x, y, r } = w.boss;
+    addBall(w.balls, x, y - r - 0.2, 0, 40); // just under the body, flying up into it
+    const hp = w.boss.hp;
+    expect(collideBoss(w, 0)).toBe(true);
+    expect(w.balls.vy[0]).toBeLessThan(0);
+    expect(Math.hypot(w.balls.x[0] - x, w.balls.y[0] - y)).toBeGreaterThanOrEqual(r);
+    expect(w.boss.hp).toBe(hp - 1);
+    expect(drainEvents(w).some((e) => e.t === 'boss-hit')).toBe(true);
+  });
+
+  it('a ball moving away from the body is left alone', () => {
+    const { w } = bossWorld();
+    w.boss.plates = [];
+    addBall(w.balls, w.boss.x, w.boss.y - w.boss.r - 0.2, 0, -40);
+    expect(collideBoss(w, 0)).toBe(false);
+  });
+
+  it('armour plates block balls without taking damage', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    const p = w.boss.plates[0];
+    const px = w.boss.x + Math.cos(p.angle) * w.boss.plateOrbit;
+    const py = w.boss.y + Math.sin(p.angle) * w.boss.plateOrbit;
+    // Come at the plate from outside, along the line through its centre.
+    const ox = Math.cos(p.angle);
+    const oy = Math.sin(p.angle);
+    addBall(w.balls, px + ox * (w.boss.plateR + 0.2), py + oy * (w.boss.plateR + 0.2), -ox * 40, -oy * 40);
+    const hp = w.boss.hp;
+    expect(collideBoss(w, 0)).toBe(true);
+    expect(w.boss.hp).toBe(hp);
+    expect(w.balls.vx[0] * ox + w.balls.vy[0] * oy).toBeGreaterThan(0); // sent back outward
+  });
+
+  it('a swarm cannot melt it: damage per second is capped (the rest bounce off a shield)', () => {
     const { level, w } = bossWorld();
     w.state = 'play';
-    const cells = coreCells(w);
-    const hp0 = cells.reduce((s, i) => s + w.grid.hp[i], 0);
-    // 400 ball hits in one instant...
-    for (let k = 0; k < 400; k++) {
-      const i = cells[k % cells.length];
-      if (w.grid.cells[i] === CELL.CORE) hitCell(w, i % COLS, Math.floor(i / COLS), -1);
-    }
-    const dealt = hp0 - cells.reduce((s, i) => s + (w.grid.cells[i] === CELL.CORE ? w.grid.hp[i] : 0), 0);
-    expect(dealt).toBeLessThanOrEqual(level.boss.dps * 2); // at most two seconds' worth banked
-    expect(drainEvents(w).some((e) => e.t === 'core-shield')).toBe(true);
-    // ...and the budget refills with time.
-    updateBoss(w, 1);
-    const before = w.grid.hp[cells.find((i) => w.grid.cells[i] === CELL.CORE)];
-    const i = cells.find((j) => w.grid.cells[j] === CELL.CORE);
-    hitCell(w, i % COLS, Math.floor(i / COLS), -1);
-    expect(w.grid.hp[i]).toBe(before - 1);
+    const hp0 = w.boss.hp;
+    for (let k = 0; k < 400; k++) damageBoss(w, 1);
+    expect(hp0 - w.boss.hp).toBeLessThanOrEqual(level.boss.dps * 2);
+    expect(drainEvents(w).some((e) => e.t === 'boss-shield')).toBe(true);
+    run(w, 1);
+    const before = w.boss.hp;
+    damageBoss(w, 1);
+    expect(w.boss.hp).toBe(before - 1);
+  });
+
+  it('grows angry at 60% (phase 2) and sheds its plates at 25% (phase 3)', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    w.boss.budget = Infinity;
+    damageBoss(w, Math.ceil(w.boss.hpMax * (1 - PHASE2)));
+    expect(w.boss.phase).toBe(2);
+    expect(drainEvents(w).some((e) => e.t === 'boss-phase' && e.phase === 2)).toBe(true);
+    damageBoss(w, Math.ceil(w.boss.hpMax * (PHASE2 - PHASE3)));
+    expect(w.boss.phase).toBe(3);
+    expect(w.boss.plates).toHaveLength(0);
+  });
+
+  it('at zero hit points the boss goes down, the arena shatters and the stage clears', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    w.boss.budget = Infinity;
+    addBall(w.balls, 3, 3, 0, 40); // keep a ball alive so the run doesn't end
+    damageBoss(w, w.boss.hp);
+    expect(w.boss.alive).toBe(false);
+    expect(w.finale).toBe(true);
+    expect(drainEvents(w).some((e) => e.t === 'boss-down')).toBe(true);
+    for (let t = 0; t < 12 && w.state === 'play'; t += 1 / 60) stepWorld(w, 1 / 60);
+    expect(w.state).toBe('clear');
+  });
+
+  it('clearing every arena brick does not end the stage while the boss lives', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    addBall(w.balls, 3, 3, 0, 40);
+    w.grid.remaining = 0; // the swarm smashed the whole arena
+    stepWorld(w, 1 / 60);
+    expect(w.state).toBe('play');
+    w.boss.budget = Infinity;
+    damageBoss(w, w.boss.hp);
+    stepWorld(w, 1 / 60);
+    expect(w.state).toBe('clear');
   });
 
   it('the usual "nearly done" finale waits until the boss is down', () => {
     const { w } = bossWorld();
     w.state = 'play';
     addBall(w.balls, 5, 5, 0, 30);
-    w.grid.remaining = 3; // pretend almost everything is gone
+    w.grid.remaining = 3;
     stepWorld(w, 1 / 60);
     expect(w.finale).toBe(false);
   });
+});
 
-  it('the boss fires at the paddle during play, not before launch', () => {
+describe('boss attacks', () => {
+  for (const n of [9, 19, 29, 39]) {
+    it(`${BOSS_KINDS[[9, 19, 29, 39].indexOf(n)]}: warns first, then strikes; a paddle in the zone is stunned`, () => {
+      const { w } = bossWorld(n);
+      w.state = 'play';
+      const ev = run(w, ATTACK_EVERY + 0.05);
+      const warn = ev.find((e) => e.t === 'boss-warn');
+      expect(warn).toBeTruthy();
+      // Stand in the zone (the sweep crosses the whole row anyway).
+      w.paddle = { ...w.paddle, x: Math.min(COLS - w.paddle.w / 2, Math.max(w.paddle.w / 2, warn.x)) };
+      const after = run(w, WARN_TIME + 2);
+      expect(after.some((e) => e.t === 'boss-strike')).toBe(true);
+      expect(after.some((e) => e.t === 'paddle-hit')).toBe(true);
+      expect(w.stun).toBeGreaterThan(0);
+    });
+  }
+
+  it('a paddle that moved out of a lane attack is not hit', () => {
+    const { w } = bossWorld(19); // kraken: slams one lane
+    w.state = 'play';
+    const warn = run(w, ATTACK_EVERY + 0.05).find((e) => e.t === 'boss-warn');
+    const away = warn.x < COLS / 2 ? COLS - w.paddle.w / 2 : w.paddle.w / 2;
+    w.paddle = { ...w.paddle, x: away };
+    const after = run(w, WARN_TIME + 0.2);
+    expect(after.some((e) => e.t === 'boss-strike')).toBe(true);
+    expect(after.some((e) => e.t === 'paddle-hit')).toBe(false);
+  });
+
+  it('a pending attack is called off when the run stops (life lost or game over)', () => {
+    const { w } = bossWorld();
+    w.state = 'play';
+    run(w, ATTACK_EVERY + 0.05);
+    expect(w.boss.attack).not.toBeNull();
+    w.state = 'over';
+    run(w, 0.1);
+    expect(w.boss.attack).toBeNull();
+  });
+
+  it('holds its attacks while the ball waits on the paddle', () => {
     const { w } = bossWorld();
     w.state = 'ready';
-    updateBoss(w, SHOT_EVERY * 2);
-    expect(w.shells.length).toBe(0);
-    w.state = 'play';
-    updateBoss(w, SHOT_EVERY + 0.01);
-    expect(w.shells.length).toBeGreaterThan(0);
-    expect(w.shells[0].vy).toBeLessThan(0);
+    expect(run(w, ATTACK_EVERY * 3).some((e) => e.t === 'boss-warn')).toBe(false);
+  });
+
+  it('attacks come faster when it is angry', () => {
+    const calm = bossWorld().w;
+    calm.state = 'play';
+    const angry = bossWorld().w;
+    angry.state = 'play';
+    angry.boss.budget = Infinity;
+    damageBoss(angry, Math.ceil(angry.boss.hpMax * (1 - PHASE3)));
+    drainEvents(angry);
+    const count = (w) => run(w, 30).filter((e) => e.t === 'boss-warn').length;
+    expect(count(angry)).toBeGreaterThan(count(calm));
   });
 });
