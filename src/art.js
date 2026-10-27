@@ -1,3 +1,5 @@
+import { MAP_BOSSES } from './sim/mapBosses.js';
+
 // Generated artwork shipped in public/art (made locally with Z-Image-Turbo,
 // Apache-2.0; see CREDITS.md). Every picture is optional: the game draws a
 // simple fallback until it loads, or if it never does.
@@ -18,12 +20,13 @@ export const ART = Object.freeze({
 
 // Boss bodies: textured 3D models made with Ludo.ai (image to 3D), compressed
 // with glTF-Transform. Loaded only when a boss appears; the simple-shape boss
-// stands in until then.
+// stands in until then. The big four, then one per map boss (same file name as its kind).
 export const BOSS_MODELS = Object.freeze({
   colossus: 'model/colossus.glb',
   kraken: 'model/kraken.glb',
   golem: 'model/golem.glb',
   mothership: 'model/mothership.glb',
+  ...Object.fromEntries(Object.values(MAP_BOSSES).map(({ kind }) => [kind, `model/${kind}.glb`])),
 });
 
 // Bump when any picture is redrawn under the same name: the offline cache

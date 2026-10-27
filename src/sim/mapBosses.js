@@ -68,7 +68,7 @@ export function mapBossSpec(mapId, n) {
   if (!m) return null;
   return {
     kind: m.kind,
-    r: 5,
+    r: 6.5,
     plates: 2,
     band: 18, // rows below the ceiling it may roam, bricks or not
     move: m.move,

@@ -2,23 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, statSync } from 'node:fs';
 import { BOSS_MODELS } from '../src/art.js';
 import { fitScale } from '../src/render/bossFit.js';
+import { BOSS_KINDS } from '../src/sim/boss.js';
+import { MAP_BOSSES } from '../src/sim/mapBosses.js';
 
 const file = (path) => new URL(`../public/art/${path}`, import.meta.url);
-const KINDS = ['colossus', 'kraken', 'golem', 'mothership'];
+const KINDS = [...BOSS_KINDS, ...Object.values(MAP_BOSSES).map((b) => b.kind)];
 
 describe('boss 3D models', () => {
-  it('every boss kind has a model', () => {
+  it('every boss (the big four and each map boss) has a model', () => {
     expect(Object.keys(BOSS_MODELS).sort()).toEqual([...KINDS].sort());
   });
 
   it('each model ships as a binary glTF small enough for a phone', () => {
+    let total = 0;
     for (const kind of KINDS) {
       const path = file(BOSS_MODELS[kind]);
       const { size } = statSync(path);
       expect(size, kind).toBeGreaterThan(20 * 1024);
       expect(size, kind).toBeLessThan(1.5 * 1024 * 1024);
       expect(readFileSync(path).subarray(0, 4).toString(), kind).toBe('glTF');
+      total += size;
     }
+    expect(total).toBeLessThan(25 * 1024 * 1024); // they ship inside the app too
   });
 
   it('fitScale makes the wider side of the model span the boss width', () => {
