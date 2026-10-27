@@ -2,8 +2,9 @@ import { CELL, COLS, BALL_R } from './constants.js';
 import { startFinale } from './cells.js';
 import { stunPaddle } from './units.js';
 
-// Boss stages (every 10th): a creature that floats and moves above the arena's
-// bricks. Balls bounce off its body and chip its hit points (within a per-second
+// Bosses: the big ones on every 10th stage float and move above their arena's
+// bricks; every map also has its own mid-size boss (mapBosses.js) that roams a
+// band under the box ceiling, right over the mural if need be. Balls bounce off its body and chip its hit points (within a per-second
 // damage budget, so a swarm of thousands can't melt it in a blink). Armour
 // plates orbit it and block balls. It fights in three phases and attacks the
 // paddle with a telegraphed move: a warning, then the strike.
@@ -39,24 +40,41 @@ function floorRow(grid) {
 }
 
 /**
- * @param {{ kind:string, hp:number, dps:number, tier:number }} spec
+ * @param {{ kind:string, hp:number, dps:number, tier:number, r?:number, plates?:number, band?:number,
+ *   move?:string, attack?:string, zone?:number, attacks?:boolean, attackEvery?:number }} spec
+ *   the optional fields override the big boss's own (KIND); `band` lets it roam that many
+ *   rows under the ceiling over the bricks, instead of only above them
  * @param {object} grid parsed grid (its box frames the arena)
  * @param {() => number} rng
  */
 export function createBoss(spec, grid, rng) {
-  const k = KIND[spec.kind] ?? KIND.colossus;
+  const base = KIND[spec.kind] ?? KIND.colossus;
+  const k = {
+    r: spec.r ?? base.r,
+    move: spec.move ?? base.move,
+    attack: spec.attack ?? base.attack,
+    zone: spec.zone ?? base.zone,
+  };
+  const plateCount = spec.plates ?? PLATES;
   const { box } = grid;
-  // Keep the whole thing (plates included) inside the box and above the bricks:
-  // a plate swinging through a wall would push balls straight through the steel.
+  // Keep the whole thing (plates included) inside the box: a plate swinging
+  // through a wall would push balls straight through the steel.
   const reach = k.r + PLATE_GAP + PLATE_R + BALL_R;
   const xMin = box.left + 1 + reach;
   const xMax = box.right - reach;
   const yMax = box.top - reach;
-  const yMin = Math.min(yMax, floorRow(grid) + 1 + reach);
+  const above = floorRow(grid) + 1 + reach; // clear of the bricks
+  const low = spec.band ? Math.min(above, yMax - spec.band) : above;
+  const yMin = Math.min(yMax, Math.max(box.bottom + 1 + reach, low));
   const cx = (xMin + xMax) / 2;
   const cy = (yMin + yMax) / 2;
   return {
     kind: spec.kind,
+    move: k.move,
+    attackKind: k.attack,
+    zone: k.zone,
+    attacks: spec.attacks ?? true,
+    attackEvery: spec.attackEvery ?? ATTACK_EVERY,
     alive: true,
     hp: spec.hp,
     hpMax: spec.hp,
@@ -70,14 +88,14 @@ export function createBoss(spec, grid, rng) {
     bounds: { xMin, xMax, yMin, yMax, cx, cy },
     t: 0,
     hop: { from: cx, to: cx, t: HOP_TIME, next: HOP_EVERY },
-    plates: Array.from({ length: PLATES }, (_, j) => {
-      const angle = (j / PLATES) * Math.PI * 2;
+    plates: Array.from({ length: plateCount }, (_, j) => {
+      const angle = (j / plateCount) * Math.PI * 2;
       return { angle, x: cx + Math.cos(angle) * (k.r + PLATE_GAP), y: cy + Math.sin(angle) * (k.r + PLATE_GAP) };
     }),
     plateOrbit: k.r + PLATE_GAP,
     plateR: PLATE_R,
     reach,
-    attackTimer: ATTACK_EVERY,
+    attackTimer: spec.attackEvery ?? ATTACK_EVERY,
     attack: null, // { kind, stage:'warn'|'sweep', t, x, w, dir, hit, beam }
     rng,
   };
@@ -90,7 +108,7 @@ function move(b, dt) {
   const { xMin, xMax, yMin, yMax, cx, cy } = b.bounds;
   const ax = (xMax - xMin) / 2;
   const ay = (yMax - yMin) / 2;
-  const style = KIND[b.kind]?.move ?? 'sway';
+  const style = b.move;
   if (style === 'sway') {
     b.x = cx + ax * Math.sin(b.t * 0.6);
     b.y = cy + ay * 0.3 * Math.sin(b.t * 1.1);
@@ -205,12 +223,11 @@ function hitPaddle(w, attack) {
 }
 
 function startAttack(w, b) {
-  const k = KIND[b.kind] ?? KIND.colossus;
-  const kind = k.attack;
+  const kind = b.attackKind;
   const dir = kind === 'sweep' ? (b.rng() < 0.5 ? 1 : -1) : 0;
   const x = kind === 'stomp' ? b.x : kind === 'sweep' ? (dir > 0 ? 0 : COLS) : w.paddle.x;
-  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, w: k.zone, dir, hit: false, beam: x };
-  w.events.push({ t: 'boss-warn', kind, x, w: k.zone, dir, dur: WARN_TIME, from: { x: b.x, y: b.y } });
+  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, w: b.zone, dir, hit: false, beam: x };
+  w.events.push({ t: 'boss-warn', kind, x, w: b.zone, dir, dur: WARN_TIME, from: { x: b.x, y: b.y } });
 }
 
 function runAttack(w, b, dt) {
@@ -245,8 +262,9 @@ export function updateBoss(w, dt) {
   }
   b.budget = Math.min(b.dps * BUDGET_SECONDS, b.budget + b.dps * dt);
   if (b.attack) { runAttack(w, b, dt); return; }
+  if (!b.attacks) return;
   b.attackTimer -= dt;
   if (b.attackTimer > 0) return;
   startAttack(w, b);
-  b.attackTimer = ATTACK_EVERY * ATTACK_PACE[b.phase - 1] * (0.85 + 0.3 * b.rng());
+  b.attackTimer = b.attackEvery * ATTACK_PACE[b.phase - 1] * (0.85 + 0.3 * b.rng());
 }
