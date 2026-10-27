@@ -16,6 +16,16 @@ export const ART = Object.freeze({
   mothership: 'skin/mothership.jpg',
 });
 
+// Boss bodies: textured 3D models made with Ludo.ai (image to 3D), compressed
+// with glTF-Transform. Loaded only when a boss appears; the simple-shape boss
+// stands in until then.
+export const BOSS_MODELS = Object.freeze({
+  colossus: 'model/colossus.glb',
+  kraken: 'model/kraken.glb',
+  golem: 'model/golem.glb',
+  mothership: 'model/mothership.glb',
+});
+
 // Bump when any picture is redrawn under the same name: the offline cache
 // keys by URL, so a new version makes returning players fetch the new art.
 const ART_VERSION = 1;

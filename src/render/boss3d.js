@@ -3,9 +3,11 @@ import { PADDLE_Y, COLS } from '../sim/constants.js';
 import { toWorldX, toWorldY } from './stage.js';
 import { ART } from '../art.js';
 import { paintedTexture } from './art.js';
+import { loadBossModel, bossCopy } from './bossModels.js';
 
-// The boss as a 3D creature built from simple shapes: matte, shadowed, never
-// glowing. It follows the sim's boss (position, phase, plates, attack) every
+// The boss as a 3D creature: a generated model (see bossModels.js), with a
+// body built from simple shapes standing in until it loads. Matte, shadowed,
+// never glowing. It follows the sim's boss (position, phase, plates, attack) every
 // frame, flinches when hit, turns red when angry, and falls apart when beaten.
 // Attack warnings and strikes are drawn from the sim's attack state.
 
@@ -161,6 +163,32 @@ function buildMothership(r) {
 
 const BUILD = { colossus: buildColossus, kraken: buildKraken, golem: buildGolem, mothership: buildMothership };
 
+// Whole-body motion for the generated models (one solid piece each, so they
+// sway, stomp and spin rather than move their limbs). `body` holds the fit
+// scale, so only its position and rotation move.
+const MOTION = {
+  colossus: (body, t, phase) => { body.rotation.z = 0.08 * Math.sin(t * (1.2 + phase * 0.4)); },
+  kraken: (body, t, phase) => {
+    const s = 2 + phase * 0.7;
+    body.rotation.z = 0.12 * Math.sin(t * s);
+    body.position.y = 0.5 * Math.sin(t * s * 2);
+  },
+  golem: (body, t, phase) => {
+    const s = 1.5 + phase * 0.5;
+    body.rotation.z = 0.1 * Math.sin(t * s);
+    body.position.z = 0.8 * Math.abs(Math.sin(t * s));
+  },
+  mothership: (body, t, phase) => { body.rotation.z = t * (0.6 + phase * 0.4); },
+};
+
+/** A generated model as a boss body, in the same shape the builders return. */
+function fromModel(template, kind, r) {
+  const group = bossCopy(template, r);
+  const body = group.children[0];
+  const move = MOTION[kind] ?? MOTION.colossus;
+  return { group, animate: (t, phase) => move(body, t, phase) };
+}
+
 export function createBoss3d(scene) {
   const root = new THREE.Group();
   scene.add(root);
@@ -184,7 +212,19 @@ export function createBoss3d(scene) {
   let slamX = 0;
 
   function dispose(obj) {
-    obj.traverse((o) => { if (o.isMesh && o.geometry !== plateGeo) { o.geometry.dispose(); o.material.dispose(); } });
+    obj.traverse((o) => {
+      if (!o.isMesh || o.geometry === plateGeo) return;
+      if (!o.userData.sharedGeometry) o.geometry.dispose(); // a generated model's mesh is reused by the next fight
+      o.material.dispose();
+    });
+  }
+
+  /** Puts a body (built or generated) on stage, ready to tint and to fall apart. */
+  function mount(made) {
+    const parts = [];
+    made.group.traverse((o) => { if (o.isMesh) parts.push(o); });
+    model = { ...made, parts, baseColors: parts.map((p) => p.material.color.clone()), velocities: parts.map(() => new THREE.Vector3()) };
+    root.add(model.group);
   }
 
   function clear() {
@@ -202,11 +242,15 @@ export function createBoss3d(scene) {
   function setBoss(boss) {
     clear();
     if (!boss) return;
-    const made = (BUILD[boss.kind] ?? buildColossus)(boss.r);
-    const parts = [];
-    made.group.traverse((o) => { if (o.isMesh) parts.push(o); });
-    model = { ...made, parts, baseColors: parts.map((p) => p.material.color.clone()), velocities: parts.map(() => new THREE.Vector3()) };
-    root.add(model.group);
+    mount((BUILD[boss.kind] ?? buildColossus)(boss.r));
+    // Swap in the generated body once it has loaded, unless this fight is already over.
+    const shown = model;
+    loadBossModel(boss.kind).then((template) => {
+      if (!template || model !== shown || downT >= 0) return;
+      root.remove(shown.group);
+      dispose(shown.group);
+      mount(fromModel(template, boss.kind, boss.r));
+    });
     plates = boss.plates.map(() => {
       const p = mesh(plateGeo, plateMat);
       p.scale.set(boss.plateR, boss.plateR, 1);

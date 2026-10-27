@@ -47,3 +47,5 @@ Licences and authors were re-checked against the Commons file pages on 2026-10-2
 # Generated artwork
 
 Fruit, special-block icons, brick/table/floor surfaces and boss skins in `public/art/` were generated for this game on a local machine with [Z-Image-Turbo](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) (Tongyi-MAI, model licence [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), checked on the model card 2026-10-27), then cut out, made tileable and resized. No reference images or third-party artwork were used as input; prompts describe generic objects and materials only.
+
+The four boss bodies in `public/art/model/` (colossus, kraken, golem, mothership) were made with [Ludo.ai](https://ludo.ai) on 2026-10-27: a character image from a text prompt, then image-to-3D (Hero model), then compressed with [glTF-Transform](https://gltf-transform.dev) (MIT). Under the [Ludo Terms of Service](https://ludo.ai/terms-of-service) generated assets are licensed for personal and commercial use (non-exclusive, worldwide). Prompts describe generic creatures and a generic flying saucer; no reference images were used.
