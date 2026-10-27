@@ -3,12 +3,14 @@ import { COLS, ROWS, CELL } from '../sim/constants.js';
 import { toWorldX, toWorldY, TILT } from './stage.js';
 import { fruitFor, EMOJI_FONT } from '../fruits.js';
 import { coinMaterials, coinGeometry } from './coinLook.js';
+import { ART, fruitArt } from '../art.js';
+import { paintedTexture } from './art.js';
 
 /** Icon spec for a fruit item: the fruit itself, no tile and no number. */
 function fruitSpec(mult) {
   const f = fruitFor(mult);
   const c = new THREE.Color(f.color);
-  return { tint: [c.r * 2, c.g * 2, c.b * 2], label: '', fruit: f.emoji, bg: f.color };
+  return { tint: [c.r * 2, c.g * 2, c.b * 2], label: '', fruit: f, bg: f.color };
 }
 
 // Icon label/background per special cell; tint (scaled down) colours its debris.
@@ -16,11 +18,11 @@ export const SPECIALS = {
   [CELL.SPLIT2]: { tint: [0.4, 1.6, 2.6], label: '×2', bg: '#1e7bff' },
   [CELL.SPLIT3]: { tint: [0.3, 2.4, 1.6], label: '×3', bg: '#10c27a' },
   [CELL.SPLIT5]: { tint: [2.6, 0.6, 2.4], label: '×5', bg: '#c23ad6' },
-  [CELL.BOMB]: { tint: [2.6, 0.9, 0.3], label: 'bomb', bg: '#e0561c' },
+  [CELL.BOMB]: { tint: [2.6, 0.9, 0.3], label: 'bomb', bg: '#e0561c', art: ART.bomb },
   [CELL.LASER_H]: { tint: [2.4, 0.4, 0.6], label: '⟷', bg: '#e02a5a' },
   [CELL.LASER_V]: { tint: [2.4, 0.4, 0.6], label: '↕', bg: '#e02a5a' },
-  [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c' },
-  [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00' },
+  [CELL.GOLD]: { tint: [2.8, 2.0, 0.4], label: '★', bg: '#e8a80c', art: ART.star },
+  [CELL.FIRE]: { tint: [2.8, 1.0, 0.2], label: '🔥', bg: '#ff6a00', art: ART.fire },
   [CELL.COIN]: { tint: [2.8, 2.1, 0.3], label: '', bg: '#c99a06', coin: true },
   // Multiplier items are drawn as fruit (see src/fruits.js), never as numbers.
   [CELL.ITEM5]: fruitSpec(5),
@@ -39,71 +41,66 @@ const POP_TIME = 0.14; // a broken brick swells and blanches, then vanishes
 const POP_MAX = 400; // past this many at once, bricks just vanish (big chain reactions)
 const FLASH_TIME = 0.12; // an armoured brick blinks pale when a ball chips it
 
-/** Bevel shading baked into a texture: lit top-left edge, shaded bottom-right edge. */
+/** Bevel shading baked into a texture: lit top-left edge, shaded bottom-right edge, over the brick's surface. */
 function bevelTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 32;
-  const g = c.getContext('2d');
-  g.fillStyle = '#ebebeb';
-  g.fillRect(0, 0, 32, 32);
-  g.fillStyle = '#ffffff';
-  g.fillRect(0, 0, 32, 3);
-  g.fillRect(0, 0, 3, 32);
-  g.fillStyle = '#9a9a9a';
-  g.fillRect(0, 29, 32, 3);
-  g.fillRect(29, 0, 3, 32);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return paintedTexture(64, (g, n, img) => {
+    const e = n * 0.09;
+    if (img) g.drawImage(img, 0, 0, n, n);
+    else { g.fillStyle = '#ebebeb'; g.fillRect(0, 0, n, n); }
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    g.fillRect(0, 0, n, e);
+    g.fillRect(0, 0, e, n);
+    g.fillStyle = 'rgba(70,70,70,0.45)';
+    g.fillRect(0, n - e, n, e);
+    g.fillRect(n - e, 0, e, n);
+  }, ART.brick);
 }
 
-function iconTexture({ label, bg }) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  g.fillStyle = bg;
-  g.fillRect(0, 0, 64, 64);
-  g.strokeStyle = 'rgba(255,255,255,0.85)';
-  g.lineWidth = 5;
-  g.strokeRect(3, 3, 58, 58);
-  g.fillStyle = '#fff';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  if (label === 'bomb') {
-    g.beginPath(); g.arc(30, 36, 17, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#ffd34d';
-    g.beginPath(); g.arc(46, 14, 7, 0, Math.PI * 2); g.fill();
-  } else {
-    g.font = `900 ${label[0] === '×' ? 34 : 40}px system-ui, sans-serif`;
-    g.fillText(label, 32, 35);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+function iconTexture({ label, bg, art }) {
+  return paintedTexture(64, (g, n, img) => {
+    g.fillStyle = bg;
+    g.fillRect(0, 0, n, n);
+    g.strokeStyle = 'rgba(255,255,255,0.85)';
+    g.lineWidth = 5;
+    g.strokeRect(3, 3, n - 6, n - 6);
+    g.fillStyle = '#fff';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    if (img) {
+      g.drawImage(img, 7, 7, n - 14, n - 14);
+    } else if (label === 'bomb') {
+      g.beginPath(); g.arc(30, 36, 17, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffd34d';
+      g.beginPath(); g.arc(46, 14, 7, 0, Math.PI * 2); g.fill();
+    } else {
+      g.font = `900 ${label[0] === '×' ? 34 : 40}px system-ui, sans-serif`;
+      g.fillText(label, 32, 35);
+    }
+  }, art ?? null);
 }
 
 /** Fruit cut-out on a transparent background, optionally with a soft contact shadow at its feet. */
-export function fruitTexture(emoji, size = 128, contactShadow = true) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d');
-  if (contactShadow) {
-    const shadow = g.createRadialGradient(size / 2, size * 0.88, 2, size / 2, size * 0.88, size * 0.34);
-    shadow.addColorStop(0, 'rgba(0,0,0,0.45)');
-    shadow.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = shadow;
-    g.beginPath();
-    g.ellipse(size / 2, size * 0.88, size * 0.34, size * 0.09, 0, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.font = `${Math.round(size * 0.72)}px ${EMOJI_FONT}`;
-  g.fillText(emoji, size / 2, size * 0.46);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
+export function fruitTexture(fruit, size = 128, contactShadow = true) {
+  return paintedTexture(size, (g, n, img) => {
+    if (contactShadow) {
+      const shadow = g.createRadialGradient(n / 2, n * 0.88, 2, n / 2, n * 0.88, n * 0.34);
+      shadow.addColorStop(0, 'rgba(0,0,0,0.45)');
+      shadow.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = shadow;
+      g.beginPath();
+      g.ellipse(n / 2, n * 0.88, n * 0.34, n * 0.09, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    if (img) {
+      const s = n * 0.8;
+      g.drawImage(img, (n - s) / 2, n * 0.46 - s / 2, s, s);
+      return;
+    }
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = `${Math.round(n * 0.72)}px ${EMOJI_FONT}`;
+    g.fillText(fruit.emoji, n / 2, n * 0.46);
+  }, fruitArt(fruit.id), (tex) => { tex.anisotropy = 4; });
 }
 
 const tmp = new THREE.Object3D();

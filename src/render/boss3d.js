@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PADDLE_Y, COLS } from '../sim/constants.js';
 import { toWorldX, toWorldY } from './stage.js';
+import { ART } from '../art.js';
+import { paintedTexture } from './art.js';
 
 // The boss as a 3D creature built from simple shapes: matte, shadowed, never
 // glowing. It follows the sim's boss (position, phase, plates, attack) every
@@ -16,7 +18,26 @@ const LANE_ROWS = 14; // a lane warning rises this far above the paddle row (the
 const WHITE = new THREE.Color(0xffffff);
 
 const matte = (color) => new THREE.MeshLambertMaterial({ color });
-const steel = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.6 });
+
+// Generated surface pictures (stone, skin, rock, hull). Until one loads the
+// part is painted its plain colour, so it looks as before. The material
+// colour stays white: the picture carries the colour, and the angry/hit
+// tints still lerp from it.
+const skins = new Map();
+function skinTexture(path, fallback) {
+  const key = `${path}|${fallback}`;
+  if (!skins.has(key)) {
+    skins.set(key, paintedTexture(256, (g, n, img) => {
+      g.fillStyle = `#${fallback.toString(16).padStart(6, '0')}`;
+      g.fillRect(0, 0, n, n);
+      if (img) g.drawImage(img, 0, 0, n, n);
+    }, path, (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; }));
+  }
+  return skins.get(key);
+}
+/** Matte part with a picture; `shade` darkens it (e.g. the colossus's darker stone). */
+const skin = (path, fallback, shade = 0xffffff) => new THREE.MeshLambertMaterial({ color: shade, map: skinTexture(path, fallback) });
+const plated = (path, fallback, shade = 0xffffff) => new THREE.MeshStandardMaterial({ color: shade, map: skinTexture(path, fallback), roughness: 0.5, metalness: 0.55 });
 
 function mesh(geo, mat, x = 0, y = 0, z = 0) {
   const m = new THREE.Mesh(geo, mat);
@@ -28,8 +49,8 @@ function mesh(geo, mat, x = 0, y = 0, z = 0) {
 /** Stone Colossus: a carved torso and head with red slit eyes and heavy swinging arms. */
 function buildColossus(r) {
   const g = new THREE.Group();
-  const stone = matte(0xb9a98b);
-  const dark = matte(0x6e6353);
+  const stone = skin(ART.colossus, 0xb9a98b);
+  const dark = skin(ART.colossus, 0xb9a98b, 0x7a7266);
   g.add(mesh(new THREE.BoxGeometry(r * 1.5, r * 0.9, r * 1.2), stone, 0, 0, 0));
   g.add(mesh(new THREE.BoxGeometry(r * 1.9, r * 0.5, r * 0.35), dark, 0, 0, r * 0.62));
   const head = mesh(new THREE.BoxGeometry(r * 0.8, r * 0.7, r * 0.75), stone, 0, 0, r * 1.15);
@@ -53,8 +74,8 @@ function buildColossus(r) {
 /** Kraken: a tall mantle, two eyes that watch the paddle, eight waving tentacles. */
 function buildKraken(r) {
   const g = new THREE.Group();
-  const skin = matte(0xc2456a);
-  const mantle = mesh(new THREE.SphereGeometry(r * 0.75, 20, 14), skin, 0, r * 0.15, r * 0.25);
+  const flesh = skin(ART.kraken, 0xc2456a);
+  const mantle = mesh(new THREE.SphereGeometry(r * 0.75, 20, 14), flesh, 0, r * 0.15, r * 0.25);
   mantle.scale.set(1, 1.35, 0.9);
   g.add(mantle);
   const eyes = [-1, 1].map((s) => {
@@ -66,7 +87,7 @@ function buildKraken(r) {
   });
   const tentacles = Array.from({ length: 8 }, (_, k) => {
     const segs = Array.from({ length: 7 }, (__, j) => {
-      const seg = mesh(new THREE.SphereGeometry(r * (0.2 - j * 0.022), 10, 8), skin);
+      const seg = mesh(new THREE.SphereGeometry(r * (0.2 - j * 0.022), 10, 8), flesh);
       g.add(seg);
       return seg;
     });
@@ -90,8 +111,8 @@ function buildKraken(r) {
 /** Lava Golem: a heap of dark rocks with molten seams and two huge fists. */
 function buildGolem(r) {
   const g = new THREE.Group();
-  const rock = matte(0x4a403a);
-  const lava = matte(0xff7a1a);
+  const rock = skin(ART.golem, 0x4a403a);
+  const lava = matte(0xff7a1a); // plain bright orange: the seams must pop against the dark rock
   const geo = new THREE.DodecahedronGeometry(1, 0);
   [[0, 0, 0, 0.85], [-0.45, 0.1, 0.45, 0.5], [0.45, 0.1, 0.45, 0.5], [0, 0.05, 0.95, 0.45], [-0.3, -0.1, -0.5, 0.45], [0.3, -0.1, -0.5, 0.45]]
     .forEach(([x, y, z, s]) => { const m = mesh(geo, rock, x * r, y * r, z * r); m.scale.setScalar(s * r); m.rotation.set(x * 3, y * 5, z * 2); g.add(m); });
@@ -115,10 +136,10 @@ function buildMothership(r) {
   const g = new THREE.Group();
   const spin = new THREE.Group();
   g.add(spin);
-  const hull = mesh(new THREE.CylinderGeometry(r * 1.05, r * 0.8, r * 0.35, 32), steel(0x9aa3b8), 0, 0, 0);
+  const hull = mesh(new THREE.CylinderGeometry(r * 1.05, r * 0.8, r * 0.35, 32), plated(ART.mothership, 0x9aa3b8), 0, 0, 0);
   hull.rotation.x = Math.PI / 2;
   spin.add(hull);
-  const rim = mesh(new THREE.TorusGeometry(r * 1.02, r * 0.09, 8, 40), steel(0x5c6478), 0, 0, 0);
+  const rim = mesh(new THREE.TorusGeometry(r * 1.02, r * 0.09, 8, 40), plated(ART.steel, 0x5c6478, 0x8a90a0), 0, 0, 0);
   spin.add(rim);
   const dome = mesh(new THREE.SphereGeometry(r * 0.45, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), matte(0x7fd8e8), 0, 0, r * 0.16);
   dome.rotation.x = Math.PI / 2;
@@ -150,14 +171,14 @@ export function createBoss3d(scene) {
   let downT = -1;
   let shownPhase = 1;
   const plateGeo = new THREE.CylinderGeometry(1, 1, 0.6, 6);
-  const plateMat = steel(0x8b93a8);
+  const plateMat = plated(ART.steel, 0x8b93a8, 0x9aa2b4);
 
   // Attack visuals: a red zone on the paddle row, a falling rock, a slamming tentacle, a sweeping beam.
   const zone = mesh(new THREE.BoxGeometry(1, 1.6, 0.12), new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0, depthWrite: false }));
   zone.castShadow = false;
   const rockMesh = mesh(new THREE.DodecahedronGeometry(2.3, 0), matte(0xc0612a)); // big and warm, so it reads on the dark table
   const beam = mesh(new THREE.BoxGeometry(1.1, 1, 1.1), new THREE.MeshLambertMaterial({ color: 0xff4d6a, transparent: true, opacity: 0.85 }));
-  const slam = mesh(new THREE.CylinderGeometry(0.9, 1.4, 1, 10), matte(0xc2456a));
+  const slam = mesh(new THREE.CylinderGeometry(0.9, 1.4, 1, 10), skin(ART.kraken, 0xc2456a));
   [zone, rockMesh, beam, slam].forEach((m) => { m.visible = false; root.add(m); });
   let slamT = 0;
   let slamX = 0;
@@ -202,6 +223,12 @@ export function createBoss3d(scene) {
       const c = p.material.color.copy(model.baseColors[i]);
       if (phase >= 2) c.lerp(ANGRY, phase === 3 ? 0.4 : 0.25);
       if (k > 0) c.lerp(WHITE, 0.45 * k);
+      // Pictured parts are white-based, so a colour multiplier can't redden or whiten them:
+      // add a little dark red when angry and a brief lift on hits (a flash, not a glow).
+      if (p.material.map) {
+        const angry = phase >= 2 ? (phase === 3 ? 0.22 : 0.13) : 0;
+        p.material.emissive.setRGB(angry + 0.3 * k, 0.3 * k, 0.3 * k);
+      }
     });
   }
 
@@ -308,6 +335,7 @@ export function createBoss3d(scene) {
       downT = 0;
       [zone, rockMesh, beam, slam].forEach((m) => { m.visible = false; });
       plates.forEach((p) => { p.visible = false; });
+      model.parts.forEach((p) => p.material.emissive?.setScalar(0)); // no lit pieces in the wreck
       model.parts.forEach((p, i) => model.velocities[i].set(p.position.x * 3 + (Math.random() - 0.5) * 8, p.position.y * 3 + (Math.random() - 0.5) * 8, 10 + Math.random() * 12));
     },
   };

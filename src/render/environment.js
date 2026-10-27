@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { COLS, ROWS } from '../sim/constants.js';
+import { ART } from '../art.js';
+import { paintedTexture } from './art.js';
 
 // The room around the board: the board is a thick slab standing over a dark
 // floor, lit by a soft overhead spot that falls off into the room. Everything
@@ -26,28 +28,29 @@ export const BOARD = Object.freeze({
 
 /** Dark polished-concrete tiles with faint mottling. */
 function floorTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
-  const g = c.getContext('2d');
-  g.fillStyle = '#585b65';
-  g.fillRect(0, 0, 512, 512);
-  for (let k = 0; k < 2600; k++) {
-    const l = 80 + Math.random() * 50;
-    g.fillStyle = `rgba(${l},${l + 2},${l + 8},0.35)`;
-    const r = 1 + Math.random() * 6;
-    g.fillRect(Math.random() * 512, Math.random() * 512, r, r);
-  }
-  g.strokeStyle = 'rgba(10,10,14,0.7)';
-  g.lineWidth = 3;
-  for (let i = 0; i <= 512; i += 128) {
-    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 512); g.stroke();
-    g.beginPath(); g.moveTo(0, i); g.lineTo(512, i); g.stroke();
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
+  return paintedTexture(512, (g, n, img) => {
+    if (img) {
+      g.drawImage(img, 0, 0, n, n);
+    } else {
+      g.fillStyle = '#585b65';
+      g.fillRect(0, 0, n, n);
+      for (let k = 0; k < 2600; k++) {
+        const l = 80 + Math.random() * 50;
+        g.fillStyle = `rgba(${l},${l + 2},${l + 8},0.35)`;
+        const r = 1 + Math.random() * 6;
+        g.fillRect(Math.random() * n, Math.random() * n, r, r);
+      }
+    }
+    g.strokeStyle = 'rgba(10,10,14,0.7)';
+    g.lineWidth = 3;
+    for (let i = 0; i <= n; i += 128) {
+      g.beginPath(); g.moveTo(i, 0); g.lineTo(i, n); g.stroke();
+      g.beginPath(); g.moveTo(0, i); g.lineTo(n, i); g.stroke();
+    }
+  }, ART.concrete, (tex) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 4;
+  });
 }
 
 /** A soft rounded-rectangle shadow (blurred on a canvas), laid on the floor under the board. */
