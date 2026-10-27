@@ -1,6 +1,7 @@
 import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 
 import { LEVELS, landmarkAt, bossAt, toLines } from './maps.js';
+import { MAP_BOSSES, mapBossSpec } from './mapBosses.js';
 import { stageSlot } from './sequence.js';
 
 // Stages are designed on a coarse grid (maps.js), narrowed to fit the box, then
@@ -358,7 +359,10 @@ export function getLevel(i, { slots } = {}) {
     lines,
     box,
     holes: holes.map(({ pocket, ...h }) => h),
-    boss: slot.boss ? bossSpec(map.id, n) : null,
+    // Every stage has a boss: the big one on every 10th, the map's own otherwise.
+    boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n),
+    bossName: slot.boss ? map.name : `BOSS · ${MAP_BOSSES[map.id]?.name ?? map.name}`,
+    bossStage: slot.boss,
     theme: map.theme ?? null, // chapter gimmick: 'space' | 'sea' | 'nature' (gimmicks.js)
     chapterStart: Boolean(map.chapterStart),
   };

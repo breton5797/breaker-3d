@@ -144,12 +144,16 @@ function startLevel(i) {
   quality.reset();
   mode = 'play';
   ui.startStage(level);
-  if (level.boss) {
+  if (level.bossStage) {
     audio.bossWarn();
     haptics.play('stun');
     setTimeout(() => ui.toast('⚠ BOSS 출현! 몸통을 맞혀라', 'mega danger'), 900);
     setTimeout(() => ui.toast('빨간 영역 = 공격 예고, 피하세요!', 'small'), 2200);
-  } else audio.stageIntro();
+  } else {
+    audio.stageIntro();
+    // Every map has its own boss: name it once, then the mural's own tips follow.
+    if (level.boss) setTimeout(() => ui.toast(`👾 ${level.bossName.replace('BOSS · ', '')} 출현! 쓰러뜨리면 클리어`, 'small'), 900);
+  }
   if (level.chapterStart) {
     setTimeout(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
     setTimeout(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
@@ -386,7 +390,7 @@ function hud() {
     muted: audio.isMuted(),
     gold: save.gold + world.gold,
   });
-  ui.setBoss(world.boss?.alive ? level.name : null, world.boss ? world.boss.hp / world.boss.hpMax : 1);
+  ui.setBoss(world.boss?.alive ? level.bossName : null, world.boss ? world.boss.hp / world.boss.hpMax : 1);
 }
 
 let last = performance.now();

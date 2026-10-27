@@ -64,10 +64,11 @@ describe('boss character', () => {
     expect(w.boss.y - w.boss.r).toBeGreaterThan(highestBrickRow(w));
   });
 
-  it('regular stages have no boss', () => {
+  it('regular stages get the mid-size boss of their map, not one of the big four', () => {
     const level = getLevel(10);
-    expect(level.boss).toBeNull();
-    expect(createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss }).boss).toBeNull();
+    expect(level.bossStage).toBe(false);
+    expect(BOSS_KINDS).not.toContain(level.boss.kind);
+    expect(createWorld(level.lines, { box: level.box, holes: level.holes, boss: level.boss }).boss.alive).toBe(true);
   });
 
   it('moves around, always inside the box and above the bricks', () => {

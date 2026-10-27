@@ -164,28 +164,33 @@ function buildMothership(r) {
 const BUILD = { colossus: buildColossus, kraken: buildKraken, golem: buildGolem, mothership: buildMothership };
 
 // Whole-body motion for the generated models (one solid piece each, so they
-// sway, stomp and spin rather than move their limbs). `body` holds the fit
-// scale, so only its position and rotation move.
+// sway, stomp and spin rather than move their limbs), by the boss's path
+// style. `body` holds the fit scale, so only its position and rotation move.
 const MOTION = {
-  colossus: (body, t, phase) => { body.rotation.z = 0.08 * Math.sin(t * (1.2 + phase * 0.4)); },
-  kraken: (body, t, phase) => {
+  sway: (body, t, phase) => { body.rotation.z = 0.08 * Math.sin(t * (1.2 + phase * 0.4)); },
+  eight: (body, t, phase) => {
     const s = 2 + phase * 0.7;
     body.rotation.z = 0.12 * Math.sin(t * s);
     body.position.y = 0.5 * Math.sin(t * s * 2);
   },
-  golem: (body, t, phase) => {
+  hop: (body, t, phase) => {
     const s = 1.5 + phase * 0.5;
     body.rotation.z = 0.1 * Math.sin(t * s);
     body.position.z = 0.8 * Math.abs(Math.sin(t * s));
   },
-  mothership: (body, t, phase) => { body.rotation.z = t * (0.6 + phase * 0.4); },
+  glide: (body, t, phase) => {
+    body.rotation.z = 0.15 * Math.sin(t * (0.9 + phase * 0.3));
+    body.position.y = 0.4 * Math.sin(t * 1.8);
+  },
+  spin: (body, t, phase) => { body.rotation.z = t * (0.6 + phase * 0.4); },
 };
+const SPINNERS = new Set(['mothership', 'ringBeast']); // round things turn instead of banking
 
 /** A generated model as a boss body, in the same shape the builders return. */
-function fromModel(template, kind, r) {
-  const group = bossCopy(template, r);
+function fromModel(template, boss) {
+  const group = bossCopy(template, boss.r);
   const body = group.children[0];
-  const move = MOTION[kind] ?? MOTION.colossus;
+  const move = SPINNERS.has(boss.kind) ? MOTION.spin : MOTION[boss.move] ?? MOTION.sway;
   return { group, animate: (t, phase) => move(body, t, phase) };
 }
 
@@ -249,7 +254,7 @@ export function createBoss3d(scene) {
       if (!template || model !== shown || downT >= 0) return;
       root.remove(shown.group);
       dispose(shown.group);
-      mount(fromModel(template, boss.kind, boss.r));
+      mount(fromModel(template, boss));
     });
     plates = boss.plates.map(() => {
       const p = mesh(plateGeo, plateMat);

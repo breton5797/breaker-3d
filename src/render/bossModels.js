@@ -18,6 +18,15 @@ const LOOK = {
   kraken: { rot: [Math.PI / 2, 0, 0], metal: 0 },
   golem: { rot: [0, -Math.PI / 2, 0], metal: 0 },
   mothership: { rot: [Math.PI / 2, 0, 0], metal: 0.35 },
+  // Map bosses face the camera like the giants unless listed: low, wide crawlers read better from above.
+  ironSpider: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0.2 },
+  scorpion: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0 },
+  scarab: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0.2 },
+  mosasaur: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0 },
+  giantIsopod: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0 },
+  mosaicSalamander: { rot: [Math.PI / 2, -Math.PI / 2, 0], metal: 0 },
+  ringBeast: { rot: [0.6, -Math.PI / 2, 0], metal: 0 }, // tipped so its ring shows
+  bronzeHorse: { rot: [0, 0, 0], metal: 0.2 }, // in profile: a rearing horse is a narrow sliver head-on
 };
 
 const cache = new Map(); // kind -> Promise<THREE.Object3D|null>
@@ -25,8 +34,11 @@ let loader = null;
 
 async function getLoader() {
   if (!loader) {
-    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-    loader = new GLTFLoader();
+    const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([
+      import('three/examples/jsm/loaders/GLTFLoader.js'),
+      import('three/examples/jsm/libs/meshopt_decoder.module.js'), // the map bosses are meshopt-packed
+    ]);
+    loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   }
   return loader;
 }
