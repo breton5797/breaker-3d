@@ -54,6 +54,14 @@ describe('ball feel', () => {
     expect(drainEvents(w).filter((e) => e.t === 'wall').length).toBeLessThanOrEqual(WALL_EVENTS_MAX);
   });
 
+  it('balls are drawn 20% bigger and bricks fill their whole cell (owner, 2026-10-29; the sim is unchanged)', () => {
+    const balls = readFileSync(new URL('../src/render/balls3d.js', import.meta.url), 'utf8');
+    expect(balls).toMatch(/BALL_DRAW = 1\.8 \* 1\.2/);
+    const bricks = readFileSync(new URL('../src/render/bricks.js', import.meta.url), 'utf8');
+    expect(bricks).toMatch(/BRICK_SIZE = 1;/);
+    expect(bricks).not.toMatch(/BoxGeometry\(0\.92/);
+  });
+
   it('the director answers wall and paddle knocks with sparks, a sound and a nudge', () => {
     const src = readFileSync(new URL('../src/director.js', import.meta.url), 'utf8');
     expect(src).toMatch(/case 'wall':/);

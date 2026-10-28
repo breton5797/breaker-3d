@@ -106,10 +106,11 @@ export function fruitTexture(fruit, size = 128, contactShadow = true) {
 
 const tmp = new THREE.Object3D();
 const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
+const BRICK_SIZE = 1; // bricks fill their whole cell (the bevel texture still marks each one); was 0.92 with gaps
 
 export function createBricks(scene) {
   const total = COLS * ROWS;
-  const geo = new THREE.BoxGeometry(0.92, 0.92, 1);
+  const geo = new THREE.BoxGeometry(BRICK_SIZE, BRICK_SIZE, 1);
   const mat = new THREE.MeshLambertMaterial({ map: bevelTexture() });
   const mesh = new THREE.InstancedMesh(geo, mat, total);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -117,7 +118,7 @@ export function createBricks(scene) {
   mesh.receiveShadow = true;
   scene.add(mesh);
 
-  const iconGeo = new THREE.BoxGeometry(0.92, 0.92, 1.1);
+  const iconGeo = new THREE.BoxGeometry(BRICK_SIZE, BRICK_SIZE, 1.1);
   // Fruit stands upright on its cell, turned to face the tilted camera.
   const fruitGeo = new THREE.PlaneGeometry(1, 1).rotateX(TILT).translate(0, 0, 0.45);
   // Gold coin bricks are real 3D coins (raised over the wall so their faces show).
