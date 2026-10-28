@@ -327,9 +327,16 @@ export function createUI(h) {
   }
 
   /** Finale banner with a live brick countdown; pass null to hide it. */
-  function setFinale(left) {
-    $('finale-banner').hidden = left === null;
-    if (left !== null) $('finale-left').textContent = fmt(left);
+  /** @param {number|null} left bricks left, or null to hide @param {{x:number,y:number}|null} at screen point */
+  function setFinale(left, at = null) {
+    const el = $('finale-banner');
+    el.hidden = left === null;
+    if (left === null) return;
+    $('finale-left').textContent = fmt(left);
+    if (at) {
+      el.style.left = `${at.x}px`;
+      el.style.top = `${at.y}px`;
+    }
   }
 
   /** Restarts a one-shot CSS animation class on an element. */
