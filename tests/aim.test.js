@@ -79,7 +79,7 @@ describe('aim guide', () => {
       }
       expect(found, `stage ${n}: some aim gets in`).toBeGreaterThan(0);
     }
-  });
+  }, 30_000); // hundreds of real serves: slower CI runners need more than the 5 s default
 
   it('holds at other frame rates too (60 Hz phones, 144 Hz screens)', () => {
     for (const dt of [1 / 60, 1 / 144]) {
@@ -94,5 +94,5 @@ describe('aim guide', () => {
         }
       }
     }
-  });
+  }, 30_000);
 });
