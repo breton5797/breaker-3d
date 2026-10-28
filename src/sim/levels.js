@@ -285,6 +285,21 @@ function narrow(lines, width) {
   }).join(''));
 }
 
+/**
+ * Draws the mural with thicker outlines: every open cell right beside a plain
+ * brick (left, right, above or below) takes that brick's colour. More bricks, same picture;
+ * the sky above stays open and steel/special blocks stay single.
+ * @param {string[]} lines coarse rows
+ * @returns {string[]}
+ */
+export function thicken(lines) {
+  return lines.map((line, y) => [...line].map((ch, x) => {
+    if (ch !== '.') return ch;
+    const near = [line[x - 1], line[x + 1], lines[y - 1]?.[x], lines[y + 1]?.[x]];
+    return near.find((n) => n && isPlainBrick(n)) ?? ch;
+  }).join(''));
+}
+
 /** Clears the bottom coarse rows (a lobby along the floor) and every hole pocket. */
 function carveOpenings(coarse, holes) {
   const lobby = Math.ceil((CAVITY + 1) / SCALE) + 1;
@@ -337,7 +352,7 @@ export function getLevel(i, { slots } = {}) {
   const p = stageParams(n);
   const slot = stageSlot(n);
   const map = slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content);
-  const mural = narrow(map.build(), INNER_COARSE);
+  const mural = thicken(narrow(map.build(), INNER_COARSE));
   const innerRows = mural.length * SCALE;
   const box = BOX(TOP_LANE + innerRows + 2);
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize);
