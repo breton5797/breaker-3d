@@ -3,11 +3,12 @@ import { BALL_R, MAX_BALLS, COLS, ROWS } from '../sim/constants.js';
 
 const WHITE = new THREE.Color(1, 1, 1);
 const FIRE = new THREE.Color(1, 0.45, 0.08);
+const BALL_DRAW = 1.8 * 1.2; // drawn radius / hitbox radius: larger than the hitbox so it reads on phones, +20% (owner)
 
 /** Instanced shaded balls fed straight from the sim's typed arrays. */
 export function createBalls3d(scene) {
   const mesh = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(BALL_R * 1.8, 16, 12), // drawn larger than the hitbox so it reads on phones
+    new THREE.SphereGeometry(BALL_R * BALL_DRAW, 16, 12),
     // A rounder, shaded ball: matte body with a small soft highlight from the room light (a sheen, not a glow).
     new THREE.MeshPhongMaterial({ shininess: 60, specular: 0x666666 }),
     MAX_BALLS + 1,
