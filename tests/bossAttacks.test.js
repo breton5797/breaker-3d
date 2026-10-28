@@ -130,6 +130,7 @@ describe('boss attack variety', () => {
   it('in its last phase it chains a second attack right after the first (rage combo)', () => {
     const w = bossWorld(9);
     w.boss.budget = Infinity;
+    w.finale = true; // the last phase comes after the bricks (GUARD_FLOOR)
     damageBoss(w, Math.ceil(w.boss.hpMax * (1 - PHASE3)) + 1);
     w.boss.stun = 0;
     drainEvents(w);

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { predictPath, AIM_MAX } from './sim/aim.js';
+import { GUARD_FLOOR } from './sim/boss.js';
 import { getLevel, levelName } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
@@ -489,7 +490,7 @@ function hud() {
     muted: audio.isMuted(),
     gold: save.gold + world.gold,
   });
-  ui.setBoss(world.boss?.alive ? level.bossName : null, world.boss ? world.boss.hp / world.boss.hpMax : 1);
+  ui.setBoss(world.boss?.alive ? level.bossName : null, world.boss ? world.boss.hp / world.boss.hpMax : 1, GUARD_FLOOR);
 }
 
 let last = performance.now();

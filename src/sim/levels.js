@@ -177,6 +177,7 @@ const CAVITY = 8; // empty fine rows kept above the box floor so an entering bal
 const LANES = [1, 2]; // open fine columns between each side wall of the field and the box (owner: 1-2, random per stage)
 const TOP_LANE = 6; // open fine rows between the ceiling and the box
 const POCKET = 6; // fine cells kept clear behind every hole
+const FRUIT_PER_BRICKS = 1100; // coarse plain bricks of an average mural: denser ones get more fruit
 
 /** @param {number} n stage index @returns {number} its side lane width (1 or 2), the same every time */
 export const laneFor = (n) => LANES[Math.floor(mulberry32(n * 97 + 13)() * LANES.length)];
@@ -373,7 +374,11 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize, slot.boss);
   const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
   const coarse = carveOpenings(mural, holes);
-  const fed = seedCoins(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.coins, n + 401);
+  // A packed mosaic (놀이 세계) gets fruit in proportion to its bricks, or balls dig for ages before one.
+  // Every other mural keeps the owner's fruit count as it is.
+  const plain = coarse.join('').split('').filter(isPlainBrick).length;
+  const items = map.mosaic ? Math.round(p.items * Math.max(1, plain / FRUIT_PER_BRICKS)) : p.items;
+  const fed = seedCoins(seedItems(coarse, items, p.bigItemShare, n + 101), p.coins, n + 401);
   // A boss does the shooting itself, so its stage has no enemy units.
   const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
   const lines = frame(upscale(seeded), box, holes);

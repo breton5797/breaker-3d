@@ -1,4 +1,4 @@
-import { CELL, COLS, BALL_SPEED } from './constants.js';
+import { CELL, COLS, BALL_SPEED_INSIDE } from './constants.js';
 import { breakCell } from './cells.js';
 
 // One play twist per theme of the "경이의 세계" chapter. All of them steer or
@@ -10,9 +10,9 @@ import { breakCell } from './cells.js';
 
 const WELLS = 2;
 const WELL_RADIUS = 9; // cells
-// Balls fly at BALL_SPEED: a bend is pull / speed and the time in range 1 / speed, so the
-// forces scale with speed² to feel as they did at the original 36 cells/s.
-const FEEL = (BALL_SPEED / 36) ** 2;
+// Wells and currents sit inside the box, where balls fly at BALL_SPEED_INSIDE: a bend is pull / speed
+// and the time in range 1 / speed, so the forces scale with speed² to feel as they did at 36 cells/s.
+const FEEL = (BALL_SPEED_INSIDE / 36) ** 2;
 const WELL_PULL = 320 * FEEL; // pull strength (cells/s² scale)
 const BANDS = 2;
 const BAND_ROWS = 4;

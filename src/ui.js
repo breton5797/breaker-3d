@@ -450,11 +450,18 @@ export function createUI(h) {
   /** Boss health bar: name and the core's remaining share (0..1); null hides it. */
   let bossShare = 1;
   let joltAt = 0;
-  function setBoss(name, share = 1) {
+  /**
+   * @param {string|null} name null hides the bar
+   * @param {number} share health left (0..1)
+   * @param {number} guard the protected share, drawn blue-green on the right (it drains last)
+   */
+  function setBoss(name, share = 1, guard = 0) {
     $('boss-bar').hidden = name === null;
     if (name === null) { bossShare = 1; return; }
     $('boss-name').textContent = name;
-    $('boss-fill').style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+    const left = Math.max(0, Math.min(1, share));
+    $('boss-fill').style.width = `${Math.max(0, left - guard) * 100}%`;
+    $('boss-guard').style.width = `${Math.min(left, guard) * 100}%`;
     // The bar jolts as it drops (at most a few times a second; it updates every frame).
     const now = performance.now();
     if (share < bossShare && now - joltAt > 180) { replay($('boss-bar'), 'jolt'); joltAt = now; }

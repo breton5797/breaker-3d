@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
-import { BALL_SPEED, WALL_EVENTS_MAX, COLS } from '../src/sim/constants.js';
+import { BALL_SPEED, BALL_SPEED_INSIDE, WALL_EVENTS_MAX, COLS } from '../src/sim/constants.js';
+import { isInside } from '../src/sim/box.js';
 
 const world = (n = 0) => {
   const level = getLevel(n);
@@ -11,11 +12,23 @@ const world = (n = 0) => {
 };
 
 describe('ball feel', () => {
-  it('balls fly twice as fast as before (36 -> 72 cells per second)', () => {
-    expect(BALL_SPEED).toBe(72);
+  it('serves at the old pace (36); inside the box a ball flies twice as fast (72), and slows again outside', () => {
+    expect(BALL_SPEED).toBe(36);
+    expect(BALL_SPEED_INSIDE).toBe(72);
     const w = world();
     launch(w, 0);
-    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(72, 6);
+    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(36, 6);
+    // Drop a ball inside the box and one outside: after a step each flies at its zone's pace.
+    const box = w.grid.box;
+    const inX = (box.left + box.right) / 2;
+    const inY = box.bottom + 3;
+    expect(isInside(w.grid, inX, inY)).toBe(true);
+    addBall(w.balls, inX, inY, 0, 36, 0);
+    addBall(w.balls, inX, 12, 0, 72, 0);
+    const [a, b] = [w.balls.n - 2, w.balls.n - 1];
+    stepWorld(w, 1 / 120);
+    expect(Math.hypot(w.balls.vx[a], w.balls.vy[a])).toBeCloseTo(72, 4);
+    expect(Math.hypot(w.balls.vx[b], w.balls.vy[b])).toBeCloseTo(36, 4);
   });
 
   it('a ball bouncing off the steel box or the field wall makes a wall knock (with where it hit)', () => {

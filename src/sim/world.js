@@ -1,11 +1,12 @@
 import {
-  COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W, WALL_EVENTS_MAX,
+  COLS, ROWS, CELL, BALL_R, BALL_SPEED, BALL_SPEED_INSIDE, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W, WALL_EVENTS_MAX,
   PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION, PRE_ENTRY_MAX,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale, wallKnock } from './cells.js';
 import { AIM_FAN } from './aim.js';
+import { isInside } from './box.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
@@ -202,10 +203,21 @@ function moveBall(w, i, h) {
   bouncePaddle(w, i);
 }
 
+/** Inside the steel box a ball flies twice as fast; outside it keeps the serve's pace (same direction). */
+function zoneSpeed(w, b, i) {
+  if (!w.grid.box) return; // boxless test fields keep each ball's own speed
+  const want = isInside(w.grid, b.x[i], b.y[i]) ? BALL_SPEED_INSIDE : BALL_SPEED;
+  const speed = Math.hypot(b.vx[i], b.vy[i]);
+  if (speed < 1e-6 || Math.abs(speed - want) < 1e-3) return;
+  b.vx[i] *= want / speed;
+  b.vy[i] *= want / speed;
+}
+
 function updateBalls(w, dt) {
   const b = w.balls;
   for (let i = 0; i < b.n; ) {
     if (b.fire[i] > 0) b.fire[i] = Math.max(0, b.fire[i] - dt);
+    zoneSpeed(w, b, i);
     const dist = Math.hypot(b.vx[i], b.vy[i]) * dt;
     if (w.gimmick) bendBall(w.gimmick, b, i, dt);
     const steps = Math.max(1, Math.ceil(dist / MAX_SUBSTEP));
