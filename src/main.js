@@ -34,6 +34,7 @@ import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
 import { PRODUCT_REMOVE_ADS } from './monetize/store.js';
 
+const BOSS_LANDING_MS = 800; // the boss's drop onto the board (boss3d ENTRY_TIME)
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
 
@@ -178,15 +179,18 @@ function startLevel(i) {
   quality.reset();
   mode = 'play';
   ui.startStage(level);
-  if (level.bossStage) {
-    audio.bossWarn();
-    haptics.play('stun');
-    stageTimers.later(() => ui.toast('⚠ BOSS 출현! 몸통을 맞혀라', 'mega danger'), 900);
-    stageTimers.later(() => ui.toast('빨간 영역 = 공격 예고, 피하세요!', 'small'), 2200);
-  } else {
-    audio.stageIntro();
-    // Every map has its own boss: name it once, then the mural's own tips follow.
-    if (level.boss) stageTimers.later(() => ui.toast(`👾 ${level.bossName.replace('BOSS · ', '')} 출현! 쓰러뜨리면 클리어`, 'small'), 900);
+  if (level.bossStage) audio.bossWarn(); else audio.stageIntro();
+  if (level.boss) {
+    // The boss drops onto the board (boss3d) and its card slides in: a roar and a thud as it lands.
+    const name = level.bossName.replace('BOSS · ', '');
+    stageTimers.later(() => {
+      ui.bossCard({ kind: level.boss.kind, name, big: level.bossStage, mode: 'intro' });
+      audio.roar();
+      stage.shake(level.bossStage ? 1.8 : 1.2);
+      stage.kick(0, 0, -1.5);
+      haptics.play(level.bossStage ? 'stun' : 'boom');
+    }, BOSS_LANDING_MS);
+    stageTimers.later(() => ui.toast(level.bossStage ? '빨간 영역 = 공격 예고, 피하세요!' : '쓰러뜨리면 클리어!', 'small'), BOSS_LANDING_MS + 2000);
   }
   if (level.chapterStart) {
     stageTimers.later(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);

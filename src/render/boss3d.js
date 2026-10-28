@@ -5,6 +5,7 @@ import { ART } from '../art.js';
 import { paintedTexture } from './art.js';
 import { loadBossModel, bossCopy } from './bossModels.js';
 import { createStunStars, createDebris } from './bossJuice.js';
+import { WARN_TIME } from '../sim/boss.js';
 
 // The boss as a 3D creature: a generated model (see bossModels.js), with a
 // body built from simple shapes standing in until it loads. Matte, shadowed,
@@ -23,6 +24,12 @@ const FLINCH_GAP = 0.25; // a swarm hits it non-stop: blink at most this often, 
 const DOWN_TIME = 1.4;
 const ANGRY = new THREE.Color(0xff2a2a);
 const LANE_ROWS = 14; // a lane warning rises this far above the paddle row (the paddle would hide a flat one)
+const RAIN_MAX = 5; // drops in one rain attack, at most
+const DROP_FALL = 26; // how high (world units) a rain drop starts above the table
+const DIVE_TIME = 0.55; // seconds of the swoop down a lane and back
+const DIVE_CROUCH = 1.5; // it rears back this far while the dive is telegraphed
+const ENTRY_TIME = 0.8; // seconds of the drop onto the board when the boss appears
+const ENTRY_HEIGHT = 45; // and how high it starts
 const WHITE = new THREE.Color(0xffffff);
 
 const matte = (color) => new THREE.MeshLambertMaterial({ color });
@@ -223,9 +230,17 @@ export function createBoss3d(scene) {
   const rockMesh = mesh(new THREE.DodecahedronGeometry(2.3, 0), matte(0xc0612a)); // big and warm, so it reads on the dark table
   const beam = mesh(new THREE.BoxGeometry(1.1, 1, 1.1), new THREE.MeshLambertMaterial({ color: 0xff4d6a, transparent: true, opacity: 0.85 }));
   const slam = mesh(new THREE.CylinderGeometry(0.9, 1.4, 1, 10), skin(ART.kraken, 0xc2456a));
-  [zone, rockMesh, beam, slam].forEach((m) => { m.visible = false; root.add(m); });
+  // Rain: one warning zone and one falling rock per drop.
+  const rainZones = Array.from({ length: RAIN_MAX }, () => zone.clone());
+  const drops = Array.from({ length: RAIN_MAX }, () => mesh(rockMesh.geometry, rockMesh.material));
+  rainZones.forEach((z) => { z.material = zone.material; });
+  const extras = [...rainZones, ...drops];
+  [zone, rockMesh, beam, slam, ...extras].forEach((m) => { m.visible = false; root.add(m); });
   let slamT = 0;
   let slamX = 0;
+  let diveT = -1; // seconds into a dive, -1 when idle
+  let diveX = 0;
+  let entryT = -1; // seconds into the entrance drop, -1 when done
 
   function dispose(obj) {
     obj.traverse((o) => {
@@ -248,8 +263,10 @@ export function createBoss3d(scene) {
     plates.forEach((p) => root.remove(p));
     model = null;
     plates = [];
-    [zone, rockMesh, beam, slam].forEach((m) => { m.visible = false; });
+    [zone, rockMesh, beam, slam, ...extras].forEach((m) => { m.visible = false; });
     downT = -1;
+    diveT = -1;
+    entryT = -1;
     flinch = 0;
     shownPhase = 1;
     pulse = -1;
@@ -263,6 +280,7 @@ export function createBoss3d(scene) {
   function setBoss(boss) {
     clear();
     if (!boss) return;
+    entryT = 0; // it drops in from above (main.js shakes the screen as it lands)
     mount((BUILD[boss.kind] ?? buildColossus)(boss.r));
     // Swap in the generated body once it has loaded, unless this fight is already over.
     const shown = model;
@@ -302,13 +320,29 @@ export function createBoss3d(scene) {
     zone.visible = false;
     rockMesh.visible = false;
     beam.visible = false;
+    extras.forEach((m) => { m.visible = false; });
     if (!a) return;
     const py = toWorldY(PADDLE_Y);
     if (a.stage === 'warn') {
       const flick = 0.25 + 0.25 * (0.5 + 0.5 * Math.sin(performance.now() / 50));
       zone.visible = true;
       zone.material.opacity = flick;
-      if (a.kind === 'sweep') {
+      if (a.kind === 'rain') {
+        // A lane over each drop spot, and its rock falling toward it.
+        zone.visible = false;
+        const u = 1 - Math.max(0, a.t) / WARN_TIME;
+        (a.xs ?? []).slice(0, RAIN_MAX).forEach((x, k) => {
+          const z = rainZones[k];
+          z.visible = true;
+          z.scale.set(Math.max(2, a.w), LANE_ROWS / 1.6, 1);
+          z.position.set(toWorldX(x), py + LANE_ROWS / 2 - 0.8, 0.15);
+          const d = drops[k];
+          d.visible = true;
+          d.scale.setScalar(0.7);
+          d.position.set(toWorldX(x), py + 1, 1 + DROP_FALL * (1 - u * u));
+          d.rotation.set(u * 7 + k, u * 4, 0);
+        });
+      } else if (a.kind === 'sweep') {
         zone.scale.set(COLS, 1, 1);
         zone.position.set(0, py, 0.15);
       } else {
@@ -318,7 +352,7 @@ export function createBoss3d(scene) {
       }
       if (a.kind === 'rock') {
         // The rock arcs from the boss toward its target while the warning shows.
-        const u = 1 - Math.max(0, a.t) / 1.0;
+        const u = 1 - Math.max(0, a.t) / WARN_TIME;
         rockMesh.visible = true;
         rockMesh.position.set(toWorldX(boss.x + (a.x - boss.x) * u), toWorldY(boss.y + (PADDLE_Y - boss.y) * u), HOVER + Math.sin(u * Math.PI) * 6 - u * (HOVER - 1));
         rockMesh.rotation.set(u * 9, u * 5, 0);
@@ -332,12 +366,45 @@ export function createBoss3d(scene) {
     }
   }
 
-  /** The sim's strike landed: a tentacle slam is drawn here (rocks and stomps use fx). */
+  /** The sim's strike landed: a tentacle slam or a dive is drawn here (rocks and stomps use fx). */
   function strike(e, boss) {
     if (e.kind === 'slam' && boss) {
       slamT = 0.35;
       slamX = e.x;
     }
+    if (e.kind === 'dive' && boss) {
+      diveT = 0;
+      diveX = e.x;
+    }
+  }
+
+  /** Where the body is drawn: its sim spot, or on the way down a lane during a dive. */
+  function bodySpot(boss, dt) {
+    let x = toWorldX(boss.x);
+    let y = toWorldY(boss.y);
+    let z = HOVER;
+    if (boss.attack?.kind === 'dive' && boss.attack.stage === 'warn') {
+      // Winding up: it rears back and trembles before it strikes.
+      const u = 1 - Math.max(0, boss.attack.t) / WARN_TIME;
+      y += DIVE_CROUCH * u;
+      z += DIVE_CROUCH * u;
+      x += (Math.random() - 0.5) * 0.4 * u;
+    }
+    if (diveT >= 0) {
+      diveT += dt;
+      const f = Math.sin(Math.min(1, diveT / DIVE_TIME) * Math.PI); // 0 → 1 (at the paddle) → 0
+      x += (toWorldX(diveX) - x) * f;
+      y += (toWorldY(PADDLE_Y + boss.r * 0.6) - y) * f;
+      z -= (HOVER - 1.5) * f;
+      if (diveT > DIVE_TIME) diveT = -1;
+    }
+    if (entryT >= 0) {
+      entryT += dt;
+      const u = Math.min(1, entryT / ENTRY_TIME);
+      z += ENTRY_HEIGHT * (1 - u) * (1 - u);
+      if (u >= 1) entryT = -1;
+    }
+    return { x, y, z };
   }
 
   function update(boss, paddleX, time, dt) {
@@ -365,7 +432,8 @@ export function createBoss3d(scene) {
     reel += ((stunned ? 1 : 0) - reel) * Math.min(1, dt * (stunned ? 8 : 3));
     const jitter = boss.phase === 3 && !stunned ? (Math.random() - 0.5) * 0.3 : 0;
     const bob = Math.sin(time * 2) * 0.4 * (1 - reel);
-    model.group.position.set(toWorldX(boss.x) + jitter + knock.x, toWorldY(boss.y) + knock.y, HOVER + bob - SAG * reel);
+    const spot = bodySpot(boss, dt);
+    model.group.position.set(spot.x + jitter + knock.x, spot.y + knock.y, spot.z + bob - SAG * reel);
     model.group.rotation.set(-0.35 * reel, 0, 0.32 * reel * Math.sin(time * 6));
     stars.update(stunned ? toWorldX(boss.x) : null, toWorldY(boss.y + boss.r * 0.85), HOVER + boss.r * 0.5 - SAG * reel, boss.r * 0.55, time);
     let swell = 1;
@@ -431,7 +499,7 @@ export function createBoss3d(scene) {
     down() {
       if (!model) return;
       downT = 0;
-      [zone, rockMesh, beam, slam].forEach((m) => { m.visible = false; });
+      [zone, rockMesh, beam, slam, ...extras].forEach((m) => { m.visible = false; });
       plates.forEach((p) => { p.visible = false; });
       model.parts.forEach((p) => p.material.emissive?.setScalar(0)); // no lit pieces in the wreck
       model.parts.forEach((p, i) => model.velocities[i].set(p.position.x * 3 + (Math.random() - 0.5) * 8, p.position.y * 3 + (Math.random() - 0.5) * 8, 10 + Math.random() * 12));

@@ -11,11 +11,25 @@ import { stunPaddle } from './units.js';
 
 export const BOSS_KINDS = Object.freeze(['colossus', 'kraken', 'golem', 'mothership']);
 const KIND = Object.freeze({
-  colossus: { r: 9.5, move: 'sway', attack: 'stomp', zone: 18 },
-  kraken: { r: 9, move: 'eight', attack: 'slam', zone: 9 },
-  golem: { r: 9.5, move: 'hop', attack: 'rock', zone: 7 },
-  mothership: { r: 10.5, move: 'glide', attack: 'sweep', zone: 0 },
+  colossus: { r: 9.5, move: 'sway', attack: 'stomp', zone: 18, more: ['rain', 'dive'] },
+  kraken: { r: 9, move: 'eight', attack: 'slam', zone: 9, more: ['dive', 'rain'] },
+  golem: { r: 9.5, move: 'hop', attack: 'rock', zone: 7, more: ['rain', 'stomp'] },
+  mothership: { r: 10.5, move: 'glide', attack: 'sweep', zone: 0, more: ['rain', 'dive'] },
 });
+// stomp: wide zone under it; slam: a lash down a lane; rock: thrown at the paddle;
+// sweep: a beam across the row; rain: drops on several spots at once (one under the
+// paddle, always a gap to stand in); dive: it swoops down a lane at the paddle.
+export const ATTACK_KINDS = Object.freeze(['stomp', 'slam', 'rock', 'sweep', 'rain', 'dive']);
+export const ATTACK_ZONE = Object.freeze({ stomp: 12, slam: 8, rock: 7, sweep: 0, rain: 5, dive: 9 }); // width at the paddle row
+const SECOND = Object.freeze({ stomp: 'rain', slam: 'dive', rock: 'rain', sweep: 'dive' }); // a map boss's other move
+/** @param {string} kind a big boss kind @returns {string[]} its attacks, signature first */
+export const attacksFor = (kind) => { const k = KIND[kind] ?? KIND.colossus; return [k.attack, ...k.more]; };
+/** @param {string} attack a map boss's signature attack @returns {string[]} it and its second move */
+export const mapAttacks = (attack) => [attack, SECOND[attack]];
+const RAIN_DROPS = [3, 4, 5]; // per phase
+const RAIN_SAFE = 18; // a stretch of paddle positions this wide always stays dry
+export const RAIN_REACH = 30; // and its near edge is at most this far from the paddle (a key dash covers ~45 in the 1 s warning)
+export const COMBO_GAP = 0.7; // last phase: seconds between a blow and the next warning
 export const PLATES = 4;
 const PLATE_R = 1.8;
 const PLATE_GAP = 2.6; // plate orbit beyond the body
@@ -78,6 +92,9 @@ export function createBoss(spec, grid, rng) {
     kind: spec.kind,
     move: k.move,
     attackKind: k.attack,
+    attackKinds: spec.attackKinds ?? (KIND[spec.kind] && !spec.attack ? attacksFor(spec.kind) : [k.attack]),
+    attackIndex: 0,
+    chain: false, // the next attack follows at once (rage combo)
     zone: k.zone,
     attacks: spec.attacks ?? true,
     attackEvery: spec.attackEvery ?? ATTACK_EVERY,
@@ -209,6 +226,7 @@ export function damageBoss(w, base) {
       const plates = b.plates.length;
       b.plates = [];
       b.attack = null;
+      b.chain = false;
       b.stun = STUN_TIME;
       b.budget += b.dps * STUN_TIME; // room for the double hits, or the shield would eat them
       w.events.push({ t: 'boss-stun', x: b.x, y: b.y, dur: STUN_TIME, plates });
@@ -266,12 +284,41 @@ function hitPaddle(w, attack) {
   stunPaddle(w, w.boss.tier);
 }
 
+/** Drop spots for a rain attack: one on the paddle, the rest anywhere but a dry stretch. */
+function rainSpots(w, b, count, width) {
+  const half = w.paddle.w / 2;
+  const reach = width / 2 + half; // a drop hits paddle centres this close to it
+  const lo = half;
+  const hi = COLS - half;
+  const px = w.paddle.x;
+  // The dry stretch sits away from the paddle (it has to move), but within a short dash of it.
+  const dash = Math.max(0, RAIN_REACH - reach); // extra room past the paddle's own drop
+  const left = Math.min(dash, px - reach - RAIN_SAFE - lo);
+  const right = Math.min(dash, hi - (px + reach + RAIN_SAFE));
+  if (left < 0 && right < 0) return [px]; // no room anywhere: one drop, and the paddle steps aside
+  const goRight = right >= 0 && (left < 0 || b.rng() < (right + 1) / (left + right + 2));
+  const dryFrom = goRight ? px + reach + b.rng() * right : px - reach - b.rng() * left - RAIN_SAFE;
+  const dryTo = dryFrom + RAIN_SAFE;
+  const xs = [px];
+  for (let tries = 0; xs.length < count && tries < 60; tries++) {
+    const x = lo + b.rng() * (hi - lo);
+    if (x + reach > dryFrom && x - reach < dryTo) continue;
+    if (xs.some((o) => Math.abs(o - x) < width)) continue;
+    xs.push(x);
+  }
+  return xs;
+}
+
 function startAttack(w, b) {
-  const kind = b.attackKind;
+  const kind = b.attackKinds[b.attackIndex % b.attackKinds.length];
+  b.attackIndex++;
+  const width = kind === b.attackKind ? b.zone : ATTACK_ZONE[kind];
   const dir = kind === 'sweep' ? (b.rng() < 0.5 ? 1 : -1) : 0;
   const x = kind === 'stomp' ? b.x : kind === 'sweep' ? (dir > 0 ? 0 : COLS) : w.paddle.x;
-  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, w: b.zone, dir, hit: false, beam: x };
-  w.events.push({ t: 'boss-warn', kind, x, w: b.zone, dir, dur: WARN_TIME, from: { x: b.x, y: b.y } });
+  const xs = kind === 'rain' ? rainSpots(w, b, RAIN_DROPS[b.phase - 1], width) : null;
+  const from = { x: b.x, y: b.y };
+  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, xs, w: width, dir, hit: false, beam: x, from };
+  w.events.push({ t: 'boss-warn', kind, x, xs, w: width, dir, dur: WARN_TIME, from });
 }
 
 function runAttack(w, b, dt) {
@@ -279,9 +326,9 @@ function runAttack(w, b, dt) {
   a.t -= dt;
   if (a.stage === 'warn') {
     if (a.t > 0) return;
-    w.events.push({ t: 'boss-strike', kind: a.kind, x: a.x, w: a.w, dir: a.dir });
+    w.events.push({ t: 'boss-strike', kind: a.kind, x: a.x, xs: a.xs, w: a.w, dir: a.dir, from: a.from });
     if (a.kind !== 'sweep') {
-      if (paddleIn(w, a.x, a.w)) hitPaddle(w, a);
+      if ((a.xs ?? [a.x]).some((x) => paddleIn(w, x, a.w))) hitPaddle(w, a);
       b.attack = null;
       return;
     }
@@ -307,7 +354,7 @@ export function updateBoss(w, dt) {
   }
   move(b, dt);
   if (w.state !== 'play') {
-    if (w.state !== 'clear') b.attack = null; // a life lost or game over calls off the pending blow
+    if (w.state !== 'clear') { b.attack = null; b.chain = false; } // a life lost or game over calls off the pending blow (and the combo)
     return;
   }
   b.budget = Math.min(b.dps * BUDGET_SECONDS, b.budget + b.dps * dt);
@@ -316,5 +363,7 @@ export function updateBoss(w, dt) {
   b.attackTimer -= dt;
   if (b.attackTimer > 0) return;
   startAttack(w, b);
-  b.attackTimer = b.attackEvery * ATTACK_PACE[b.phase - 1] * (0.85 + 0.3 * b.rng());
+  // Rage: in its last phase every other blow comes right on the heels of the one before.
+  b.chain = b.phase === 3 && !b.chain;
+  b.attackTimer = b.chain ? COMBO_GAP : b.attackEvery * ATTACK_PACE[b.phase - 1] * (0.85 + 0.3 * b.rng());
 }

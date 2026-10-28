@@ -143,6 +143,8 @@ export function createAudio() {
       [0, 1, 2, 3].forEach((k) => setTimeout(() => { voices = 0; tone(k % 2 ? 520 : 700, 0.28, 'square', 0.07); }, k * 300));
     },
     /** A ball hits the boss: a dull metal clank. */
+    /** A boss arrives: a low growl that drops in pitch over a rumble. */
+    roar() { voices = 0; burst(0.9, 500, 0.45); tone(170, 0.9, 'sawtooth', 0.2, 55); tone(250, 0.7, 'square', 0.07, 90); },
     coreHit() { tone(180 + Math.random() * 30, 0.08, 'square', 0.06, 120); },
     /** The boss falls: a long crash, a low boom and a rising victory chord. */
     bossDown() {

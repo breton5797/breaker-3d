@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Renders one boss model (as the game turns it) on a white background, as the
+     reference picture for its Higgsfield portrait. Open on the dev server with
+     ?kind=<kind>; window.shotReady turns true once it is drawn. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>html, body { margin: 0; background: #fff; } canvas { display: block; }</style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three';
+    import { loadBossModel, bossCopy } from '/src/render/bossModels.js';
+
+    const SIZE = 768;
+    const kind = new URLSearchParams(location.search).get('kind');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setSize(SIZE, SIZE);
+    renderer.setClearColor(0xffffff, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.append(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a0, 2.2));
+    const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+    sun.position.set(6, 10, 14);
+    scene.add(sun);
+    // The game looks down at the board from +z; a slight three-quarter turn reads better as a portrait.
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
+    camera.position.set(9, -6, 34);
+    camera.lookAt(0, 0, 0);
+
+    const template = await loadBossModel(kind);
+    if (template) {
+      const model = bossCopy(template, 6.5);
+      const box = new THREE.Box3().setFromObject(model);
+      model.position.sub(box.getCenter(new THREE.Vector3()));
+      scene.add(model);
+    }
+    renderer.render(scene, camera);
+    window.shotReady = Boolean(template);
+  </script>
+</body>
+</html>
