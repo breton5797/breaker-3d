@@ -211,6 +211,12 @@ export function createFx(scene) {
       ring(c + 0.5, r + 0.5, 2.4, [0.55, 0.8, 1], 0.35);
       for (let k = 0; k < 8; k++) debris.spawn(c + 0.5, r + 0.5, hex, 1.7);
     },
+    /** A caught fruit fires at the boss: a gold column from the paddle up to it, a ring where it lands. */
+    bossBeam: (x, y) => {
+      beam(x, (PADDLE_Y + y) / 2, 1.8, Math.max(2, y - PADDLE_Y), [1, 0.85, 0.25], 0.4);
+      ring(x, y, 6, [1, 0.85, 0.3], 0.45);
+      for (let k = 0; k < 24; k++) debris.spawn(x, y, 0xffd23a, 1.6);
+    },
     /** A burst of coloured shards and two rings, for the finale fireworks. */
     firework: (x, y, hex, rgb) => {
       ring(x, y, 7, rgb, 0.7);

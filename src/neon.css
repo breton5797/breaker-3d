@@ -101,6 +101,10 @@
   100% { opacity: 0; transform: translate(-50%, -230%) scale(0.9); }
 }
 
+/* ---------- Meteor hint: the button breathes while nothing has got in yet ---------- */
+.skill.hint-pulse { animation: hintPulse 0.9s ease-in-out infinite; box-shadow: 0 0 0 2px #ff9a3c, 0 0 18px rgba(255, 154, 60, 0.8); }
+@keyframes hintPulse { 50% { transform: scale(1.12); } }
+
 /* ---------- KO flash ---------- */
 #flash { position: fixed; inset: 0; pointer-events: none; background: #fff; opacity: 0; }
 #flash.on { animation: koFlash 0.45s ease-out; }

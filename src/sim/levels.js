@@ -218,11 +218,13 @@ function combinations(list, k, from = 0, acc = [], out = []) {
  * so the holes move to harder spots as stages rise while the walls still vary.
  * Early stages always keep a floor hole.
  */
-function pickSlots(n, count, size) {
+function pickSlots(n, count, size, noCeiling = false) {
   const rng = mulberry32(n * 131 + 7);
   const odds = (set) => set.reduce((sum, s) => sum + s.odds[size === 2 ? 0 : 1], 0);
   const sets = combinations(SLOTS, count)
     .filter((set) => n >= FLOOR_UNTIL || set.some((s) => s.side === 'bottom'))
+    // A big boss's short arena sits right under the boss: a ceiling hole there can't be reached.
+    .filter((set) => !noCeiling || set.every((s) => s.side !== 'top'))
     .map((set) => ({ set, odds: odds(set) }))
     .sort((a, b) => b.odds - a.odds);
   const at = Math.round(Math.min(1, n / HARDEST_AT) * (sets.length - 1));
@@ -358,7 +360,7 @@ export function getLevel(i, { slots } = {}) {
   const mural = thicken(narrow(map.build(), INNER_COARSE));
   const innerRows = mural.length * SCALE;
   const box = BOX(TOP_LANE + innerRows + 2);
-  const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize);
+  const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize, slot.boss);
   const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
   const coarse = carveOpenings(mural, holes);
   const fed = seedCoins(seedItems(coarse, p.items, p.bigItemShare, n + 101), p.coins, n + 401);

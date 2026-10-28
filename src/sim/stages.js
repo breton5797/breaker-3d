@@ -8,7 +8,7 @@ import { RELEASE_RATE } from './constants.js';
 
 const RAMP_STAGES = 200; // step knobs reach their hardest value here
 const UNITS_FROM = 5; // stages 1-5 have no enemy units
-const STAGES_PER_TIER = 19; // a new unit tier every 19 stages; tier 10 arrives at stage 177
+const STAGES_PER_TIER = 21; // a new unit tier every 21 stages; tier 10 arrives at stage 195
 // Entrances are one ball wide: four holes up to stage 10, three up to 20, two
 // up to 30 and a single one after that (levels.js moves it to harder spots).
 const HOLE_STEPS = [[10, 4], [20, 3], [30, 2]]; // [up to stage, holes]
@@ -38,7 +38,7 @@ export function stageParams(i) {
     lives: n < 10 ? 5 : n < 50 ? 4 : 3,
     paddleW: Math.round(lerp(18, 10, d)),
     unitTop: armed ? Math.min(10, 1 + Math.floor((n - UNITS_FROM) / STAGES_PER_TIER)) : 0,
-    unitCount: armed ? Math.min(12, 2 + Math.floor((n - UNITS_FROM) / 16)) : 0,
+    unitCount: armed ? Math.min(10, 2 + Math.floor((n - UNITS_FROM) / 16)) : 0,
     dropSpeed: 13 + 13 * approach(n, 250), // cells/s a fruit falls: 13 -> 26
     aggression: 1 + 0.6 * approach(n, 500), // unit fire-rate/bomb-speed factor: 1 -> 1.6
   };

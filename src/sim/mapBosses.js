@@ -80,7 +80,7 @@ export function mapBossSpec(mapId, n, bricks = 3000) {
     attacks: n >= GENTLE_STAGES,
     attackEvery: 7, // a big boss strikes every 4.5 s
     hp: 50 + Math.floor(n * 0.8) + Math.floor(bricks * BRICK_HP),
-    dps: 4 + Math.floor(n / 40),
+    dps: 6 + Math.floor(n / 40), // damage it can take per second: once the bricks are gone it falls within ~15 s
     tier: Math.min(10, 1 + Math.floor(n / 30)),
   };
 }
