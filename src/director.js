@@ -6,6 +6,7 @@ import { fruitArt } from './art.js';
 import { createPacing } from './pacing.js';
 import { fruitHaptic } from './haptics.js';
 import { createTimers } from './timers.js';
+import { SKILL_PRICES } from './meta.js';
 
 const SHARD_BUDGET = 260; // debris spawned per frame at most
 const RAINBOW = [0xff4d4d, 0xff9f43, 0xfeca57, 0x1dd1a1, 0x48dbfb, 0x2e86de, 0xa55eea, 0xff6b81];
@@ -115,7 +116,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('laser');
           break;
         case 'split': fx.split(e.c, e.r, e.n); audio.split(e.n); break;
-        case 'gold': fx.gold(e.c, e.r); audio.gold(); ui.toast(e.skill === 'split' ? '+1 분열' : '+1 메테오', 'small'); break;
+        case 'gold': fx.gold(e.c, e.r); audio.gold(); ui.pumpGold(); ui.toast(`🪙 +${e.coins} 보너스`, 'small'); break;
         case 'fire': audio.split(5); break;
         case 'zap':
           fx.zap(e.c, e.r, rainbow(zapCount));
@@ -338,10 +339,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     }
     if (booms >= 3) { slowMo(0.5, 0.35); pacing.hitStop(0.05); }
     if (booms >= 8) stage.shake(1.2);
-    if (!hinted && w.state === 'play' && !w.entered && w.charges.meteor > 0 && w.time - serveAt > HINT_AFTER) {
+    if (!hinted && w.state === 'play' && !w.entered && w.time - serveAt > HINT_AFTER) {
       hinted = true; // once a stage is enough
       ui.meteorHint(true);
-      ui.toast('☄ 메테오로 한 번에 넣어 보세요!', 'small');
+      ui.toast(`☄ 메테오(🪙${SKILL_PRICES.meteor})로 한 번에 넣어 보세요!`, 'small');
     }
     const now = performance.now();
     if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {

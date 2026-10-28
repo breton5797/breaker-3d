@@ -116,17 +116,20 @@ export function revive(w) {
   return true;
 }
 
-/** @param {'split'|'meteor'} name */
-export function useSkill(w, name) {
+/**
+ * @param {'split'|'meteor'} name
+ * @param {number} [mult] split: each ball becomes this many (2-5, bought in the skill shop)
+ */
+export function useSkill(w, name, mult = 3) {
   if (w.charges[name] <= 0 || (w.state !== 'play' && w.state !== 'ready')) return false;
   const b = w.balls;
   if (name === 'split') {
     if (w.state !== 'play' || b.n === 0) return false;
-    // Each ball becomes three, but one use adds at most SPLIT_SKILL_MAX balls
+    // Each ball becomes `mult` balls, but one use adds at most SPLIT_SKILL_MAX balls
     // so stacked charges can't blow a whole stage away in seconds.
     const n0 = b.n;
     const cap = n0 + SPLIT_SKILL_MAX;
-    for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(3, 1 + cap - b.n));
+    for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(mult, 1 + cap - b.n));
   } else {
     if (w.state === 'ready') b.n = 0;
     for (let k = 0; k < METEOR_COUNT; k++) {

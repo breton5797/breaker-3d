@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  spendGold, buyLoadout, takeLoadout, LOADOUT, recordStars, totalStars, claimChests, STARS_PER_CHEST, CHEST_GOLD,
+  spendGold, refundLoadout, LOADOUT, recordStars, totalStars, claimChests, STARS_PER_CHEST, CHEST_GOLD,
   dailyBonus, DAILY_GOLD, recordBeaten, nextGoals, progressShare,
 } from '../src/meta.js';
 import { loadSave } from '../src/storage.js';
@@ -15,23 +15,12 @@ describe('gold has somewhere to go', () => {
     expect(spendGold(base({ gold: 30 }), 40)).toBeNull();
   });
 
-  it('the loadout buys extra skill charges for the next stage, at most 2 each', () => {
-    let s = base({ gold: 500 });
-    s = buyLoadout(s, 'split');
-    expect(s.gold).toBe(500 - LOADOUT.split.price);
-    expect(s.loadout.split).toBe(1);
-    s = buyLoadout(s, 'split');
-    expect(s.loadout.split).toBe(LOADOUT.split.max);
-    expect(buyLoadout(s, 'split')).toBeNull(); // full
-    expect(buyLoadout(base({ gold: 10 }), 'meteor')).toBeNull(); // too poor
-    expect(buyLoadout(base({ gold: 999 }), 'magnet')).toBeNull(); // no such thing
-  });
-
-  it('starting a stage uses the loadout up', () => {
-    const s = buyLoadout(base({ gold: 500 }), 'meteor');
-    const { save, extra } = takeLoadout(s);
-    expect(extra).toEqual({ split: 0, meteor: 1 });
-    expect(save.loadout).toEqual({ split: 0, meteor: 0 });
+  it('charges bought for the next stage under the old title shop are refunded as gold', () => {
+    const s = refundLoadout(base({ gold: 10, loadout: { split: 2, meteor: 1 } }));
+    expect(s.gold).toBe(10 + 2 * LOADOUT.split.price + LOADOUT.meteor.price);
+    expect(s.loadout).toEqual({ split: 0, meteor: 0 });
+    const none = base({ gold: 10 });
+    expect(refundLoadout(none)).toBe(none);
   });
 });
 

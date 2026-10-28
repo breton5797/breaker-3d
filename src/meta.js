@@ -5,11 +5,17 @@
 
 import { BOSS_EVERY } from './sim/sequence.js';
 
-/** Extra skill charges bought before a stage (used up when it starts). */
+/** What the old title shop charged for a next-stage charge (only to refund saves that still hold some). */
 export const LOADOUT = Object.freeze({
   split: Object.freeze({ price: 40, max: 2, name: '분열' }),
   meteor: Object.freeze({ price: 60, max: 2, name: '메테오' }),
 });
+/** Skills are bought with coins during a stage (no free charges): split by multiplier, meteor at one price. */
+export const SKILL_PRICES = Object.freeze({
+  split: Object.freeze({ 2: 30, 3: 50, 4: 80, 5: 120 }),
+  meteor: 60,
+});
+export const SKILL_USES = 2; // uses of each skill per stage at most (owner, 2026-10-29)
 export const STARS_PER_CHEST = 30;
 export const CHEST_GOLD = 150;
 /** Daily first-clear gold by streak day (day 1, 2, ...; the last value repeats). */
@@ -21,39 +27,40 @@ export function spendGold(save, n) {
   return { ...save, gold: save.gold - n };
 }
 
-/** @returns {object|null} the save with one more charge of `kind` bought, or null (unknown, full, too poor) */
-export function buyLoadout(save, kind) {
-  const item = LOADOUT[kind];
-  if (!item) return null;
-  const have = save.loadout?.[kind] ?? 0;
-  if (have >= item.max) return null;
-  const paid = spendGold(save, item.price);
-  if (!paid) return null;
-  return { ...paid, loadout: { split: 0, meteor: 0, ...save.loadout, [kind]: have + 1 } };
+/**
+ * @param {string} kind 'split' | 'meteor'
+ * @param {number} [mult] split multiplier (2-5)
+ * @returns {number|undefined} the coin price, or undefined for anything not on sale
+ */
+export function skillPrice(kind, mult) {
+  if (kind === 'meteor') return SKILL_PRICES.meteor;
+  if (kind === 'split') return SKILL_PRICES.split[mult];
+  return undefined;
 }
-
-export const IN_PLAY_MAX = 3; // charges of each skill a stage lets you buy mid-play
 
 /**
- * A skill charge bought mid-stage with gold: the gold picked up this stage goes first, then the banked gold.
+ * A skill bought mid-stage with coins: those picked up this stage go first, then the banked ones.
  * @param {object} save
- * @param {number} live gold picked up this stage, not banked yet
+ * @param {number} live coins picked up this stage, not banked yet
  * @param {string} kind 'split' | 'meteor'
- * @param {number} bought charges of this kind already bought this stage
- * @returns {{ ok:boolean, save:object, live:number }} unchanged save and live gold when it fails
+ * @param {number} used uses of this skill so far this stage
+ * @param {number} [mult] split multiplier (2-5)
+ * @returns {{ ok:boolean, save:object, live:number }} unchanged save and live coins when it fails
  */
-export function buyInPlay(save, live, kind, bought) {
-  const item = LOADOUT[kind];
+export function buyInPlay(save, live, kind, used, mult = 3) {
+  const price = skillPrice(kind, mult);
   const no = { ok: false, save, live };
-  if (!item || bought >= IN_PLAY_MAX || save.gold + live < item.price) return no;
-  const fromLive = Math.min(live, item.price);
-  return { ok: true, save: { ...save, gold: save.gold - (item.price - fromLive) }, live: live - fromLive };
+  if (!price || used >= SKILL_USES || save.gold + live < price) return no;
+  const fromLive = Math.min(live, price);
+  return { ok: true, save: { ...save, gold: save.gold - (price - fromLive) }, live: live - fromLive };
 }
 
-/** A stage starts: its bought charges come off the save. */
-export function takeLoadout(save) {
-  const extra = { split: save.loadout?.split ?? 0, meteor: save.loadout?.meteor ?? 0 };
-  return { save: { ...save, loadout: { split: 0, meteor: 0 } }, extra };
+/** Charges still held from the old title shop come back as the gold they cost (that shop is gone). */
+export function refundLoadout(save) {
+  const split = save.loadout?.split ?? 0;
+  const meteor = save.loadout?.meteor ?? 0;
+  if (!split && !meteor) return save;
+  return { ...save, gold: save.gold + split * LOADOUT.split.price + meteor * LOADOUT.meteor.price, loadout: { split: 0, meteor: 0 } };
 }
 
 /** @returns {object} the save with the stage's best star count (1-3) kept */

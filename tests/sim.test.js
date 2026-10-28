@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME, LAUNCH_BALLS, SPLIT_SKILL_MAX } from '../src/sim/constants.js';
+import { COLS, ROWS, CELL, MAX_BALLS, PADDLE_Y, SPLIT_USES, METEOR_COUNT, STALL_TIME, LAUNCH_BALLS, SPLIT_SKILL_MAX, GOLD_BRICK_COINS } from '../src/sim/constants.js';
 import { parseLevel, getLevel, LEVELS } from '../src/sim/levels.js';
 import { addBall } from '../src/sim/balls.js';
 import { createWorld, stepWorld, launch, setPaddleX, useSkill, drainEvents } from '../src/sim/world.js';
@@ -242,12 +242,13 @@ describe('special cells', () => {
     expect(w.balls.fire[0]).toBeGreaterThan(0);
   });
 
-  it('gold grants a skill charge', () => {
+  it('a gold star brick pays bonus coins (skills are only bought with coins, never handed out)', () => {
     const w = world([[10, 2, 'G']]);
-    const before = w.charges.split + w.charges.meteor;
+    const charges = { ...w.charges };
     addBall(w.balls, 10.5, topRow(2) - 2, 0, 30, 0);
     run(w, 0.1);
-    expect(w.charges.split + w.charges.meteor).toBe(before + 1);
+    expect(w.gold).toBe(GOLD_BRICK_COINS);
+    expect(w.charges).toEqual(charges);
   });
 });
 
@@ -384,6 +385,17 @@ describe('paddle, lives and flow', () => {
     expect(w.balls.n).toBe(6);
     expect(w.charges.split).toBe(0);
     expect(useSkill(w, 'split')).toBe(false);
+  });
+
+  it('a split can be bought at x2, x3, x4 or x5: each ball becomes that many', () => {
+    for (const mult of [2, 3, 4, 5]) {
+      const w = world([[0, 0, '#']]);
+      w.charges.split = 1;
+      addBall(w.balls, 20, 20, 0, 30, 0);
+      addBall(w.balls, 25, 20, 0, 30, 0);
+      expect(useSkill(w, 'split', mult)).toBe(true);
+      expect(w.balls.n, `x${mult}`).toBe(2 * mult);
+    }
   });
 
   it('one split skill adds at most SPLIT_SKILL_MAX balls', () => {

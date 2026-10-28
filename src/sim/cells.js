@@ -1,5 +1,5 @@
 import {
-  COLS, ROWS, CELL, SPLIT_COUNT, BOMB_RADIUS, BOMB_DELAY, FIRE_TIME, BALL_SPEED, COMBO_WINDOW, FINALE_GAP, ITEM_MULT,
+  COLS, ROWS, CELL, SPLIT_COUNT, BOMB_RADIUS, BOMB_DELAY, FIRE_TIME, BALL_SPEED, COMBO_WINDOW, FINALE_GAP, ITEM_MULT, GOLD_BRICK_COINS,
 } from './constants.js';
 import { addBall } from './balls.js';
 
@@ -107,10 +107,9 @@ export function breakCell(w, c, r, ball = -1) {
   } else if (type === CELL.LASER_H || type === CELL.LASER_V) {
     schedule(w, type === CELL.LASER_H ? 'laserH' : 'laserV', c, r, ball >= 0 ? 0 : BOMB_DELAY);
   } else if (type === CELL.GOLD) {
-    const skill = w.rng() < 0.5 ? 'split' : 'meteor';
-    w.charges = { ...w.charges, [skill]: w.charges[skill] + 1 };
+    w.gold += GOLD_BRICK_COINS;
     w.score += 500;
-    w.events.push({ t: 'gold', c, r, skill });
+    w.events.push({ t: 'gold', c, r, coins: GOLD_BRICK_COINS });
   } else if (type === CELL.FIRE && ball >= 0) {
     w.balls.fire[ball] = FIRE_TIME;
     w.events.push({ t: 'fire', c, r });

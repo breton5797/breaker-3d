@@ -30,8 +30,8 @@ import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
 import {
-  buyLoadout, takeLoadout, recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
-  buyInPlay, IN_PLAY_MAX, LOADOUT,
+  recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
+  buyInPlay, SKILL_USES, SKILL_PRICES, LOADOUT, refundLoadout,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
@@ -73,7 +73,7 @@ const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
 const STUN_HEX = 0xff3040;
 
-let save = loadSave();
+let save = refundLoadout(loadSave()); // the title's next-stage shop is gone: its charges come back as gold
 // Photo credits (author and licence per landmark), shown on the credits screen and under each stage.
 let credits = {};
 loadCredits().then((c) => { credits = c; if (level && (mode === 'play' || mode === 'paused')) ui.setPhotoCredit(credits[level.photo] ?? null); });
@@ -120,7 +120,8 @@ const ui = createUI({
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
-  onBuy: (kind) => buyCharge(kind),
+  onPickSplit: (mult) => pickSplit(mult),
+  onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
@@ -142,53 +143,77 @@ window.addEventListener('resize', layoutOverlays);
 // Stage-intro tips and achievement toasts: called off when the stage is left.
 const stageTimers = createTimers();
 
-/** "출발 준비": spend gold on an extra skill charge for the next stage. */
-let boughtInPlay = { split: 0, meteor: 0 }; // charges bought with gold during this stage (IN_PLAY_MAX each)
+let usedSkills = { split: 0, meteor: 0 }; // skills bought and fired this stage (SKILL_USES each)
+let picking = false; // the split picker is open: the stage holds still while you choose
 
-/** A skill tap: fires a charge; with none left, buys one with gold (this stage's first) and fires it. */
-function trySkill(kind) {
-  if (!world || mode !== 'play') return;
-  if (world.charges[kind] <= 0) {
-    const r = buyInPlay(save, world.gold, kind, boughtInPlay[kind]);
-    if (!r.ok) { ui.toast(boughtInPlay[kind] >= IN_PLAY_MAX ? '이번 판 구매 한도 도달' : '골드가 부족해요', 'small'); return; }
-    save = r.save;
-    world.gold = r.live;
-    writeSave(save);
-    world.charges = { ...world.charges, [kind]: world.charges[kind] + 1 };
-    boughtInPlay = { ...boughtInPlay, [kind]: boughtInPlay[kind] + 1 };
-    audio.coin();
-    haptics.play('coin');
-    ui.toast(`${LOADOUT[kind].name} +1 (🪙${LOADOUT[kind].price})`, 'small');
+/** Can this skill fire right now? (A split needs balls in flight; a meteor works before the serve too.) */
+const canFire = (kind) => (kind === 'split' ? world.state === 'play' && world.balls.n > 0 : world.state === 'play' || world.state === 'ready');
+const BUY_GAP = 250; // ms between two buys, so a double tap doesn't spend both uses at once
+let lastBuy = 0;
+
+/** Buys one use of a skill with coins (this stage's first, then banked) and fires it. Never charges for a skill that can't fire. */
+function buySkill(kind, mult) {
+  if (!world || mode !== 'play') return false;
+  if (!canFire(kind)) { ui.toast('공을 쏜 뒤에 쓸 수 있어요', 'small'); return false; }
+  const now = performance.now();
+  if (now - lastBuy < BUY_GAP) return false;
+  const r = buyInPlay(save, world.gold, kind, usedSkills[kind], mult);
+  if (!r.ok) {
+    ui.toast(usedSkills[kind] >= SKILL_USES ? `이번 판 ${LOADOUT[kind].name}은 ${SKILL_USES}번까지` : '코인이 부족해요', 'small');
+    return false;
   }
-  useSkill(world, kind);
-}
-
-/** What one more charge costs mid-stage, and whether it can be bought now (for the skill badges). */
-function skillPrices() {
-  const offer = (kind) => ({
-    price: LOADOUT[kind].price,
-    can: boughtInPlay[kind] < IN_PLAY_MAX && save.gold + world.gold >= LOADOUT[kind].price,
-  });
-  return { split: offer('split'), meteor: offer('meteor') };
-}
-
-function buyCharge(kind) {
-  const next = buyLoadout(save, kind);
-  if (!next) return;
-  save = next;
+  save = r.save;
+  world.gold = r.live;
   writeSave(save);
+  world.charges = { ...world.charges, [kind]: world.charges[kind] + 1 };
+  usedSkills = { ...usedSkills, [kind]: usedSkills[kind] + 1 };
+  lastBuy = now;
   audio.coin();
   haptics.play('coin');
-  ui.showTitle(save);
+  useSkill(world, kind, mult);
+  return true;
+}
+
+/** A skill tap: meteor buys and fires at once; split opens the picker of multipliers (x2-x5). */
+function trySkill(kind) {
+  if (!world || mode !== 'play') return;
+  if (kind === 'meteor') { buySkill('meteor'); return; }
+  if (picking) { closePicker(); return; }
+  if (!canFire('split')) { ui.toast('공을 쏜 뒤에 쓸 수 있어요', 'small'); return; }
+  if (usedSkills.split >= SKILL_USES) { ui.toast(`이번 판 분열은 ${SKILL_USES}번까지`, 'small'); return; }
+  picking = true;
+  ui.showSplitPicker(splitOffers());
+}
+
+function pickSplit(mult) {
+  if (!picking) return;
+  closePicker();
+  buySkill('split', mult);
+}
+
+function closePicker() {
+  picking = false;
+  ui.showSplitPicker(null);
+}
+
+/** Each split multiplier's price and whether the coins cover it now. */
+function splitOffers() {
+  const coins = save.gold + world.gold;
+  return Object.fromEntries(Object.entries(SKILL_PRICES.split).map(([m, price]) => [m, { price, can: coins >= price }]));
+}
+
+/** The skill badges: the cheapest price, whether a use can be bought now, and uses left this stage. */
+function skillPrices() {
+  const coins = save.gold + world.gold;
+  const offer = (kind, price) => ({ price, can: usedSkills[kind] < SKILL_USES && coins >= price, left: SKILL_USES - usedSkills[kind] });
+  return { split: offer('split', Math.min(...Object.values(SKILL_PRICES.split))), meteor: offer('meteor', SKILL_PRICES.meteor) };
 }
 
 function startLevel(i) {
   stageTimers.cancelAll();
-  boughtInPlay = { split: 0, meteor: 0 };
-  // Charges bought before the stage come on top of the usual two of each.
-  const taken = takeLoadout(save);
-  save = taken.save;
-  writeSave(save);
+  usedSkills = { split: 0, meteor: 0 };
+  picking = false;
+  ui.showSplitPicker(null);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
   level = getLevel(i);
   coins3d.reset();
@@ -198,9 +223,8 @@ function startLevel(i) {
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
     dropSpeed: p.dropSpeed, aggression: p.aggression,
     boss: level.boss, theme: level.theme ?? null,
-    charges: { split: 2 + taken.extra.split, meteor: 2 + taken.extra.meteor },
+    charges: { split: 0, meteor: 0 }, // no free skills: each use is bought with coins (skill buttons)
   });
-  if (taken.extra.split || taken.extra.meteor) stageTimers.later(() => ui.toast('🎒 출발 준비 완료: 스킬 충전 추가!', 'small'), 1800);
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   photo.setLevel(level);
@@ -282,7 +306,7 @@ function bankLiveGold() {
 
 function togglePause() {
   // Sounds here (not on the buttons) so P / Esc / window blur get them too.
-  if (mode === 'play') { mode = 'paused'; aim = NO_AIM; haptics.stop(); audio.pause(); ui.showPause(true); }
+  if (mode === 'play') { mode = 'paused'; aim = NO_AIM; closePicker(); haptics.stop(); audio.pause(); ui.showPause(true); }
   else if (mode === 'paused') { mode = 'play'; audio.resume(); ui.showPause(false); }
 }
 
@@ -477,6 +501,13 @@ window.addEventListener('keydown', (e) => {
   audio.unlock();
   keys.add(e.code);
   if (e.repeat || !world) return; // held keys must not burn every skill charge
+  if (picking) {
+    // The split picker is open: 2-5 choose the multiplier, 1 or Esc closes it.
+    const mult = { Digit2: 2, Digit3: 3, Digit4: 4, Digit5: 5 }[e.code];
+    if (mult) pickSplit(mult);
+    else if (e.code === 'Digit1' || e.code === 'Escape') closePicker();
+    return;
+  }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (mode !== 'play') return;
   if (e.code === 'Space') { e.preventDefault(); launch(world, aim.angle); }
@@ -553,7 +584,7 @@ function step(now) {
   audio.frame();
   const scale = director.tick(dt);
   if (world && (mode === 'play' || mode === 'outro')) {
-    if (mode === 'play') {
+    if (mode === 'play' && !picking) {
       keyboardPaddle(dt);
       stepWorld(world, dt * scale);
       elapsed += dt * scale;
@@ -591,6 +622,8 @@ function step(now) {
 function showMenu() {
   mode = 'title';
   aim = NO_AIM;
+  picking = false;
+  ui.showSplitPicker(null);
   aimGuide.show(null);
   stageTimers.cancelAll();
   director.reset(); // and the director's own (fireworks, follow-up toasts)

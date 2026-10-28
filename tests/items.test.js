@@ -180,7 +180,7 @@ describe('multiplier item bricks', () => {
     setPaddleX(w, 20);
     run(w, 15, 1 / 30);
     expect(w.balls.n).toBe(MAX_BALLS);
-  });
+  }, 20_000); // 4,000 balls for 15 frames: faster balls (more substeps) need more than the 5 s default
 
   it('explosions also release items', () => {
     const w = world([[10, 5, 'B'], [11, 5, 'I'], [0, 0, '#']]);
