@@ -16,9 +16,12 @@ export const UI_SOUNDS = Object.freeze({
   'btn-achv-back': 'back',
   'btn-credits-back': 'back',
   'btn-achv': 'open',
-  // Buying a charge plays the coin sound from the game itself (or nothing when it can't be bought).
-  'btn-buy-split': null,
-  'btn-buy-meteor': null,
+  // Buying a split plays the coin sound from the game itself (or nothing when it can't be bought).
+  'pick-split-2': null,
+  'pick-split-3': null,
+  'pick-split-4': null,
+  'pick-split-5': null,
+  'pick-close': 'back',
   'btn-revive': 'confirm',
   'btn-double-gold': 'confirm',
   'btn-remove-ads': 'open',

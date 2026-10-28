@@ -5,7 +5,7 @@ import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl, bossArt, fruitArt } from './art.js';
 import { FRUITS } from './fruits.js';
 import { iconArt, splitIcons } from './icons.js';
-import { LOADOUT, totalStars, nextGoals } from './meta.js';
+import { totalStars, nextGoals } from './meta.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
@@ -84,8 +84,8 @@ export function createUI(h) {
   bind('btn-pause-menu', h.onMenu);
   bind('btn-resume', h.onResume);
   bind('btn-achv', h.onAchievements);
-  bind('btn-buy-split', () => h.onBuy('split'));
-  bind('btn-buy-meteor', () => h.onBuy('meteor'));
+  [2, 3, 4, 5].forEach((m) => bind(`pick-split-${m}`, () => h.onPickSplit(m)));
+  bind('pick-close', h.onClosePicker);
   bind('btn-achv-back', h.onMenu);
   bind('btn-credits', h.onCredits);
   bind('btn-credits-back', h.onMenu);
@@ -101,7 +101,7 @@ export function createUI(h) {
   bind('skill-split', () => h.onSkill('split'));
   bind('skill-meteor', () => h.onSkill('meteor'));
   // Taps on HUD controls must not also launch the ball.
-  ['hud', 'skills', 'overlay'].forEach((id) => $(id).addEventListener('pointerdown', (e) => e.stopPropagation()));
+  ['hud', 'skills', 'overlay', 'split-picker'].forEach((id) => $(id).addEventListener('pointerdown', (e) => e.stopPropagation()));
 
   function show(screen) {
     stopSequence();
@@ -161,19 +161,21 @@ export function createUI(h) {
     const goals = document.createElement('b');
     goals.textContent = toBoss === 0 ? '다음 판이 대형 보스!' : `다음 대형 보스까지 ${toBoss}판`;
     $('title-goals').replaceChildren(goals);
-    setLoadout(save);
     show('screen-title');
   }
 
-  /** The "출발 준비" buttons: what each extra charge costs and how many are bought for the next stage. */
-  function setLoadout(save) {
-    for (const kind of Object.keys(LOADOUT)) {
-      const item = LOADOUT[kind];
-      const have = save.loadout?.[kind] ?? 0;
-      const el = $(`btn-buy-${kind}`);
-      setRich(el, have >= item.max ? `${item.name} +${have} ✓` : `${item.name} +1 · 🪙${item.price}${have ? ` (${have})` : ''}`);
-      el.setAttribute('aria-pressed', String(have > 0));
-      el.disabled = have >= item.max || save.gold < item.price;
+  /**
+   * The split picker: each multiplier's coin price, greyed out when the coins don't cover it.
+   * @param {Record<string, {price:number, can:boolean}>|null} offers null closes it
+   */
+  function showSplitPicker(offers) {
+    const el = $('split-picker');
+    el.hidden = !offers;
+    if (!offers) return;
+    for (const [mult, { price, can }] of Object.entries(offers)) {
+      const btn = $(`pick-split-${mult}`);
+      setRich(btn.querySelector('small'), `🪙${price}`);
+      btn.disabled = !can;
     }
   }
 
@@ -266,13 +268,14 @@ export function createUI(h) {
     lastBalls = s.balls;
     $('progress-bar').style.width = `${Math.round(s.progress * 100)}%`;
     $('lives').textContent = '♥'.repeat(Math.max(0, s.lives));
-    // Out of charges: the badge shows what one more costs in gold (a tap buys and fires it).
+    // Skills are bought per use: the badge shows the coin price (split: from its cheapest multiplier),
+    // or 0 once this stage's uses are spent.
     for (const kind of ['split', 'meteor']) {
-      const offer = s.charges[kind] <= 0 ? s.prices?.[kind] : null;
-      const text = offer ? `🪙${offer.price}` : String(s.charges[kind]);
+      const offer = s.prices?.[kind];
+      const text = offer?.left > 0 ? `🪙${offer.price}${kind === 'split' ? '~' : ''}` : '0';
       if (shownCounts[kind] !== text) { shownCounts[kind] = text; setRich($(`count-${kind}`), text); }
-      $(`count-${kind}`).classList.toggle('price', Boolean(offer));
-      $(`skill-${kind}`).disabled = (s.charges[kind] <= 0 && !offer?.can) || (kind === 'split' && s.ready);
+      $(`count-${kind}`).classList.toggle('price', offer?.left > 0);
+      $(`skill-${kind}`).disabled = !offer?.can || (kind === 'split' && s.ready);
     }
     $('hint').hidden = !s.ready;
     if (s.muted !== shownMuted) {
@@ -641,6 +644,7 @@ export function createUI(h) {
     startStage,
     setHud,
     bossCard,
+    showSplitPicker,
     hideBossCard,
     shower,
     toast,

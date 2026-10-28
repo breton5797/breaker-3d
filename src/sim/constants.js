@@ -3,7 +3,7 @@ export const COLS = 96;
 export const ROWS = 128;
 
 export const BALL_R = 0.28;
-export const BALL_SPEED = 36; // cells per second outside the box (serves, returns off the paddle)
+export const BALL_SPEED = 54; // cells per second outside the box (serves, returns off the paddle): 1.5x the original 36
 export const BALL_SPEED_INSIDE = 72; // inside the steel box a ball flies twice as fast (owner, 2026-10-29)
 export const WALL_EVENTS_MAX = 4; // wall knocks reported per step at most (thousands of balls bounce)
 export const MAX_BALLS = 4000;
@@ -72,6 +72,7 @@ export const ITEM_MULT = Object.freeze({
 // cherry x2, strawberry x3, orange x5, apple x7, watermelon x9, pineapple x10.
 export const FRUIT_GAINS = Object.freeze({ 5: 2, 10: 3, 20: 5, 30: 7, 50: 9, 100: 10 });
 export const COIN_VALUE = 1; // gold per coin caught (a coin brick drops one coin)
+export const GOLD_BRICK_COINS = 10; // a gold star brick pays this many coins (skills are bought, never handed out)
 export const DROP_SPEED = 16; // cells per second an item capsule falls
 export const DROP_CATCH = 1.2; // extra reach beyond the paddle edge when catching
 // Caught multipliers queue their balls; each second about RELEASE_DRAIN of

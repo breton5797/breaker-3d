@@ -80,6 +80,17 @@
       </button>
     </div>
 
+    <div id="split-picker" class="split-picker" hidden aria-label="분열 배수 고르기">
+      <p class="split-picker-title">분열 · 공 하나가 몇 개로?</p>
+      <div class="split-picker-row">
+        <button id="pick-split-2" class="pick" data-mult="2"><b>×2</b><small></small></button>
+        <button id="pick-split-3" class="pick" data-mult="3"><b>×3</b><small></small></button>
+        <button id="pick-split-4" class="pick" data-mult="4"><b>×4</b><small></small></button>
+        <button id="pick-split-5" class="pick" data-mult="5"><b>×5</b><small></small></button>
+      </div>
+      <button id="pick-close" class="link">닫기</button>
+    </div>
+
     <div id="photo-credit" class="photo-credit" hidden></div>
 
     <div id="hint" class="hint" hidden>누른 채 위로 끌면 각도 조절 · 떼면 발사</div>
@@ -106,11 +117,6 @@
         <p id="title-gold" class="title-gold"></p>
         <p id="title-goals" class="title-goals"></p>
         <button id="btn-start" class="primary">시작하기</button>
-        <div class="loadout" aria-label="출발 준비: 다음 판 스킬 충전 구매">
-          <span class="loadout-label">출발 준비</span>
-          <button id="btn-buy-split" class="ghost buy-btn"></button>
-          <button id="btn-buy-meteor" class="ghost buy-btn"></button>
-        </div>
         <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
@@ -123,7 +129,7 @@
           <li><b class="chip c-bomb">●</b> 연쇄 폭발</li>
           <li><b class="chip c-laser">⟷ ↕</b> 한 줄 레이저</li>
           <li><b class="chip c-fire">🔥</b> 관통하는 화염공</li>
-          <li><b class="chip c-gold">★</b> 스킬 충전</li>
+          <li><b class="chip c-gold">★</b> 보너스 코인 (분열·메테오는 코인으로 구매)</li>
           <li><b class="chip c-coin">🪙</b> 골드 벽돌: 떨어지는 동전을 받으면 골드가 쌓여요</li>
         </ul>
         <p class="controls">마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지</p>

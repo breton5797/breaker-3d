@@ -12,12 +12,12 @@ const world = (n = 0) => {
 };
 
 describe('ball feel', () => {
-  it('serves at the old pace (36); inside the box a ball flies twice as fast (72), and slows again outside', () => {
-    expect(BALL_SPEED).toBe(36);
+  it('serves at 1.5x the old pace (54); inside the box a ball flies at 72, and slows again outside', () => {
+    expect(BALL_SPEED).toBe(54);
     expect(BALL_SPEED_INSIDE).toBe(72);
     const w = world();
     launch(w, 0);
-    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(36, 6);
+    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(54, 6);
     // Drop a ball inside the box and one outside: after a step each flies at its zone's pace.
     const box = w.grid.box;
     const inX = (box.left + box.right) / 2;
@@ -28,7 +28,7 @@ describe('ball feel', () => {
     const [a, b] = [w.balls.n - 2, w.balls.n - 1];
     stepWorld(w, 1 / 120);
     expect(Math.hypot(w.balls.vx[a], w.balls.vy[a])).toBeCloseTo(72, 4);
-    expect(Math.hypot(w.balls.vx[b], w.balls.vy[b])).toBeCloseTo(36, 4);
+    expect(Math.hypot(w.balls.vx[b], w.balls.vy[b])).toBeCloseTo(54, 4);
   });
 
   it('a ball bouncing off the steel box or the field wall makes a wall knock (with where it hit)', () => {

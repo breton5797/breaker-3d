@@ -81,7 +81,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px;
   background: var(--hot); font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 5px;
 }
-/* Out of charges: the badge is a gold price tag (a tap buys one with gold and fires it). */
+/* Skills are bought per use: the badge is a gold price tag (a tap buys one with coins and fires it). */
 .skill-count.price { display: flex; gap: 1px; align-items: center; background: #3a2a00; color: var(--gold); border: 1px solid var(--gold); font-size: 11px; }
 
 /* ---------- hint & toasts ---------- */
@@ -189,10 +189,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Meta game: goals under the gold, the pre-stage loadout, and the clear/over extras. */
 .title-goals { margin: -8px 0 12px; font-size: 13px; color: var(--muted); }
 .title-goals b { color: var(--ink); }
-.loadout { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 10px 0 0; }
-.loadout-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.buy-btn { min-height: 34px; padding: 0 9px; font-size: 12px; white-space: nowrap; }
-.buy-btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+/* Split picker: four multipliers with their coin prices, over the paddle lane (the stage holds still). */
+.split-picker { position: fixed; left: 50%; bottom: max(150px, calc(env(safe-area-inset-bottom) + 150px)); z-index: 5; transform: translateX(-50%);
+  width: min(380px, 92vw); padding: 12px 12px 6px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-strong); text-align: center; }
+.split-picker-title { margin: 0 0 8px; font-weight: 800; }
+.split-picker-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pick { display: grid; gap: 2px; place-items: center; min-height: 64px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.pick b { font-size: 22px; }
+.pick small { display: flex; align-items: center; gap: 2px; color: var(--gold); font-weight: 800; }
+.pick:disabled { opacity: 0.35; }
 .stage-btn small.stars-row { letter-spacing: -1px; font-size: 10px; }
 .stage-btn small.stars-row .dim { opacity: 0.3; }
 .new-best { margin: 4px 0 0; font-weight: 900; letter-spacing: 0.2em; color: var(--gold); animation: stamp 0.55s 0.9s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; }
