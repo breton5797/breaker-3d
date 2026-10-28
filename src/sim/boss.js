@@ -21,6 +21,10 @@ const PLATE_R = 1.8;
 const PLATE_GAP = 2.6; // plate orbit beyond the body
 export const PHASE2 = 0.6; // below this share of hp: angry (faster, more attacks)
 export const PHASE3 = 0.25; // below this: plates fall away, it reels (stunned), then rushes about
+// Bricks come first: while the mural still stands (no finale yet) the boss
+// cannot drop below this share of its health, so it never dies early and
+// robs the player of breaking the bricks. The finale opens it up.
+export const GUARD_FLOOR = 0.1;
 export const STUN_TIME = 3; // seconds the armour break leaves it reeling: still, harmless, hit twice as hard
 const STUN_DAMAGE = 2;
 const PACE = [1, 1.4, 1.9]; // movement and plate speed per phase
@@ -165,6 +169,16 @@ export function damageBoss(w, base) {
   }
   b.budget -= amount;
   b.hp = Math.max(0, b.hp - amount);
+  if (!w.finale) {
+    const floor = Math.max(1, b.hpMax * GUARD_FLOOR);
+    if (b.hp < floor) {
+      b.hp = floor;
+      if (!b.guardSaid) {
+        b.guardSaid = true;
+        w.events.push({ t: 'boss-guard', x: b.x, y: b.y });
+      }
+    }
+  }
   w.score += 20 * amount;
   w.events.push({ t: 'boss-hit', x: b.x, y: b.y, dmg: amount });
   const share = b.hp / b.hpMax;
@@ -187,7 +201,7 @@ export function damageBoss(w, base) {
     b.attack = null;
     w.score += 5000;
     w.events.push({ t: 'boss-down', x: b.x, y: b.y, kind: b.kind });
-    startFinale(w); // the rest of the arena shatters
+    if (!w.finale) startFinale(w); // the rest of the arena shatters (normally it already has)
   }
 }
 

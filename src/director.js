@@ -260,8 +260,19 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
         case 'finale':
           haptics.play('milestone');
           zapCount = 0;
-          slowMo(0.45, 99);
-          stage.setZoom(0.93);
+          // The stage is ending: savour it. With a boss still standing the fight goes on, so only a beat.
+          slowMo(0.45, w.boss?.alive ? 1.2 : 99);
+          stage.setZoom(w.boss?.alive ? 1 : 0.93);
+          break;
+        case 'boss-guard':
+          // Its health hit the floor while bricks still stand: tell the player what unlocks it.
+          ui.toast('🛡 벽돌을 먼저 다 깨라!', 'danger');
+          break;
+        case 'boss-open':
+          stage.shake(1.2);
+          haptics.play('stun');
+          ui.toast('벽돌 파괴 완료!', 'mega neon-burst');
+          setTimeout(() => ui.toast('이제 보스를 쓰러뜨려라!', 'danger'), 600);
           break;
         case 'clear': haptics.play('clear'); if (w.finale) fireworks(); break;
         default: break;

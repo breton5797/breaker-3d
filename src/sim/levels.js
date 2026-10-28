@@ -362,6 +362,7 @@ export function getLevel(i, { slots } = {}) {
   // A boss does the shooting itself, so its stage has no enemy units.
   const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
   const lines = frame(upscale(seeded), box, holes);
+  const bricks = lines.reduce((sum, line) => sum + [...line].filter((ch) => ch !== '.' && ch !== 'S').length, 0);
   return {
     index: n,
     name: map.name,
@@ -375,7 +376,8 @@ export function getLevel(i, { slots } = {}) {
     box,
     holes: holes.map(({ pocket, ...h }) => h),
     // Every stage has a boss: the big one on every 10th, the map's own otherwise.
-    boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n),
+    boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n, bricks),
+    bricks,
     bossName: slot.boss ? map.name : `BOSS · ${MAP_BOSSES[map.id]?.name ?? map.name}`,
     bossStage: slot.boss,
     theme: map.theme ?? null, // chapter gimmick: 'space' | 'sea' | 'nature' (gimmicks.js)

@@ -55,6 +55,7 @@ export const MAP_BOSSES = Object.freeze({
 });
 
 const ZONE = Object.freeze({ stomp: 12, slam: 8, rock: 7, sweep: 0 }); // warning width at the paddle row
+const BRICK_HP = 0.012; // health per brick on the stage (~40 for an average mural)
 const GENTLE_STAGES = 5; // stages 1-5: the boss only roams, it never strikes
 
 /**
@@ -62,8 +63,10 @@ const GENTLE_STAGES = 5; // stages 1-5: the boss only roams, it never strikes
  * in a band under the box ceiling, tougher as stages rise.
  * @param {string} mapId
  * @param {number} n
+ * @param {number} [bricks] bricks on the stage: a bigger mural takes longer to
+ *   break, so its boss gets more health to last about as long
  */
-export function mapBossSpec(mapId, n) {
+export function mapBossSpec(mapId, n, bricks = 3000) {
   const m = MAP_BOSSES[mapId];
   if (!m) return null;
   return {
@@ -76,7 +79,7 @@ export function mapBossSpec(mapId, n) {
     zone: ZONE[m.attack],
     attacks: n >= GENTLE_STAGES,
     attackEvery: 7, // a big boss strikes every 4.5 s
-    hp: 50 + Math.floor(n * 0.8),
+    hp: 50 + Math.floor(n * 0.8) + Math.floor(bricks * BRICK_HP),
     dps: 4 + Math.floor(n / 40),
     tier: Math.min(10, 1 + Math.floor(n / 30)),
   };

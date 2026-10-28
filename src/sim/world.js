@@ -225,9 +225,11 @@ export function stepWorld(w, dt) {
   const g = w.grid;
   const nearlyDone = g.total >= 100 && g.remaining <= g.total * FINALE_FRACTION;
   const stalled = g.remaining <= g.total * STALL_FRACTION && w.time - w.lastBreak > STALL_TIME;
-  // A living boss keeps its stage going: no early finale until its core breaks.
-  if (!w.finale && w.state === 'play' && !w.boss?.alive && (nearlyDone || stalled)) {
+  // The mural is nearly gone: the last bricks shatter in the finale, and only
+  // then can a living boss be beaten (boss.js keeps it above GUARD_FLOOR until now).
+  if (!w.finale && w.state === 'play' && (nearlyDone || stalled || g.remaining <= 0)) {
     startFinale(w);
+    if (w.boss?.alive) w.events.push({ t: 'boss-open', x: w.boss.x, y: w.boss.y });
   }
   // A boss stage ends only with the boss: an empty arena alone is not a win.
   if (w.grid.remaining <= 0 && !w.boss?.alive) {

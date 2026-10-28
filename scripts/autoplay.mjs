@@ -21,6 +21,8 @@ for (const stage of STAGES) {
   let hits = 0;
   let firstCatch = null;
   let firstEntry = null;
+  let finaleAt = null;
+  let bossAtFinale = null;
   while (t < 420 && w.state !== 'clear' && w.state !== 'over') {
     if (w.state === 'ready') launch(w);
     if (t > 1 && w.charges.meteor > 0 && w.balls.n < 10) useSkill(w, 'meteor');
@@ -44,9 +46,10 @@ for (const stage of STAGES) {
     worst = Math.max(worst, performance.now() - s);
     hits += w.events.filter((e) => e.t === 'paddle-hit').length;
     if (firstCatch === null && w.collected > 0) firstCatch = t;
+    if (finaleAt === null && w.finale) { finaleAt = t; bossAtFinale = w.boss?.alive ? Math.round(100 * w.boss.hp / w.boss.hpMax) : 0; }
     if (firstEntry === null && w.state === 'play' && ballInside(w)) firstEntry = t;
     w.events = [];
     t += dt;
   }
-  console.log(`${String(stage).padStart(3)} ${lvl.name.padEnd(8)} holes=${p.holeCount}x${p.holeSize} hp=${p.brickHp} lv=${p.unitTop}x${p.unitCount} bricks=${total} state=${w.state} boss=${w.boss ? (w.boss.alive ? `${Math.round(w.boss.hp)}/${w.boss.hpMax}` : 'down') : '-'} t=${t.toFixed(0)}s afterEntry=${firstEntry === null ? "-" : (t - firstEntry).toFixed(0)}s afterCatch=${firstCatch === null ? "-" : (t - firstCatch).toFixed(0)}s left=${w.grid.remaining} peak=${w.peakBalls} items=${w.collected} hits=${hits} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
+  console.log(`${String(stage).padStart(3)} ${lvl.name.padEnd(8)} holes=${p.holeCount}x${p.holeSize} hp=${p.brickHp} lv=${p.unitTop}x${p.unitCount} bricks=${total} state=${w.state} finale=${finaleAt === null ? '-' : `${finaleAt.toFixed(0)}s(boss ${bossAtFinale}%)`} boss=${w.boss ? (w.boss.alive ? `${Math.round(w.boss.hp)}/${w.boss.hpMax}` : 'down') : '-'} t=${t.toFixed(0)}s afterEntry=${firstEntry === null ? "-" : (t - firstEntry).toFixed(0)}s afterCatch=${firstCatch === null ? "-" : (t - firstCatch).toFixed(0)}s left=${w.grid.remaining} peak=${w.peakBalls} items=${w.collected} hits=${hits} lives=${w.lives} worstStep=${worst.toFixed(2)}ms`);
 }

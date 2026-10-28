@@ -171,14 +171,16 @@ describe('boss character', () => {
     expect(w.boss.plates).toHaveLength(0);
   });
 
-  it('at zero hit points the boss goes down, the arena shatters and the stage clears', () => {
+  it('once the arena has shattered, zero hit points bring the boss down and the stage clears', () => {
     const { w } = bossWorld();
     w.state = 'play';
-    w.boss.budget = Infinity;
     addBall(w.balls, 3, 3, 0, 40); // keep a ball alive so the run doesn't end
+    w.grid.remaining = 3; // nearly done: the finale shatters the rest and opens the boss up
+    stepWorld(w, 1 / 60);
+    expect(w.finale).toBe(true);
+    w.boss.budget = Infinity;
     damageBoss(w, w.boss.hp);
     expect(w.boss.alive).toBe(false);
-    expect(w.finale).toBe(true);
     expect(drainEvents(w).some((e) => e.t === 'boss-down')).toBe(true);
     for (let t = 0; t < 12 && w.state === 'play'; t += 1 / 60) stepWorld(w, 1 / 60);
     expect(w.state).toBe('clear');
@@ -197,13 +199,14 @@ describe('boss character', () => {
     expect(w.state).toBe('clear');
   });
 
-  it('the usual "nearly done" finale waits until the boss is down', () => {
+  it('the "nearly done" finale runs while the boss still lives (bricks come first)', () => {
     const { w } = bossWorld();
     w.state = 'play';
     addBall(w.balls, 5, 5, 0, 30);
     w.grid.remaining = 3;
     stepWorld(w, 1 / 60);
-    expect(w.finale).toBe(false);
+    expect(w.finale).toBe(true);
+    expect(w.boss.alive).toBe(true);
   });
 });
 
