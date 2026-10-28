@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- Share image (public/og-image.jpg): open on the dev server at 1200x630 and screenshot.
+     Same neon logo as the title screen, over the Higgsfield key art. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/neon.css" />
+  <style>
+    html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #06080f; }
+    .og { position: relative; width: 1200px; height: 630px; }
+    .og img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; }
+    .og::before { content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(90deg, rgba(6, 8, 15, 0.92) 0%, rgba(6, 8, 15, 0.7) 32%, rgba(6, 8, 15, 0) 58%); }
+    .copy { position: absolute; z-index: 2; left: 64px; top: 170px; text-align: left; }
+    .copy .logo { font-size: 104px; }
+    .copy h2 { margin: 26px 0 10px; font-size: 40px; font-weight: 800; color: #fff; }
+    .copy p { margin: 0; font-size: 26px; color: #b9c6ff; }
+  </style>
+</head>
+<body>
+  <div class="og">
+    <img src="/art/ui/title.webp" alt="" />
+    <div class="copy">
+      <h1 class="logo">BREAKER<span>3D</span></h1>
+      <h2>세계 랜드마크 벽돌 깨기</h2>
+      <p>무한 스테이지 · 맵마다 보스 · 무료</p>
+    </div>
+  </div>
+</body>
+</html>

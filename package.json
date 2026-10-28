@@ -11,7 +11,7 @@
     "app:sync": "vite build && cap sync",
     "app:android": "vite build && cap sync android && cap open android",
     "app:ios": "vite build && cap sync ios && cap open ios",
-    "app:assets": "capacitor-assets generate --iconBackgroundColor #06080f --splashBackgroundColor #06080f --android --ios"
+    "app:assets": "capacitor-assets generate --iconBackgroundColor '#06080f' --splashBackgroundColor '#06080f' --android --ios"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.2.1",
