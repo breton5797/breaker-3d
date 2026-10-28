@@ -72,6 +72,12 @@ export function createAudio() {
       if (master) master.gain.value = m ? 0 : 0.5;
     },
     isMuted: () => muted,
+    /** The app went to the background (or came back): silence the whole context meanwhile. */
+    sleep(hidden) {
+      if (!ctx) return;
+      if (hidden) ctx.suspend();
+      else ctx.resume();
+    },
     /** Brick pop; pitch climbs with the combo. */
     pop(combo) { tone(note(Math.min(30, Math.floor(combo / 12))) * (1 + Math.random() * 0.02), 0.09, 'triangle', 0.12); },
     paddle() { tone(220, 0.08, 'sine', 0.2, 330); },

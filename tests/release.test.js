@@ -105,6 +105,46 @@ describe('offline cache (service worker)', () => {
     expect(store.has('https://game.example/breaker-3d/landmarks/giza.jpg')).toBe(true);
   });
 
+  /** A worker over an in-memory cache; `put` can be made to fail like a full disk. */
+  function workerWith(store, { putFails = false } = {}) {
+    const cache = {
+      match: async (req) => store.get(req.url),
+      put: async (req, res) => { if (putFails) throw new Error('QuotaExceededError'); store.set(req.url, res); },
+      keys: async () => [...store.keys()].map((url) => ({ url })),
+      delete: async (req) => store.delete(req.url),
+    };
+    const listeners = {};
+    vm.runInNewContext(read('public/sw.js'), {
+      self: { addEventListener: (n, fn) => { listeners[n] = fn; }, location: { origin: 'https://game.example' }, skipWaiting() {}, clients: { claim() {} } },
+      caches: { open: async () => cache, keys: async () => [], delete: async () => true },
+      fetch: async () => ({ ok: true, body: 'fresh', clone() { return this; } }),
+      URL,
+    });
+    return async (url) => {
+      let done;
+      listeners.fetch({ request: { url, method: 'GET' }, respondWith: (p) => { done = p; } });
+      const res = await done;
+      await new Promise((r) => setTimeout(r, 0));
+      return res;
+    };
+  }
+
+  it('a full disk (cache write fails) still hands over the downloaded file', async () => {
+    const get = workerWith(new Map(), { putFails: true });
+    expect((await get('https://game.example/breaker-3d/art/model/mummy.glb?v=1')).body).toBe('fresh');
+  });
+
+  it('a redrawn picture (new ?v=) replaces its old version in the cache', async () => {
+    const store = new Map([
+      ['https://game.example/breaker-3d/art/fruit/apple.png?v=1', 'old apple'],
+      ['https://game.example/breaker-3d/art/fruit/cherry.png?v=1', 'cherry'],
+    ]);
+    await workerWith(store)('https://game.example/breaker-3d/art/fruit/apple.png?v=2');
+    expect(store.has('https://game.example/breaker-3d/art/fruit/apple.png?v=2')).toBe(true);
+    expect(store.has('https://game.example/breaker-3d/art/fruit/apple.png?v=1')).toBe(false);
+    expect(store.has('https://game.example/breaker-3d/art/fruit/cherry.png?v=1')).toBe(true);
+  });
+
   it('leaves everything else alone (other sites, non-GET)', () => {
     const l = loadWorker();
     expect(handled(l, 'https://commons.wikimedia.org/wiki/File:X.jpg')).toBe(false);

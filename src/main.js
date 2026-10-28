@@ -14,6 +14,7 @@ import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
 import { createGimmicks3d } from './render/gimmicks3d.js';
 import { createBoss3d } from './render/boss3d.js';
+import { createTimers } from './timers.js';
 import { createHaptics } from './haptics.js';
 import { createFullscreen } from './fullscreen.js';
 import { bindUiSounds } from './uiSounds.js';
@@ -118,9 +119,20 @@ ui.setVibe(haptics.supported, haptics.enabled);
 // An app is already full screen: no button there.
 ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
 // Esc or the system back gesture also leaves fullscreen; keep the labels and the framing in step.
-fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), on); stage.resize(); });
+fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), on); stage.resize(); layoutOverlays(); });
+
+/** Toasts and the boss bar go in the band above the board; it moves with the screen shape. */
+function layoutOverlays() {
+  if (!level?.box) return;
+  requestAnimationFrame(() => ui.layoutOverlays(stage.project(COLS / 2, level.box.top + 1, 0).y, stage.project(COLS / 2, PADDLE_Y + 16, 0).y));
+}
+window.addEventListener('resize', layoutOverlays);
+
+// Stage-intro tips and achievement toasts: called off when the stage is left.
+const stageTimers = createTimers();
 
 function startLevel(i) {
+  stageTimers.cancelAll();
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
   level = getLevel(i);
   coins3d.reset();
@@ -140,6 +152,7 @@ function startLevel(i) {
   boss3d.setBoss(world.boss);
   director.reset();
   stage.setZoom(1);
+  layoutOverlays();
   elapsed = 0;
   quality.reset();
   mode = 'play';
@@ -147,22 +160,22 @@ function startLevel(i) {
   if (level.bossStage) {
     audio.bossWarn();
     haptics.play('stun');
-    setTimeout(() => ui.toast('⚠ BOSS 출현! 몸통을 맞혀라', 'mega danger'), 900);
-    setTimeout(() => ui.toast('빨간 영역 = 공격 예고, 피하세요!', 'small'), 2200);
+    stageTimers.later(() => ui.toast('⚠ BOSS 출현! 몸통을 맞혀라', 'mega danger'), 900);
+    stageTimers.later(() => ui.toast('빨간 영역 = 공격 예고, 피하세요!', 'small'), 2200);
   } else {
     audio.stageIntro();
     // Every map has its own boss: name it once, then the mural's own tips follow.
-    if (level.boss) setTimeout(() => ui.toast(`👾 ${level.bossName.replace('BOSS · ', '')} 출현! 쓰러뜨리면 클리어`, 'small'), 900);
+    if (level.boss) stageTimers.later(() => ui.toast(`👾 ${level.bossName.replace('BOSS · ', '')} 출현! 쓰러뜨리면 클리어`, 'small'), 900);
   }
   if (level.chapterStart) {
-    setTimeout(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
-    setTimeout(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
+    stageTimers.later(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
+    stageTimers.later(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
   }
   const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
-  if (GIMMICK_TIPS[level.theme]) setTimeout(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);
+  if (GIMMICK_TIPS[level.theme]) stageTimers.later(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
-    setTimeout(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
+    stageTimers.later(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
   }
 }
 
@@ -182,7 +195,7 @@ function checkAchievements(cleared) {
   haptics.play('achievement');
   fresh.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    setTimeout(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name}`], 'small'), 400 + k * 700);
+    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name}`], 'small'), 400 + k * 700);
   });
 }
 
@@ -364,6 +377,11 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => { keys.clear(); if (mode === 'play') togglePause(); });
+// Phones: switching apps or tabs hides the page without a blur. Pause and go quiet until it's back.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { keys.clear(); if (mode === 'play') togglePause(); }
+  audio.sleep(document.hidden);
+});
 
 // ---------- loop ----------
 
@@ -394,7 +412,32 @@ function hud() {
 }
 
 let last = performance.now();
+let crashes = 0; // frames in a row that threw
+const MAX_CRASHES = 30;
+
+/**
+ * One frame, guarded: a single bad frame (an unexpected state somewhere) must not
+ * freeze the game for good, so the loop always carries on. Only if every frame
+ * keeps failing does the player get the reload notice (progress is saved).
+ */
 function frame(now) {
+  try {
+    step(now);
+    crashes = 0;
+  } catch (err) {
+    crashes++;
+    last = now;
+    if (crashes === 1) console.error(err);
+    if (crashes >= MAX_CRASHES) {
+      document.getElementById('boot-error-text').textContent = '문제가 생겨 게임이 멈췄습니다. 새로고침하면 이어서 할 수 있어요(진행 상황은 저장되어 있습니다).';
+      document.getElementById('boot-error').hidden = false;
+      return;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function step(now) {
   const rawDt = (now - last) / 1000;
   const dt = Math.min(MAX_DT, rawDt);
   last = now;
@@ -432,12 +475,13 @@ function frame(now) {
   beacon.update(now / 1000);
   fx.update(dt * (mode === 'outro' ? 0.6 : scale));
   stage.render(dt, world ? world.paddle.x : COLS / 2);
-  requestAnimationFrame(frame);
 }
 
 /** Title screen with the latest unlocked stage as an untouched backdrop. */
 function showMenu() {
   mode = 'title';
+  stageTimers.cancelAll();
+  director.reset(); // and the director's own (fireworks, follow-up toasts)
   const preview = getLevel(save.unlocked - 1);
   const backdrop = createWorld(preview.lines, {
     box: preview.box, holes: preview.holes, brickHp: preview.brickHp, paddleW: preview.params.paddleW,

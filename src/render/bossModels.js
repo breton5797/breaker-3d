@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BOSS_MODELS, artUrl } from '../art.js';
-import { fitScale } from './bossFit.js';
+import { fitScale, lruTouch } from './bossFit.js';
 
 // Loads the generated boss bodies (one GLB per kind) and hands out ready-to-use
 // copies: turned to face the camera, centred, sized to the boss, and repainted
@@ -30,7 +30,22 @@ const LOOK = {
 };
 
 const cache = new Map(); // kind -> Promise<THREE.Object3D|null>
+let recent = []; // kinds by last use; only the newest KEEP stay in memory
+const KEEP = 2; // the boss on screen and the one before (its wreck may still be falling)
 let loader = null;
+
+/** Frees a template's GPU memory (geometry, materials, textures): ~3-4 MB per boss. */
+function release(kind) {
+  const entry = cache.get(kind);
+  cache.delete(kind);
+  entry?.then((tpl) => tpl?.traverse((o) => {
+    if (!o.isMesh) return;
+    o.geometry.dispose();
+    o.material.map?.dispose();
+    o.material.normalMap?.dispose();
+    o.material.dispose();
+  }));
+}
 
 async function getLoader() {
   if (!loader) {
@@ -82,6 +97,9 @@ function prepare(scene, kind) {
  * @returns {Promise<THREE.Object3D|null>} the template, or null when there is none
  */
 export function loadBossModel(kind) {
+  const touched = lruTouch(recent, kind, KEEP);
+  recent = touched.list;
+  touched.evicted.forEach(release);
   if (!cache.has(kind)) {
     const path = BOSS_MODELS[kind];
     cache.set(kind, !path ? Promise.resolve(null) : getLoader()

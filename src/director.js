@@ -5,11 +5,12 @@ import { fruitFor } from './fruits.js';
 import { fruitArt } from './art.js';
 import { createPacing } from './pacing.js';
 import { fruitHaptic } from './haptics.js';
+import { createTimers } from './timers.js';
 
 const SHARD_BUDGET = 260; // debris spawned per frame at most
 const RAINBOW = [0xff4d4d, 0xff9f43, 0xfeca57, 0x1dd1a1, 0x48dbfb, 0x2e86de, 0xa55eea, 0xff6b81];
 const rainbow = (k) => RAINBOW[k % RAINBOW.length];
-const FINALE_ABOVE = 9; // cells above the paddle where the finale count sits (where the launch hint goes)
+const FINALE_BELOW = 3.5; // cells below the paddle where the finale count sits (clear of falling balls and fruit)
 const BALL_MILESTONES = [50, 100, 250, 500, 1000, 2000, 3000];
 const COMBO_MILESTONES = [100, 300, 1000];
 const COIN_BURSTS = 3; // gold ring + chip bursts per frame at most
@@ -25,6 +26,7 @@ const STEEL_HEX = 0x6c7a96;
  */
 export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d }) {
   const pacing = createPacing();
+  const timers = createTimers(); // delayed effects of this stage, called off on reset
   let ballMark = 0;
   let comboMark = 0;
   let zapCount = 0;
@@ -36,7 +38,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   /** Finale send-off: staggered firework bursts across the board. */
   function fireworks() {
     for (let k = 0; k < 9; k++) {
-      setTimeout(() => {
+      timers.later(() => {
         const x = COLS * (0.15 + Math.random() * 0.7);
         const y = ROWS * (0.35 + Math.random() * 0.5);
         const c = new THREE.Color(rainbow(k));
@@ -48,6 +50,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   }
 
   function reset() {
+    timers.cancelAll();
     ui.setFinale(null);
     pacing.reset();
     ballMark = 0;
@@ -201,7 +204,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.bossDown();
           haptics.play('clear');
           ui.toast('💫 기절! 집중 공격!', 'mega neon-burst');
-          setTimeout(() => ui.toast(`${e.dur}초 동안 피해 2배`, 'small'), 700);
+          timers.later(() => ui.toast(`${e.dur}초 동안 피해 2배`, 'small'), 700);
           break;
         case 'boss-wake':
           stage.shake(0.6);
@@ -236,7 +239,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           boss3d.down();
           fx.firework(e.x, e.y, 0xffd23a, [1, 0.8, 0.2]);
           fx.firework(e.x, e.y, 0xff5a3c, [1, 0.35, 0.2]);
-          for (let k = 0; k < 9; k++) setTimeout(() => fx.firework(e.x + (Math.random() - 0.5) * 16, e.y + (Math.random() - 0.5) * 12, rainbow(k), [1, 0.6 + 0.4 * Math.random(), 0.3]), k * 90);
+          for (let k = 0; k < 9; k++) timers.later(() => fx.firework(e.x + (Math.random() - 0.5) * 16, e.y + (Math.random() - 0.5) * 12, rainbow(k), [1, 0.6 + 0.4 * Math.random(), 0.3]), k * 90);
           stage.shake(2.4);
           stage.kick(0, 0, -2.5);
           pacing.hitStop(0.2);
@@ -272,8 +275,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
         case 'boss-open':
           stage.shake(1.2);
           haptics.play('stun');
-          ui.toast('벽돌 파괴 완료!', 'mega neon-burst');
-          setTimeout(() => ui.toast('이제 보스를 쓰러뜨려라!', 'danger'), 600);
+          // The last bricks are still shattering (the finale counts them): the news is the boss's shield.
+          ui.toast('보스 방어막 해제!', 'mega neon-burst');
+          timers.later(() => ui.toast('이제 보스를 쓰러뜨려라!', 'danger'), 600);
           break;
         case 'clear': haptics.play('clear'); if (w.finale) fireworks(); break;
         default: break;
@@ -295,14 +299,14 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {
       // Pops off the boss's body; bigger and gold while it is stunned (double damage).
       const at = stage.project(w.boss.x + (Math.random() - 0.5) * w.boss.r, w.boss.y + w.boss.r * 0.6, 4);
-      ui.floatAt(at.x, at.y, [[{ big: `-${dmgBank}` }]], w.boss.stun > 0 ? 'dmg crit' : 'dmg');
+      ui.floatAt(at.x, at.y, [[{ big: `-${Math.round(dmgBank)}` }]], w.boss.stun > 0 ? 'dmg crit' : 'dmg');
       dmgBank = 0;
       dmgAt = now;
     }
     milestones(w);
-    // Below the board, just above the paddle, so it never hides the boss; gone once nothing is left to count.
+    // Under the paddle, so it hides neither the boss nor what is falling; gone once nothing is left to count.
     const counting = w.finale && w.state === 'play' && w.grid.remaining > 0;
-    ui.setFinale(counting ? w.grid.remaining : null, counting ? stage.project(COLS / 2, PADDLE_Y + FINALE_ABOVE, 1) : null);
+    ui.setFinale(counting ? w.grid.remaining : null, counting ? stage.project(COLS / 2, PADDLE_Y - FINALE_BELOW, 1) : null);
   }
 
   function milestones(w) {

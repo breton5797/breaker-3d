@@ -31,16 +31,20 @@ function badgeTexture(tier) {
   return tex;
 }
 
+// Every unit shares these shapes; only its materials are its own (the eye blinks per unit).
+const BODY_GEO = new THREE.BoxGeometry(0.95, 0.95, 1.5);
+const EYE_GEO = new THREE.SphereGeometry(0.22, 12, 10);
+
 function makeUnit(tier, badge) {
   const group = new THREE.Group();
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.95, 0.95, 1.5),
+    BODY_GEO,
     new THREE.MeshLambertMaterial({ color: TIER_COLORS[tier - 1] }),
   );
   body.position.z = 0.75;
   body.castShadow = true;
   const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 12, 10),
+    EYE_GEO,
     new THREE.MeshBasicMaterial({ color: 0x7a1010 }),
   );
   eye.position.set(0, -0.35, 1.25);
@@ -66,8 +70,14 @@ export function createUnits3d(scene) {
   scene.add(shellMesh);
   const tmp = new THREE.Object3D();
 
+  /** Takes a unit off the board and frees its own materials (shapes and badge textures are shared). */
+  function drop(v) {
+    scene.remove(v.group);
+    v.group.traverse((o) => { if (o.material) o.material.dispose(); });
+  }
+
   function clear() {
-    views.forEach((v) => scene.remove(v.group));
+    views.forEach(drop);
     views = new Map();
   }
 
@@ -96,7 +106,7 @@ export function createUnits3d(scene) {
   function update(units, shells, awake, time, dt) {
     const alive = new Set(units.map((u) => `${u.c},${u.r}`));
     views.forEach((v, key) => {
-      if (!alive.has(key)) { scene.remove(v.group); views.delete(key); }
+      if (!alive.has(key)) { drop(v); views.delete(key); }
     });
     units.forEach((u, k) => {
       const v = views.get(`${u.c},${u.r}`);
