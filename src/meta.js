@@ -32,6 +32,24 @@ export function buyLoadout(save, kind) {
   return { ...paid, loadout: { split: 0, meteor: 0, ...save.loadout, [kind]: have + 1 } };
 }
 
+export const IN_PLAY_MAX = 3; // charges of each skill a stage lets you buy mid-play
+
+/**
+ * A skill charge bought mid-stage with gold: the gold picked up this stage goes first, then the banked gold.
+ * @param {object} save
+ * @param {number} live gold picked up this stage, not banked yet
+ * @param {string} kind 'split' | 'meteor'
+ * @param {number} bought charges of this kind already bought this stage
+ * @returns {{ ok:boolean, save:object, live:number }} unchanged save and live gold when it fails
+ */
+export function buyInPlay(save, live, kind, bought) {
+  const item = LOADOUT[kind];
+  const no = { ok: false, save, live };
+  if (!item || bought >= IN_PLAY_MAX || save.gold + live < item.price) return no;
+  const fromLive = Math.min(live, item.price);
+  return { ok: true, save: { ...save, gold: save.gold - (item.price - fromLive) }, live: live - fromLive };
+}
+
 /** A stage starts: its bought charges come off the save. */
 export function takeLoadout(save) {
   const extra = { split: save.loadout?.split ?? 0, meteor: save.loadout?.meteor ?? 0 };

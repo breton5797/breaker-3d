@@ -81,6 +81,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px;
   background: var(--hot); font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 5px;
 }
+/* Out of charges: the badge is a gold price tag (a tap buys one with gold and fires it). */
+.skill-count.price { display: flex; gap: 1px; align-items: center; background: #3a2a00; color: var(--gold); border: 1px solid var(--gold); font-size: 11px; }
 
 /* ---------- hint & toasts ---------- */
 .hint {
@@ -105,12 +107,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .boss-card {
   position: fixed; left: 50%; top: 52%; z-index: 4; width: min(360px, 88vw); transform: translate(-50%, -50%);
   display: grid; grid-template-columns: 44% 1fr; align-items: center; column-gap: 10px; padding: 10px 16px 10px 6px;
-  border-radius: 22px; border: 2px solid rgba(255, 79, 216, 0.75);
-  background: linear-gradient(120deg, rgba(40, 10, 50, 0.92), rgba(14, 19, 44, 0.94));
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65); pointer-events: none; overflow: visible;
+  /* No panel: the boss and its name float over the board (owner: transparent boss backgrounds). */
+  border: none; background: none; box-shadow: none; pointer-events: none; overflow: visible;
   animation: cardIn 0.42s cubic-bezier(0.2, 1.35, 0.4, 1) both;
 }
-.boss-card.big { border-color: rgba(255, 59, 92, 0.9); background: repeating-linear-gradient(135deg, rgba(70, 8, 18, 0.94) 0 14px, rgba(40, 6, 14, 0.94) 14px 28px); }
+.boss-card .boss-card-text b, .boss-card .boss-card-text small { text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9); }
+.boss-card.big .boss-card-text small { color: #ff4d6a; }
 .boss-card.out { animation: cardOut 0.3s ease-in both; }
 .boss-card-art { width: 100%; aspect-ratio: 1; object-fit: contain; margin: -38px 0 -14px; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.55)); animation: artIn 0.55s 0.1s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .boss-card-text { display: grid; gap: 4px; text-align: left; }

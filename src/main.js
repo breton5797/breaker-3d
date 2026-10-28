@@ -31,6 +31,7 @@ import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
 import {
   buyLoadout, takeLoadout, recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
+  buyInPlay, IN_PLAY_MAX, LOADOUT,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
@@ -91,7 +92,7 @@ const ui = createUI({
   onNext: () => startLevel(level.index + 1),
   onRetry: () => startLevel(level.index),
   onMenu: () => { bankLiveGold(); showMenu(); },
-  onSkill: (name) => world && mode === 'play' && useSkill(world, name),
+  onSkill: (name) => trySkill(name),
   onMute: () => {
     audio.unlock();
     audio.setMuted(!audio.isMuted());
@@ -142,6 +143,35 @@ window.addEventListener('resize', layoutOverlays);
 const stageTimers = createTimers();
 
 /** "출발 준비": spend gold on an extra skill charge for the next stage. */
+let boughtInPlay = { split: 0, meteor: 0 }; // charges bought with gold during this stage (IN_PLAY_MAX each)
+
+/** A skill tap: fires a charge; with none left, buys one with gold (this stage's first) and fires it. */
+function trySkill(kind) {
+  if (!world || mode !== 'play') return;
+  if (world.charges[kind] <= 0) {
+    const r = buyInPlay(save, world.gold, kind, boughtInPlay[kind]);
+    if (!r.ok) { ui.toast(boughtInPlay[kind] >= IN_PLAY_MAX ? '이번 판 구매 한도 도달' : '골드가 부족해요', 'small'); return; }
+    save = r.save;
+    world.gold = r.live;
+    writeSave(save);
+    world.charges = { ...world.charges, [kind]: world.charges[kind] + 1 };
+    boughtInPlay = { ...boughtInPlay, [kind]: boughtInPlay[kind] + 1 };
+    audio.coin();
+    haptics.play('coin');
+    ui.toast(`${LOADOUT[kind].name} +1 (🪙${LOADOUT[kind].price})`, 'small');
+  }
+  useSkill(world, kind);
+}
+
+/** What one more charge costs mid-stage, and whether it can be bought now (for the skill badges). */
+function skillPrices() {
+  const offer = (kind) => ({
+    price: LOADOUT[kind].price,
+    can: boughtInPlay[kind] < IN_PLAY_MAX && save.gold + world.gold >= LOADOUT[kind].price,
+  });
+  return { split: offer('split'), meteor: offer('meteor') };
+}
+
 function buyCharge(kind) {
   const next = buyLoadout(save, kind);
   if (!next) return;
@@ -154,6 +184,7 @@ function buyCharge(kind) {
 
 function startLevel(i) {
   stageTimers.cancelAll();
+  boughtInPlay = { split: 0, meteor: 0 };
   // Charges bought before the stage come on top of the usual two of each.
   const taken = takeLoadout(save);
   save = taken.save;
@@ -449,8 +480,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (mode !== 'play') return;
   if (e.code === 'Space') { e.preventDefault(); launch(world, aim.angle); }
-  if (e.code === 'Digit1' || e.code === 'KeyQ') useSkill(world, 'split');
-  if (e.code === 'Digit2' || e.code === 'KeyW') useSkill(world, 'meteor');
+  if (e.code === 'Digit1' || e.code === 'KeyQ') trySkill('split');
+  if (e.code === 'Digit2' || e.code === 'KeyW') trySkill('meteor');
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => { keys.clear(); if (mode === 'play') togglePause(); });
@@ -484,6 +515,7 @@ function hud() {
     ready: world.state === 'ready',
     muted: audio.isMuted(),
     gold: save.gold + world.gold,
+    prices: skillPrices(),
   });
   ui.setBoss(world.boss?.alive ? level.bossName : null, world.boss ? world.boss.hp / world.boss.hpMax : 1, GUARD_FLOOR);
 }

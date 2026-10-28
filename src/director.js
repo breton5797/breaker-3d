@@ -184,9 +184,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           }
           break;
         case 'wall':
-          // A ball knocking on the steel box or the field wall: sparks where it struck and a tink.
+          // A ball knocking on the steel box or the field wall: a tink (no shards: steel never breaks,
+          // and debris lingering on unbreakable walls read as afterimages).
           if (wallKnocks++ < 2) {
-            for (let k = 0; k < 3; k++) fx.shards(e.x, e.y, 0xcfd8ea, 0.5);
             // A rally knocks every frame: tink at most every KNOCK_GAP so it never drowns the brick pops.
             if (wallKnocks === 1 && Math.abs(w.time - lastKnock) >= KNOCK_GAP) { lastKnock = w.time; audio.wallKnock(); }
             if (wallKnocks === 1 && w.balls.n <= PADDLE_TAP_BALLS) haptics.play('paddle');
