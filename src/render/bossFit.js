@@ -1,6 +1,18 @@
 // Sizing for the generated boss models: kept free of three.js so it can be tested.
 
 /**
+ * Most-recently-used list: `key` moves to the front; anything past `max` falls off.
+ * @param {readonly string[]} list
+ * @param {string} key
+ * @param {number} max
+ * @returns {{ list: string[], evicted: string[] }}
+ */
+export function lruTouch(list, key, max) {
+  const next = [key, ...list.filter((k) => k !== key)];
+  return { list: next.slice(0, max), evicted: next.slice(max) };
+}
+
+/**
  * Scale that makes the wider side of a model (as seen by the camera) span the boss's width.
  * @param {{ x:number, y:number }} size model extent on screen axes after orienting
  * @param {number} r boss radius in board cells

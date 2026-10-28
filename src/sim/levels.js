@@ -327,8 +327,11 @@ function frame(inner, box, holes) {
 }
 
 /** @returns {string} the name stage i is shown with (cheap: builds nothing) */
+/** A safe stage index: anything not a finite number counts as the first stage. */
+const stageIndex = (i) => (Number.isFinite(i) ? Math.max(0, Math.floor(i)) : 0);
+
 export const levelName = (i) => {
-  const slot = stageSlot(Math.max(0, Math.floor(i)));
+  const slot = stageSlot(stageIndex(i));
   return (slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content)).name;
 };
 
@@ -348,7 +351,7 @@ const bossSpec = (kind, n) => ({
 });
 
 export function getLevel(i, { slots } = {}) {
-  const n = Math.max(0, Math.floor(i));
+  const n = stageIndex(i);
   const p = stageParams(n);
   const slot = stageSlot(n);
   const map = slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content);

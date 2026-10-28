@@ -32,7 +32,7 @@ async function networkFirst(request) {
   const cache = await caches.open(CACHE);
   try {
     const res = await fetch(request);
-    if (res.ok) cache.put(request, res.clone());
+    if (res.ok) await keep(cache, request, res.clone());
     return res;
   } catch (err) {
     const hit = await cache.match(request);
@@ -50,12 +50,30 @@ function stem(url) {
   return m ? m[1] : null;
 }
 
-/** Drops older builds of the same file, so each deploy doesn't add to the pile. */
+/** "/art/x.png?v=2" -> "/art/x.png": a versioned file without its version, else null. */
+function unversioned(url) {
+  const u = new URL(url);
+  return u.search ? u.origin + u.pathname : null;
+}
+
+/** Drops older builds and older versions of the same file, so each deploy doesn't add to the pile. */
 async function pruneOlder(cache, url) {
   const s = stem(url);
-  if (!s) return;
+  const plain = unversioned(url);
+  if (!s && !plain) return;
   for (const req of await cache.keys()) {
-    if (req.url !== url && stem(req.url) === s) await cache.delete(req);
+    if (req.url === url) continue;
+    if ((s && stem(req.url) === s) || (plain && unversioned(req.url) === plain)) await cache.delete(req);
+  }
+}
+
+/** Storing a copy is a bonus: a full disk (quota) must not turn a good download into an error. */
+async function keep(cache, request, res) {
+  try {
+    await cache.put(request, res);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -64,10 +82,7 @@ async function cacheFirst(request) {
   const hit = await cache.match(request);
   if (hit) return hit;
   const res = await fetch(request);
-  if (res.ok) {
-    await cache.put(request, res.clone());
-    pruneOlder(cache, request.url);
-  }
+  if (res.ok && (await keep(cache, request, res.clone()))) pruneOlder(cache, request.url).catch(() => {});
   return res;
 }
 

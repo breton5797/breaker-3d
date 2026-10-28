@@ -124,7 +124,11 @@ export function createUI(h) {
   function startStage(level) {
     show(null);
     playing(true);
-    $('stage-name').textContent = `STAGE ${level.index + 1} · ${level.name}`;
+    // Number and name on their own lines, so a long name ("자유의 여신상 · 노을") isn't cut off on a phone.
+    const no = document.createElement('small');
+    no.className = 'stage-no';
+    no.textContent = `STAGE ${level.index + 1}`;
+    $('stage-name').replaceChildren(no, document.createTextNode(level.name));
     lastBalls = 0;
     toast(level.name, 'mega');
     setTimeout(() => toast(level.subtitle, 'small'), 250);
@@ -221,6 +225,8 @@ export function createUI(h) {
    *   `{ emoji, art? }` keeps its own colours instead of the toast's gradient fill
    *   (shown as the `art` picture when given, see emojiSpan)
    */
+  const TOAST_MAX = 2;
+  const TOAST_BAND = 112; // px of room the toast stack wants above the board
   function toast(content, cls = '') {
     const el = document.createElement('div');
     el.className = `toast ${cls}`;
@@ -233,10 +239,35 @@ export function createUI(h) {
       span.textContent = part.small;
       return span;
     }));
+    // The big payoffs (stun, shield down, KO) stay up longer and are never pushed out.
+    const critical = /\b(neon-burst|critical)\b/.test(cls);
+    if (critical) el.classList.add('critical');
     $('toasts').append(el);
-    setTimeout(() => el.remove(), 1400);
-    const all = $('toasts').children;
-    if (all.length > 4) all[0].remove();
+    setTimeout(() => el.remove(), critical ? 2000 : 1400);
+    // At most TOAST_MAX at once, so the board stays visible: the oldest ordinary one goes first.
+    while ($('toasts').children.length > TOAST_MAX) {
+      const all = [...$('toasts').children];
+      (all.find((t) => !t.classList.contains('critical')) ?? all[0]).remove();
+    }
+  }
+
+  /**
+   * Puts the toasts in the empty band between the HUD (and boss bar) and the top
+   * of the board, and keeps the boss bar off the board on wide screens.
+   * @param {number} boardTop screen y of the board's top edge (px)
+   * @param {number} lowY screen y of the open lane above the paddle (px): the fallback spot
+   */
+  function layoutOverlays(boardTop, lowY) {
+    const hud = $('hud').getBoundingClientRect().bottom;
+    const bar = $('boss-bar');
+    const barH = bar.offsetHeight || 34;
+    // The bar sits just above the board when there is room, never under the HUD.
+    const barTop = Math.max(hud + 4, Math.min(hud + 52, boardTop - barH - 6));
+    bar.style.top = `${barTop}px`;
+    // Phones have a band above the board; wide screens fill the height with the board,
+    // so there the toasts go to the open lane above the paddle instead of over the boss.
+    const band = boardTop - (barTop + barH + 6);
+    $('toasts').style.top = `${band >= TOAST_BAND * 0.7 ? Math.max(barTop + barH + 6, boardTop - TOAST_BAND) : lowY - TOAST_BAND}px`;
   }
 
   /** Bounces the HUD gold counter (a coin was just banked). */
@@ -487,6 +518,7 @@ export function createUI(h) {
     setBoss,
     bossShield,
     screenFlash,
+    layoutOverlays,
     setVibe,
     setPhotoCredit,
     floatAt,

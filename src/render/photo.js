@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { toWorldX, toWorldY } from './stage.js';
 
 const BASE = import.meta.env.BASE_URL;
-const DIM = 0.82; // keep the photo a touch darker than the bricks so they stay readable
+const DIM = 0.7; // keep the photo darker than the (vivid) bricks so they stand out
+const DIM_TINTED = 0.6; // sunset/night tints are close to brick colours: darker still
 
 /**
  * The real photo of the stage's landmark, laid on the table inside the steel
@@ -40,7 +41,8 @@ export function createPhoto(scene) {
     const h = b.top - b.bottom - 1;
     mesh.scale.set(w, h, 1);
     mesh.position.set(toWorldX(b.left + 1 + w / 2), toWorldY(b.bottom + 1 + h / 2), -0.01);
-    mat.color.set(level.photoTint ?? '#ffffff').multiplyScalar(DIM);
+    const tinted = level.photoTint && level.photoTint.toLowerCase() !== '#ffffff';
+    mat.color.set(level.photoTint ?? '#ffffff').multiplyScalar(tinted ? DIM_TINTED : DIM);
     const id = want;
     const show = (tex) => {
       if (want !== id) return; // the player already moved on to another stage
