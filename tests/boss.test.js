@@ -163,6 +163,7 @@ describe('boss character', () => {
     const { w } = bossWorld();
     w.state = 'play';
     w.boss.budget = Infinity;
+    w.finale = true; // phase 3 (25%) lies under the protected share: only reachable once the bricks are down
     damageBoss(w, Math.ceil(w.boss.hpMax * (1 - PHASE2)));
     expect(w.boss.phase).toBe(2);
     expect(drainEvents(w).some((e) => e.t === 'boss-phase' && e.phase === 2)).toBe(true);

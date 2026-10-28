@@ -6,7 +6,9 @@ Murals are 48 x 44 coarse cells (see mapkit.js). Letters c-h are the map's
 palette colours, '.' is open. Animals come from the Higgsfield pixel-art
 sprites (transparent background), cut out, scaled to fit and reduced to six
 colours. Glyphs are drawn with Pretendard Black (SIL OFL, the game's own UI
-font): an outline, three colour bands inside, and sparse dots behind.
+font): an outline and three colour bands inside. Like a pixel mosaic, every
+mural fills the whole box with bricks: a soft two-tone checker behind the
+picture (sky tones a/b for animals, whose scene shows through as it breaks).
 """
 import json
 import sys
@@ -21,7 +23,7 @@ SKY = ['#8fd3ff', '#d4f0ff']
 
 ANIMALS = ['cat', 'dog', 'rabbit', 'panda', 'penguin', 'lion']
 GLYPHS = [
-    # id, text, palette c..h: c/d dots, e/f/g bands top to bottom, h outline
+    # id, text, palette c..h: c/d backdrop checker, e/f/g bands top to bottom, h outline
     ('num1', '1', ['#ffd6e0', '#ffe9b8', '#ff6b8a', '#ff4d6d', '#d6336c', '#5c1033']),
     ('num2', '2', ['#d0f4de', '#fcf6bd', '#4cc9f0', '#4895ef', '#4361ee', '#1d2a6b']),
     ('num3', '3', ['#ffe5b4', '#e2ece9', '#ffb703', '#fb8500', '#e85d04', '#5a2a00']),
@@ -76,8 +78,17 @@ def animal(path: Path):
         for x in range(w):
             if cover.getpixel((x, y)) >= 128:
                 g[y0 + y][x0 + x] = letter[quant.getpixel((x, y))]
+    backdrop(g, 'ab')
     palette = SKY + ['#%02x%02x%02x' % colours[i] for i in order]
     return g, palette
+
+
+def backdrop(g, tones):
+    """Fills every open cell down to FLOOR with a two-tone checker of bricks (a full mosaic)."""
+    for y in range(FLOOR + 1):
+        for x in range(W):
+            if g[y][x] == '.':
+                g[y][x] = tones[(x + y) % 2]
 
 
 def glyph_mask(text: str, font_path: str):
@@ -104,15 +115,13 @@ def glyph(text: str, font_path: str):
     rows = [y for y in range(H) if any(m[y])]
     top, bottom = rows[0], rows[-1]
     g = empty()
-    near = lambda x, y, d: any(m[yy][xx] for yy in range(max(0, y - d), min(H, y + d + 1)) for xx in range(max(0, x - d), min(W, x + d + 1)))
     for y in range(H):
         for x in range(W):
             if m[y][x]:
                 edge = any(not (0 <= x + dx < W and 0 <= y + dy < H and m[y + dy][x + dx]) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
                 band = min(2, 3 * (y - top) // max(1, bottom - top + 1))
                 g[y][x] = 'h' if edge else 'efg'[band]
-            elif y <= FLOOR and x % 7 in (2, 3) and y % 7 in (2, 3) and not near(x, y, 2):
-                g[y][x] = 'c' if (x // 7 + y // 7) % 2 else 'd'  # sparse two-tone dots behind
+    backdrop(g, 'cd')
     return g
 
 

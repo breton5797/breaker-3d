@@ -226,6 +226,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           ui.toast('−1 ♥', 'danger');
           break;
         case 'boss-hit':
+          // A blow on the protected (blue-green) part takes nothing off: the bar flashes, no flinch or number.
+          if ((e.dmg ?? 1) <= 0) { ui.bossShield(); break; }
           boss3d.hit();
           dmgBank += e.dmg ?? 1;
           if (coreHits++ < 3) audio.coreHit();

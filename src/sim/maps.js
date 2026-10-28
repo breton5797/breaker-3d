@@ -137,9 +137,9 @@ const VARIANTS = [
 // 놀이 세계: numbers, alphabet, Hangul and animals (same shape as WONDERS). Glyphs play on the
 // bare table (photo null); each animal has its own pixel-art scene behind (public/landmarks/<id>.jpg).
 const glyph = (theme, id, name, subtitle, seed) =>
-  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed), playPalette(id)), theme, photo: null });
+  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed), playPalette(id)), theme, photo: null, mosaic: true });
 const animal = (id, name, subtitle, seed) =>
-  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed, true), playPalette(id)), theme: 'animal' });
+  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed, true), playPalette(id)), theme: 'animal', mosaic: true });
 
 export const PLAY = Object.freeze([
   glyph('number', 'num1', '숫자 1', '하나 · 모든 것의 시작', 201),

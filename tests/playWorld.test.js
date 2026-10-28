@@ -49,6 +49,14 @@ describe('놀이 세계 chapter', () => {
     expect(new Set(kinds).size).toBe(PLAY.length);
   });
 
+  it('a full mosaic gets fruit in proportion to its bricks (else balls dig for ages before a fruit)', () => {
+    const fruit = (lines) => lines.join('').replace(/[^ACDEIM]/g, '').length; // fruit letters (one cell each)
+    const mosaic = getLevel(41); // 숫자 2: about 1.7x the bricks of an average mural
+    expect(fruit(mosaic.lines)).toBeGreaterThan(mosaic.params.items * 1.4);
+    const landmark = getLevel(1); // an average mural keeps its planned count
+    expect(fruit(landmark.lines)).toBeLessThanOrEqual(landmark.params.items * 1.1);
+  });
+
   it('its stages build and play like any other (holes, box, boss)', () => {
     let seen = 0;
     for (let n = 0; n < 200 && seen < 6; n++) {

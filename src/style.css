@@ -155,9 +155,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-weight: 900; font-size: 13px; letter-spacing: 0.12em; color: #ffd0d6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   animation: bannerIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
-.boss-hp { margin-top: 4px; height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 90, 110, 0.6); overflow: hidden; }
+.boss-hp { display: flex; justify-content: flex-end; margin-top: 4px; height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 90, 110, 0.6); overflow: hidden; }
 #boss-bar.shield .boss-hp { border-color: #fff; background: rgba(255, 255, 255, 0.25); }
 #boss-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #a3122f, #ff4d6a); transition: width 0.15s; }
+/* The protected share (boss.js GUARD_FLOOR): blue-green on the right, it only drains once the bricks are broken. */
+#boss-guard { height: 100%; width: 0; background: linear-gradient(90deg, #12b5a5, #3fa9ff); box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.55); transition: width 0.15s; }
 
 /* Sits under the board, just above the paddle (placed by the director), so the boss stays in view. */
 #finale-banner {

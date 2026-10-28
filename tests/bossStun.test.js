@@ -14,6 +14,7 @@ const fight = (n = 9) => {
   w.state = 'play';
   w.boss.budget = Infinity;
   w.boss.dps = 1e9;
+  w.finale = true; // the armour only breaks once the bricks are down (GUARD_FLOOR holds it until then)
   return w;
 };
 /** Knocks the boss just past the armour-break threshold. */

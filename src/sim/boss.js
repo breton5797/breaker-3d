@@ -38,7 +38,10 @@ export const PHASE3 = 0.25; // below this: plates fall away, it reels (stunned),
 // Bricks come first: while the mural still stands (no finale yet) the boss
 // cannot drop below this share of its health, so it never dies early and
 // robs the player of breaking the bricks. The finale opens it up.
-export const GUARD_FLOOR = 0.1;
+// The bar shows this protected share in blue-green from the start (owner, 2026-10-29).
+export const GUARD_FLOOR = 0.3;
+// Until the finale the boss takes damage at this share of its rate, so its bar drains along with the bricks.
+export const PRE_FINALE_PACE = 0.5;
 export const STUN_TIME = 3; // seconds the armour break leaves it reeling: still, harmless, hit twice as hard
 const STUN_DAMAGE = 2;
 const PACE = [1, 1.4, 1.9]; // movement and plate speed per phase
@@ -203,6 +206,7 @@ export function damageBoss(w, base) {
     return;
   }
   b.budget -= amount;
+  const before = b.hp;
   b.hp = Math.max(0, b.hp - amount);
   if (!w.finale) {
     const floor = Math.max(1, b.hpMax * GUARD_FLOOR);
@@ -214,8 +218,10 @@ export function damageBoss(w, base) {
       }
     }
   }
-  w.score += 20 * amount;
-  w.events.push({ t: 'boss-hit', x: b.x, y: b.y, dmg: amount });
+  // Only what really came off counts: a hit on the protected part shows no damage and scores nothing.
+  const dealt = before - b.hp;
+  w.score += 20 * dealt;
+  w.events.push({ t: 'boss-hit', x: b.x, y: b.y, dmg: dealt });
   const share = b.hp / b.hpMax;
   const phase = share <= PHASE3 ? 3 : share <= PHASE2 ? 2 : 1;
   if (phase > b.phase) {
@@ -357,7 +363,7 @@ export function updateBoss(w, dt) {
     if (w.state !== 'clear') { b.attack = null; b.chain = false; } // a life lost or game over calls off the pending blow (and the combo)
     return;
   }
-  b.budget = Math.min(b.dps * BUDGET_SECONDS, b.budget + b.dps * dt);
+  b.budget = Math.min(b.dps * BUDGET_SECONDS, b.budget + b.dps * (w.finale ? 1 : PRE_FINALE_PACE) * dt);
   if (b.attack) { runAttack(w, b, dt); return; }
   if (!b.attacks) return;
   b.attackTimer -= dt;
