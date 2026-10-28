@@ -3,6 +3,7 @@ import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl } from './art.js';
+import { LOADOUT, totalStars, nextGoals } from './meta.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
@@ -56,6 +57,8 @@ export function createUI(h) {
   bind('btn-pause-menu', h.onMenu);
   bind('btn-resume', h.onResume);
   bind('btn-achv', h.onAchievements);
+  bind('btn-buy-split', () => h.onBuy('split'));
+  bind('btn-buy-meteor', () => h.onBuy('meteor'));
   bind('btn-achv-back', h.onMenu);
   bind('btn-credits', h.onCredits);
   bind('btn-credits-back', h.onMenu);
@@ -103,9 +106,17 @@ export function createUI(h) {
       num.textContent = String(i + 1);
       b.append(num);
       if (save.best[i]) {
-        const best = document.createElement('small');
-        best.textContent = '★';
-        b.append(best);
+        // Best star count for the stage (★★☆), so replaying for three stars has a target.
+        const row = document.createElement('small');
+        row.className = 'stars-row';
+        const got = save.stars?.[i] ?? 1;
+        row.append(...[0, 1, 2].map((k) => {
+          const star = document.createElement('span');
+          star.textContent = '★';
+          if (k >= got) star.className = 'dim';
+          return star;
+        }));
+        b.append(row);
       }
       b.addEventListener('click', (e) => { e.stopPropagation(); h.onPlay(i); });
       grid.append(b);
@@ -117,8 +128,25 @@ export function createUI(h) {
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
     $('btn-achv').textContent = `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
-    $('title-gold').textContent = `🪙 ${fmt(save.gold)} 골드`;
+    $('title-gold').textContent = `🪙 ${fmt(save.gold)} 골드 · ⭐ ${fmt(totalStars(save))}`;
+    const { toBoss } = nextGoals(Math.max(0, next));
+    const goals = document.createElement('b');
+    goals.textContent = toBoss === 0 ? '다음 판이 대형 보스!' : `다음 대형 보스까지 ${toBoss}판`;
+    $('title-goals').replaceChildren(goals);
+    setLoadout(save);
     show('screen-title');
+  }
+
+  /** The "출발 준비" buttons: what each extra charge costs and how many are bought for the next stage. */
+  function setLoadout(save) {
+    for (const kind of Object.keys(LOADOUT)) {
+      const item = LOADOUT[kind];
+      const have = save.loadout?.[kind] ?? 0;
+      const el = $(`btn-buy-${kind}`);
+      el.textContent = have >= item.max ? `${item.name} +${have} ✓` : `${item.name} +1 · 🪙${item.price}${have ? ` (${have})` : ''}`;
+      el.setAttribute('aria-pressed', String(have > 0));
+      el.disabled = have >= item.max || save.gold < item.price;
+    }
   }
 
   function startStage(level) {
@@ -385,8 +413,16 @@ export function createUI(h) {
    * stat rows tick in, then the buttons arrive and "next" starts to pulse.
    * A tap on the panel skips to the end.
    */
-  function showClear({ score, stars, stats, hasNext, goldOffer = null }) {
+  function showClear({ score, stars, stats, hasNext, goldOffer = null, newBest = false, bonus = [], next = null }) {
     playing(false);
+    $('clear-best').hidden = !newBest;
+    $('clear-bonus').replaceChildren(...bonus.map((line) => Object.assign(document.createElement('li'), { textContent: line })));
+    const nextEl = $('clear-next');
+    if (next) {
+      const name = document.createElement('b');
+      name.textContent = next.name;
+      nextEl.replaceChildren('NEXT ▶ ', name, next.boss ? ` · ${next.boss}` : '');
+    } else nextEl.replaceChildren();
     setReward('btn-double-gold', goldOffer, '골드 2배');
     const panel = $('screen-clear');
     const scoreEl = $('clear-score');
@@ -491,9 +527,14 @@ export function createUI(h) {
     playing(true);
   }
 
-  function showOver(score, reviveOffer = null) {
+  function showOver(score, reviveOffer = null, progress = null) {
     playing(false);
     $('over-score').textContent = fmt(score);
+    // How close it was: a reason to try again.
+    const share = document.createElement('b');
+    share.textContent = `${progress ?? 0}%`;
+    $('over-progress').replaceChildren('벽돌 ', share, ' 깼어요');
+    $('over-progress').hidden = progress === null;
     setReward('btn-revive', reviveOffer, '이어하기 ♥+1');
     show('screen-over');
     replay($('screen-over'), 'drop');

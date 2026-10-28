@@ -100,7 +100,13 @@
         <h1 class="logo">BREAKER<span>3D</span></h1>
         <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
         <p id="title-gold" class="title-gold"></p>
+        <p id="title-goals" class="title-goals"></p>
         <button id="btn-start" class="primary">시작하기</button>
+        <div class="loadout" aria-label="출발 준비: 다음 판 스킬 충전 구매">
+          <span class="loadout-label">출발 준비</span>
+          <button id="btn-buy-split" class="ghost buy-btn"></button>
+          <button id="btn-buy-meteor" class="ghost buy-btn"></button>
+        </div>
         <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
@@ -123,8 +129,11 @@
       <div id="screen-clear" class="panel" hidden>
         <p class="eyebrow clear-title">STAGE CLEAR</p>
         <div id="stars" class="stars"></div>
+        <p id="clear-best" class="new-best" hidden>NEW BEST!</p>
         <h2 id="clear-score" class="big-score"></h2>
         <dl id="clear-stats" class="stats"></dl>
+        <ul id="clear-bonus" class="clear-bonus"></ul>
+        <p id="clear-next" class="clear-next"></p>
         <button id="btn-double-gold" class="ghost reward-btn clear-actions" hidden></button>
         <div id="clear-actions" class="row clear-actions">
           <button id="btn-retry" class="ghost">다시</button>
@@ -136,6 +145,7 @@
       <div id="screen-over" class="panel" hidden>
         <p class="eyebrow danger">GAME OVER</p>
         <h2 id="over-score" class="big-score"></h2>
+        <p id="over-progress" class="over-progress"></p>
         <button id="btn-revive" class="primary reward-btn" hidden></button>
         <div class="row">
           <button id="btn-over-menu" class="ghost">메뉴</button>
