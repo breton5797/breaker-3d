@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { COLS, ROWS, CELL } from '../src/sim/constants.js';
-import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX, SLOTS } from '../src/sim/levels.js';
+import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX, SLOTS, laneFor } from '../src/sim/levels.js';
 import { tint, LAP, WONDERS } from '../src/sim/maps.js';
 import { isInside } from '../src/sim/box.js';
 import { stageSlot } from '../src/sim/sequence.js';
@@ -11,7 +11,9 @@ const build = (i) => {
   const lvl = getLevel(i);
   return { lvl, g: parseLevel(lvl.lines, { brickHp: lvl.params.brickHp, box: lvl.box, holes: lvl.holes }) };
 };
-const SIDES = ['bottom', 'left', 'right', 'top', 'bl', 'br', 'tl', 'tr'];
+// With 1-2 cell side lanes a ball can only reach the ceiling side by a random bounce,
+// so holes go in the floor, the side walls and the bottom corners.
+const SIDES = ['bottom', 'left', 'right', 'bl', 'br'];
 
 /** Share of breakable cells reachable from outside the box without crossing steel. */
 function reachableShare(g) {
@@ -117,12 +119,35 @@ describe('landmark maps', () => {
 });
 
 describe('the box', () => {
+  it('side lanes are 1 or 2 cells, picked per stage (both kinds turn up), the same every time', () => {
+    const lanes = Array.from({ length: 40 }, (_, n) => laneFor(n));
+    expect(new Set(lanes)).toEqual(new Set([1, 2]));
+    expect(Array.from({ length: 40 }, (_, n) => laneFor(n))).toEqual(lanes);
+    for (const n of [0, 5, 9, 13, 36, 77]) {
+      const { box, lines } = getLevel(n);
+      expect(box.left, `stage ${n}`).toBe(laneFor(n));
+      expect(COLS - 1 - box.right, `stage ${n}`).toBe(laneFor(n));
+      expect(lines.every((l) => l.length === COLS)).toBe(true);
+    }
+  });
+
+  it('the wider box is filled by a wider mural (no new empty margin inside)', () => {
+    for (const n of [0, 3, 13]) {
+      const { box, lines } = getLevel(n);
+      const cols = new Set();
+      lines.forEach((line) => [...line].forEach((ch, c) => { if (c > box.left && c < box.right && ch !== '.' && ch !== 'S') cols.add(c); }));
+      expect(Math.min(...cols) - box.left, `stage ${n} left margin`).toBeLessThanOrEqual(6);
+      expect(box.right - Math.max(...cols), `stage ${n} right margin`).toBeLessThanOrEqual(6);
+    }
+  });
+
   it('has open lanes left, right and above, and steel walls with only the holes open', () => {
     const { lvl, g } = build(0);
     const b = lvl.box;
-    expect(b).toEqual(BOX(lvl.lines.length));
-    expect(b.left).toBeGreaterThanOrEqual(6);
-    expect(COLS - 1 - b.right).toBeGreaterThanOrEqual(6);
+    expect(b).toEqual(BOX(lvl.lines.length, laneFor(0)));
+    // Narrow side lanes (owner: 1-2 cells, picked per stage), wide enough for a ball.
+    expect([1, 2]).toContain(b.left);
+    expect(COLS - 1 - b.right).toBe(b.left);
     expect(ROWS - 1 - b.top).toBeGreaterThanOrEqual(5);
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < b.left; c++) expect(g.cells[idx(c, r)]).toBe(CELL.EMPTY);
     const open = new Set(lvl.holes.flatMap((h) => h.cells.map(([c, r]) => idx(c, r))));
@@ -178,8 +203,8 @@ describe('entrance difficulty', () => {
     };
     expect(band(30, 60)).toBeGreaterThan(band(100, 130));
     expect(band(100, 130)).toBeGreaterThan(band(200, 230));
-    // By stage 200 only the hardest spots (side walls and the ceiling) are left.
-    for (let i = 199; i < 230; i++) for (const h of getLevel(i).holes) expect(['left', 'right', 'top']).toContain(h.side);
+    // By stage 200 only the hardest spots (the side walls) are left.
+    for (let i = 199; i < 230; i++) for (const h of getLevel(i).holes) expect(['left', 'right']).toContain(h.side);
   });
 
   it('built stages have exactly the planned holes, all on different spots', () => {
@@ -195,7 +220,7 @@ describe('entrance difficulty', () => {
     for (let i = 0; i < 10; i++) expect(getLevel(i).holes.some((h) => h.side === 'bottom')).toBe(true);
   });
 
-  it('across stages the holes appear on every side and at every corner', () => {
+  it('across stages the holes appear on every reachable side and bottom corner (never the ceiling side)', () => {
     const seen = new Set();
     for (let i = 0; i < 300; i++) for (const h of getLevel(i).holes) seen.add(h.side);
     expect([...seen].sort()).toEqual([...SIDES].sort());

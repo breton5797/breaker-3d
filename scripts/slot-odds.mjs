@@ -1,5 +1,7 @@
 // Entrance odds of every hole slot on its own (one hole, both sizes), to rank
-// slots from easy to hard. Usage: node scripts/slot-odds.mjs [trials]
+// slots from easy to hard. Side lanes are 1 or 2 cells (levels.js laneFor), so
+// each figure is the mean over both widths.
+// Usage: node scripts/slot-odds.mjs [trials]
 import { getLevel, SLOTS } from '../src/sim/levels.js';
 import { createWorld, stepWorld } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
@@ -10,9 +12,10 @@ import { COLS, PADDLE_Y, PADDLE_H, BALL_R, BALL_SPEED, PADDLE_MAX_ANGLE } from '
 
 const TRIALS = Number(process.argv[2] ?? 3000);
 const DT = 1 / 240;
+const LANES = [1, 2];
 
-function odds(stage, slot) {
-  const lvl = getLevel(stage, { slots: [slot] });
+function odds(stage, slot, lane) {
+  const lvl = getLevel(stage, { slots: [slot], lane });
   const w = createWorld(lvl.lines, { box: lvl.box, holes: lvl.holes, rng: mulberry32(1) });
   w.units = [];
   const rng = mulberry32(99);
@@ -33,6 +36,8 @@ function odds(stage, slot) {
   return (100 * entered) / TRIALS;
 }
 
+const mean = (stage, slot) => LANES.reduce((sum, lane) => sum + odds(stage, slot, lane), 0) / LANES.length;
+
 for (const { slot } of SLOTS) {
-  console.log(`${slot.padEnd(9)} size2: ${odds(0, slot).toFixed(2)}%  size1: ${odds(150, slot).toFixed(2)}%`);
+  console.log(`${slot.padEnd(9)} size2: ${mean(0, slot).toFixed(2)}%  size1: ${mean(150, slot).toFixed(2)}%`);
 }

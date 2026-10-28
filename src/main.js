@@ -1,11 +1,13 @@
 import * as THREE from 'three';
-import { COLS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
+import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
+import { predictPath, AIM_MAX } from './sim/aim.js';
 import { getLevel, levelName } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
 import { createBricks } from './render/bricks.js';
 import { createBalls3d } from './render/balls3d.js';
+import { createAimGuide } from './render/aimGuide.js';
 import { createFx } from './render/fx.js';
 import { createDrops3d, createBeacon } from './render/drops3d.js';
 import { createPhoto } from './render/photo.js';
@@ -41,6 +43,7 @@ const MAX_DT = 1 / 30;
 const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
 const trails3d = createTrails3d(stage.scene);
+const aimGuide = createAimGuide(stage.scene);
 const gimmicks3d = createGimmicks3d(stage.scene);
 const boss3d = createBoss3d(stage.scene);
 const balls3d = createBalls3d(stage.scene);
@@ -245,7 +248,7 @@ function bankLiveGold() {
 
 function togglePause() {
   // Sounds here (not on the buttons) so P / Esc / window blur get them too.
-  if (mode === 'play') { mode = 'paused'; haptics.stop(); audio.pause(); ui.showPause(true); }
+  if (mode === 'play') { mode = 'paused'; aim = NO_AIM; haptics.stop(); audio.pause(); ui.showPause(true); }
   else if (mode === 'paused') { mode = 'play'; audio.resume(); ui.showPause(false); }
 }
 
@@ -389,31 +392,66 @@ const ndc = new THREE.Vector2();
 const paddlePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.5);
 const hit = new THREE.Vector3();
 
-function pointerToField(e) {
+/** Where the pointer is on the board: x for the paddle (with finger reach), and the true x, y. */
+function pointerOnBoard(e) {
   ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, stage.camera);
-  return raycaster.ray.intersectPlane(paddlePlane, hit) ? hit.x * stage.reach + COLS / 2 : null;
+  if (!raycaster.ray.intersectPlane(paddlePlane, hit)) return null;
+  return { paddleX: hit.x * stage.reach + COLS / 2, x: hit.x + COLS / 2, y: hit.y + ROWS / 2 };
+}
+const pointerToField = (e) => pointerOnBoard(e)?.paddleX ?? null;
+
+// Serving: press and the ball stays put while you aim; release fires along the guide.
+// Near the paddle the finger moves it; drawn up over the board, it tilts the aim instead.
+const AIM_LIFT = 8; // rows above the paddle where dragging turns from moving into tilting
+const NO_AIM = Object.freeze({ angle: 0, held: false, id: null }); // id: the finger (pointer) doing the aiming
+let aim = NO_AIM;
+
+function aimAt(e) {
+  const p = pointerOnBoard(e);
+  if (!p) return;
+  const ballY = PADDLE_Y + PADDLE_H / 2 + BALL_R;
+  if (p.y > PADDLE_Y + AIM_LIFT) {
+    const angle = Math.atan2(p.x - world.paddle.x, p.y - ballY);
+    aim = { ...aim, angle: Math.max(-AIM_MAX, Math.min(AIM_MAX, angle)) };
+  } else {
+    setPaddleX(world, p.paddleX);
+    aim = { ...aim, angle: 0 };
+  }
 }
 
 window.addEventListener('pointermove', (e) => {
   if (mode !== 'play') return;
+  if (aim.held) { if (e.pointerId === aim.id && world.state === 'ready') aimAt(e); return; }
   const x = pointerToField(e);
   if (x !== null) setPaddleX(world, x);
 });
 window.addEventListener('pointerdown', (e) => {
   audio.unlock();
   if (mode !== 'play') return;
+  if (world.state === 'ready') {
+    if (aim.held) return; // a second finger never takes over (or resets) the aim
+    aim = { angle: 0, held: true, id: e.pointerId };
+    aimAt(e);
+    return;
+  }
   const x = pointerToField(e);
   if (x !== null) setPaddleX(world, x);
-  launch(world);
 });
+window.addEventListener('pointerup', (e) => {
+  if (!aim.held || e.pointerId !== aim.id) return; // another finger (e.g. one that tapped a button) lifting
+  const { angle } = aim;
+  aim = NO_AIM;
+  if (mode === 'play') launch(world, angle);
+});
+window.addEventListener('pointercancel', (e) => { if (e.pointerId === aim.id) aim = NO_AIM; });
 window.addEventListener('keydown', (e) => {
   audio.unlock();
   keys.add(e.code);
   if (e.repeat || !world) return; // held keys must not burn every skill charge
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (mode !== 'play') return;
-  if (e.code === 'Space') { e.preventDefault(); launch(world); }
+  if (e.code === 'Space') { e.preventDefault(); launch(world, aim.angle); }
   if (e.code === 'Digit1' || e.code === 'KeyQ') useSkill(world, 'split');
   if (e.code === 'Digit2' || e.code === 'KeyW') useSkill(world, 'meteor');
 });
@@ -495,6 +533,7 @@ function step(now) {
       else if (world.state === 'over') finishLevel(false);
     }
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
+    aimGuide.show(mode === 'play' && world.state === 'ready' ? predictPath(world, aim.angle) : null);
     balls3d.update(world.balls, resting);
     trails3d.update(world.balls);
     drops3d.update(world.drops, now / 1000);
@@ -522,6 +561,8 @@ function step(now) {
 /** Title screen with the latest unlocked stage as an untouched backdrop. */
 function showMenu() {
   mode = 'title';
+  aim = NO_AIM;
+  aimGuide.show(null);
   stageTimers.cancelAll();
   director.reset(); // and the director's own (fireworks, follow-up toasts)
   const preview = getLevel(save.unlocked - 1);

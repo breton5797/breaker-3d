@@ -3,7 +3,7 @@ import {
 } from './constants.js';
 import { addBall } from './balls.js';
 
-const MIN_VY = 0.22; // fraction of speed a ball must keep vertically
+export const MIN_VY = 0.22; // fraction of speed a ball must keep vertically
 
 /** Points a ball along `angle` (radians from straight up), keeping it from going flat. */
 export function aimBall(b, i, angle, speed = BALL_SPEED) {
