@@ -80,7 +80,9 @@ export function createAudio() {
     },
     /** Brick pop; pitch climbs with the combo. */
     pop(combo) { tone(note(Math.min(30, Math.floor(combo / 12))) * (1 + Math.random() * 0.02), 0.09, 'triangle', 0.12); },
-    paddle() { tone(220, 0.08, 'sine', 0.2, 330); },
+    paddle() { tone(220 + Math.random() * 30, 0.08, 'sine', 0.22, 360); tone(1100, 0.03, 'square', 0.04, 700); },
+    /** A ball knocks on steel: a short bright tink, pitch varied so a rally doesn't drone. */
+    wallKnock() { tone(1500 + Math.random() * 700, 0.045, 'square', 0.045, 900); },
     split(n) { tone(n >= 5 ? 1046 : 784, 0.18, 'sine', 0.14, n >= 5 ? 2093 : 1568); },
     boom() { burst(0.5, 1800, 0.7); tone(90, 0.4, 'sine', 0.4, 40); },
     laser() { tone(1400, 0.3, 'sawtooth', 0.08, 200); },

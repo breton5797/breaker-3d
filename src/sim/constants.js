@@ -3,7 +3,8 @@ export const COLS = 96;
 export const ROWS = 128;
 
 export const BALL_R = 0.28;
-export const BALL_SPEED = 36;
+export const BALL_SPEED = 72; // cells per second (owner: twice the old 36)
+export const WALL_EVENTS_MAX = 4; // wall knocks reported per step at most (thousands of balls bounce)
 export const MAX_BALLS = 4000;
 // Until the first ball of a serve gets into the box, each paddle bounce adds a
 // ball (up to this many): the opening has more tries instead of dead time.
@@ -21,8 +22,8 @@ export const PADDLE_W = 12;
 export const PADDLE_MAX_ANGLE = (62 * Math.PI) / 180;
 
 export const START_LIVES = 3;
-export const FIRE_TIME = 2.2; // seconds a ball stays on fire (fire cell)
-export const METEOR_FIRE = 0.9; // shorter burn for meteor balls
+export const FIRE_TIME = 1.1; // seconds a ball stays on fire (fire cell): ~80 cells of burn at BALL_SPEED
+export const METEOR_FIRE = 0.45; // shorter burn for meteor balls (both halved with the doubled ball speed)
 export const BOMB_RADIUS = 5.5;
 export const BOMB_DELAY = 0.07; // chain reaction delay per hop
 export const COMBO_WINDOW = 0.6; // seconds without a break before combo resets

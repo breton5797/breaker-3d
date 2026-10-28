@@ -13,6 +13,7 @@ import { colossus, kraken, golem, mothership } from './landmarks/bosses.js';
 import {
   saturn, curiosity, earthrise, blackHole, dumbo, blackSmoker, jellyfish, spermWhale, lavaFountain, aurora, supercell, iceberg,
 } from './landmarks/wonders.js';
+import { playMural, playPalette } from './landmarks/play.js';
 
 export { COLS, toLines };
 
@@ -133,20 +134,57 @@ const VARIANTS = [
   { suffix: ' · 밤', sky: ['#1c2756', '#2e3c78'], toward: '#0b1238', t: 0.4, photoTint: '#6d7cc4' },
 ];
 
-// One lap: the 24 landmarks, then the 12 wonders (chapter "경이의 세계").
-export const LAP = Object.freeze([...LEVELS, ...WONDERS]);
+// 놀이 세계: numbers, alphabet, Hangul and animals (same shape as WONDERS). Glyphs play on the
+// bare table (photo null); each animal has its own pixel-art scene behind (public/landmarks/<id>.jpg).
+const glyph = (theme, id, name, subtitle, seed) =>
+  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed), playPalette(id)), theme, photo: null });
+const animal = (id, name, subtitle, seed) =>
+  Object.freeze({ ...map(id, name, subtitle, playMural(id, seed, true), playPalette(id)), theme: 'animal' });
+
+export const PLAY = Object.freeze([
+  glyph('number', 'num1', '숫자 1', '하나 · 모든 것의 시작', 201),
+  glyph('number', 'num2', '숫자 2', '둘 · 짝꿍', 202),
+  glyph('number', 'num3', '숫자 3', '셋 · 삼총사', 203),
+  glyph('number', 'num7', '숫자 7', '일곱 · 행운의 숫자', 204),
+  glyph('number', 'num8', '숫자 8', '여덟 · 눕히면 무한대', 205),
+  glyph('number', 'num10', '숫자 10', '열 · 두 자리 수', 206),
+  glyph('alpha', 'alphaA', '알파벳 A', 'Apple의 A', 211),
+  glyph('alpha', 'alphaB', '알파벳 B', 'Ball의 B', 212),
+  glyph('alpha', 'alphaC', '알파벳 C', 'Cat의 C', 213),
+  glyph('alpha', 'alphaK', '알파벳 K', 'King의 K', 214),
+  glyph('alpha', 'alphaR', '알파벳 R', 'Robot의 R', 215),
+  glyph('alpha', 'alphaZ', '알파벳 Z', 'Zebra의 Z', 216),
+  glyph('hangul', 'hangulGa', '한글 가', '가나다 · 첫 글자', 221),
+  glyph('hangul', 'hangulNa', '한글 나', '가나다 · 둘째 글자', 222),
+  glyph('hangul', 'hangulDa', '한글 다', '가나다 · 셋째 글자', 223),
+  glyph('hangul', 'hangulGong', '한글 공', '공 하나로 시작해요', 224),
+  glyph('hangul', 'hangulByeol', '한글 별', '밤하늘의 별', 225),
+  glyph('hangul', 'hangulKkum', '한글 꿈', '가장 큰 꿈', 226),
+  animal('cat', '고양이', '창가의 낮잠꾼', 231),
+  animal('dog', '강아지', '공원 산책 시간', 232),
+  animal('rabbit', '토끼', '당근밭 주인', 233),
+  animal('panda', '판다', '대나무 숲의 먹보', 234),
+  animal('penguin', '펭귄', '빙하 해안의 꼬마', 235),
+  animal('lion', '사자', '사바나의 왕', 236),
+]);
+
+// One lap: the 24 landmarks, then the 12 wonders (chapter "경이의 세계"), then 놀이 세계.
+export const LAP = Object.freeze([...LEVELS, ...WONDERS, ...PLAY]);
+// The map where each later chapter opens (it shows a banner).
+const CHAPTERS = new Map([[LEVELS.length, '경이의 세계'], [LEVELS.length + WONDERS.length, '놀이 세계']]);
 
 /**
  * The k-th regular map (bosses are placed separately, see sequence.js). Each
  * lap the landmarks come back at another time of day; the wonders stay as they are.
  * @returns {{ id:string, name:string, subtitle:string, palette:string[], photoTint:string,
- *   build:() => string[], theme?:string, chapterStart:boolean }} map for regular slot n
+ *   build:() => string[], theme?:string, chapterStart:boolean, chapterName:string|null }} map for regular slot n
  */
 export function landmarkAt(n) {
   const base = LAP[n % LAP.length];
-  const chapterStart = n % LAP.length === LEVELS.length; // the first wonder opens the new chapter
+  const chapterName = CHAPTERS.get(n % LAP.length) ?? null; // the first map of a chapter opens it
+  const chapterStart = chapterName !== null;
   const v = VARIANTS[Math.floor(n / LAP.length) % VARIANTS.length];
-  if (!v || base.theme) return { ...base, photoTint: '#ffffff', chapterStart };
+  if (!v || base.theme) return { ...base, photoTint: '#ffffff', chapterStart, chapterName };
   const palette = base.palette.map((hex, k) => (k < 2 ? tint(hex, v.sky[k], 0.75) : tint(hex, v.toward, v.t)));
-  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint, chapterStart };
+  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint, chapterStart, chapterName };
 }

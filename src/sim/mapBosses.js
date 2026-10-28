@@ -15,7 +15,7 @@ export const ATTACKS = Object.freeze(['stomp', 'slam', 'rock', 'sweep']);
 
 const b = (kind, name, move, attack) => Object.freeze({ kind, name, move, attack });
 
-export const MAP_BOSSES = Object.freeze({
+const BASE = Object.freeze({
   // Landmarks
   giza: b('mummy', '미라 파라오', 'sway', 'slam'),
   fuji: b('fireDragon', '화산 불용', 'eight', 'sweep'),
@@ -54,6 +54,19 @@ export const MAP_BOSSES = Object.freeze({
   aurora: b('frostBear', '얼음 북극곰', 'hop', 'stomp'),
   supercell: b('thunderEagle', '천둥 독수리', 'glide', 'sweep'),
   iceberg: b('walrus', '거대 바다코끼리', 'sway', 'stomp'),
+});
+
+// 놀이 세계 reuses the bosses above (a 3D model each), never the same one twice in the chapter.
+const PLAY_REUSE = Object.freeze({
+  num1: 'bigBen', num2: 'curiosity', num3: 'liberty', num7: 'charlesBridge', num8: 'saturn', num10: 'blackHole',
+  alphaA: 'brandenburgGate', alphaB: 'himeji', alphaC: 'jellyfish', alphaK: 'chichenItza', alphaR: 'sphinx', alphaZ: 'earthrise',
+  hangulGa: 'sungnyemun', hangulNa: 'gyeongbokgung', hangulDa: 'stBasil', hangulGong: 'forbiddenCity', hangulByeol: 'greatWall', hangulKkum: 'stonehenge',
+  cat: 'supercell', dog: 'aurora', rabbit: 'machuPicchu', panda: 'angkorWat', penguin: 'iceberg', lion: 'grandCanyon',
+});
+
+export const MAP_BOSSES = Object.freeze({
+  ...BASE,
+  ...Object.fromEntries(Object.entries(PLAY_REUSE).map(([id, from]) => [id, BASE[from]])),
 });
 
 const BRICK_HP = 0.012; // health per brick on the stage (~40 for an average mural)

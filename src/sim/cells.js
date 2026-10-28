@@ -5,6 +5,13 @@ import { addBall } from './balls.js';
 
 export const MIN_VY = 0.22; // fraction of speed a ball must keep vertically
 
+/** Reports a ball knocking on steel or the field wall (a few per step, for sparks and a tink). */
+export function wallKnock(w, i) {
+  if (!(w.wallKnocks > 0)) return;
+  w.wallKnocks--;
+  w.events.push({ t: 'wall', x: w.balls.x[i], y: w.balls.y[i] });
+}
+
 /** Points a ball along `angle` (radians from straight up), keeping it from going flat. */
 export function aimBall(b, i, angle, speed = BALL_SPEED) {
   const lim = Math.acos(MIN_VY);
@@ -117,7 +124,7 @@ export function breakCell(w, c, r, ball = -1) {
 export function hitCell(w, c, r, ball) {
   const i = r * COLS + c;
   const type = w.grid.cells[i];
-  if (type === CELL.STEEL) return true;
+  if (type === CELL.STEEL) { wallKnock(w, ball); return true; }
   const onFire = w.balls.fire[ball] > 0;
   const n = SPLIT_COUNT[type];
   if (n) {

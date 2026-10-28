@@ -195,9 +195,10 @@ function startLevel(i) {
     }, BOSS_LANDING_MS);
     stageTimers.later(() => ui.toast(level.bossStage ? '빨간 영역 = 공격 예고, 피하세요!' : '쓰러뜨리면 클리어!', 'small'), BOSS_LANDING_MS + 2000);
   }
-  if (level.chapterStart) {
-    stageTimers.later(() => ui.toast('✨ 새 챕터: 경이의 세계', 'mega'), 400);
-    stageTimers.later(() => ui.toast('우주·심해·자연 — 맵마다 새로운 기믹!', 'small'), 1600);
+  const CHAPTER_TIPS = { '경이의 세계': '우주·심해·자연 — 맵마다 새로운 기믹!', '놀이 세계': '숫자·알파벳·한글·동물을 깨 보세요!' };
+  if (level.chapterStart && level.chapterName) {
+    stageTimers.later(() => ui.toast(`✨ 새 챕터: ${level.chapterName}`, 'mega'), 400);
+    if (CHAPTER_TIPS[level.chapterName]) stageTimers.later(() => ui.toast(CHAPTER_TIPS[level.chapterName], 'small'), 1600);
   }
   const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
   if (GIMMICK_TIPS[level.theme]) stageTimers.later(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);

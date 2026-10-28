@@ -148,7 +148,7 @@ describe('save data for all of this is validated', () => {
   });
 
   it('only known boss kinds are kept', () => {
-    const known = [...BOSS_KINDS, ...Object.values(MAP_BOSSES).map((b) => b.kind)];
+    const known = [...new Set([...BOSS_KINDS, ...Object.values(MAP_BOSSES).map((b) => b.kind)])]; // 놀이 세계 reuses earlier bosses
     const s = load({ beaten: [...known, 'madeUp'] });
     expect(s.beaten).toEqual(known);
   });

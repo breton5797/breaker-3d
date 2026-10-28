@@ -1,4 +1,4 @@
-import { CELL, COLS } from './constants.js';
+import { CELL, COLS, BALL_SPEED } from './constants.js';
 import { breakCell } from './cells.js';
 
 // One play twist per theme of the "경이의 세계" chapter. All of them steer or
@@ -10,10 +10,13 @@ import { breakCell } from './cells.js';
 
 const WELLS = 2;
 const WELL_RADIUS = 9; // cells
-const WELL_PULL = 320; // pull strength (cells/s² scale)
+// Balls fly at BALL_SPEED: a bend is pull / speed and the time in range 1 / speed, so the
+// forces scale with speed² to feel as they did at the original 36 cells/s.
+const FEEL = (BALL_SPEED / 36) ** 2;
+const WELL_PULL = 320 * FEEL; // pull strength (cells/s² scale)
 const BANDS = 2;
 const BAND_ROWS = 4;
-const CURRENT = 60; // sideways push (cells/s²)
+const CURRENT = 60 * FEEL; // sideways push (cells/s²)
 export const MIN_VY = 0.3; // wells and currents never flatten a ball below this share of its speed
 export const STORM_PERIOD = 5; // seconds between strikes (the first comes after exactly this long)
 export const STORM_WARNING = 0.9; // seconds the doomed column flickers before the bolt
