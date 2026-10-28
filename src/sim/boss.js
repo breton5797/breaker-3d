@@ -20,7 +20,9 @@ export const PLATES = 4;
 const PLATE_R = 1.8;
 const PLATE_GAP = 2.6; // plate orbit beyond the body
 export const PHASE2 = 0.6; // below this share of hp: angry (faster, more attacks)
-export const PHASE3 = 0.25; // below this: plates fall away, it rushes about
+export const PHASE3 = 0.25; // below this: plates fall away, it reels (stunned), then rushes about
+export const STUN_TIME = 3; // seconds the armour break leaves it reeling: still, harmless, hit twice as hard
+const STUN_DAMAGE = 2;
 const PACE = [1, 1.4, 1.9]; // movement and plate speed per phase
 const ATTACK_PACE = [1, 0.75, 0.55]; // time between attacks per phase
 export const ATTACK_EVERY = 4.5; // seconds between attacks in phase 1 (the first comes after exactly this)
@@ -82,6 +84,7 @@ export function createBoss(spec, grid, rng) {
     budget: spec.dps, // one second's worth to start with
     tier: spec.tier,
     phase: 1,
+    stun: 0, // seconds left reeling after its armour broke
     r: k.r,
     x: cx,
     y: cy,
@@ -149,9 +152,10 @@ function move(b, dt) {
  * Takes damage from the per-second budget; past it, hits bounce off a shield.
  * Crossing a phase threshold or reaching zero changes the fight.
  */
-export function damageBoss(w, amount) {
+export function damageBoss(w, base) {
   const b = w.boss;
   if (!b || !b.alive) return;
+  const amount = b.stun > 0 ? base * STUN_DAMAGE : base;
   if (b.budget < amount) {
     if (b.shieldAt !== w.time) {
       b.shieldAt = w.time; // one shield flash per step is plenty
@@ -162,13 +166,21 @@ export function damageBoss(w, amount) {
   b.budget -= amount;
   b.hp = Math.max(0, b.hp - amount);
   w.score += 20 * amount;
-  w.events.push({ t: 'boss-hit', x: b.x, y: b.y });
+  w.events.push({ t: 'boss-hit', x: b.x, y: b.y, dmg: amount });
   const share = b.hp / b.hpMax;
   const phase = share <= PHASE3 ? 3 : share <= PHASE2 ? 2 : 1;
   if (phase > b.phase) {
     b.phase = phase;
-    if (phase === 3) b.plates = []; // the armour falls away
     w.events.push({ t: 'boss-phase', phase, x: b.x, y: b.y });
+    if (phase === 3) {
+      // The armour falls away and the blow leaves it reeling: no moves, no attacks, double damage.
+      const plates = b.plates.length;
+      b.plates = [];
+      b.attack = null;
+      b.stun = STUN_TIME;
+      b.budget += b.dps * STUN_TIME; // room for the double hits, or the shield would eat them
+      w.events.push({ t: 'boss-stun', x: b.x, y: b.y, dur: STUN_TIME, plates });
+    }
   }
   if (b.hp <= 0) {
     b.alive = false;
@@ -255,6 +267,12 @@ function runAttack(w, b, dt) {
 export function updateBoss(w, dt) {
   const b = w.boss;
   if (!b || !b.alive) return;
+  if (b.stun > 0) {
+    // Reeling: it stays where the blow caught it until it shakes it off.
+    b.stun = Math.max(0, b.stun - dt);
+    if (b.stun === 0) w.events.push({ t: 'boss-wake', x: b.x, y: b.y });
+    else return;
+  }
   move(b, dt);
   if (w.state !== 'play') {
     if (w.state !== 'clear') b.attack = null; // a life lost or game over calls off the pending blow

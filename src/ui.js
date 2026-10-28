@@ -294,6 +294,9 @@ export function createUI(h) {
     if (heavy) el.classList.add('heavy');
   }
 
+  /** A white flash over everything for a knockout. */
+  function screenFlash() { replay($('flash'), 'on'); }
+
   /** Vibration switch on the pause screen; hidden where the browser can't vibrate (iOS). */
   function setVibe(supported, on) {
     const el = $('btn-vibe');
@@ -302,11 +305,17 @@ export function createUI(h) {
   }
 
   /** Boss health bar: name and the core's remaining share (0..1); null hides it. */
+  let bossShare = 1;
+  let joltAt = 0;
   function setBoss(name, share = 1) {
     $('boss-bar').hidden = name === null;
-    if (name === null) return;
+    if (name === null) { bossShare = 1; return; }
     $('boss-name').textContent = name;
     $('boss-fill').style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+    // The bar jolts as it drops (at most a few times a second; it updates every frame).
+    const now = performance.now();
+    if (share < bossShare && now - joltAt > 180) { replay($('boss-bar'), 'jolt'); joltAt = now; }
+    bossShare = share;
   }
 
   /** The boss bar flashes white when hits bounce off the core's shield. */
@@ -470,6 +479,7 @@ export function createUI(h) {
     setFullscreen,
     setBoss,
     bossShield,
+    screenFlash,
     setVibe,
     setPhotoCredit,
     floatAt,

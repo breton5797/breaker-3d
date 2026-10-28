@@ -3,6 +3,7 @@ import { COLS, ROWS, CELL } from '../sim/constants.js';
 import { toWorldX, toWorldY, TILT } from './stage.js';
 import { fruitFor, EMOJI_FONT } from '../fruits.js';
 import { coinMaterials, coinGeometry } from './coinLook.js';
+import { vivid } from './vivid.js';
 import { ART, fruitArt } from '../art.js';
 import { paintedTexture } from './art.js';
 
@@ -166,7 +167,7 @@ export function createBricks(scene) {
   /** Rebuilds every instance for a new level. */
   function setLevel(g, pal) {
     grid = g;
-    palette = pal;
+    palette = pal.map(vivid); // brighter, fresher than the map's own palette (vivid.js)
     pops = [];
     flashes = new Map();
     slotOf = new Int32Array(total).fill(-1);

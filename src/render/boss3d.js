@@ -4,6 +4,7 @@ import { toWorldX, toWorldY } from './stage.js';
 import { ART } from '../art.js';
 import { paintedTexture } from './art.js';
 import { loadBossModel, bossCopy } from './bossModels.js';
+import { createStunStars, createDebris } from './bossJuice.js';
 
 // The boss as a 3D creature: a generated model (see bossModels.js), with a
 // body built from simple shapes standing in until it loads. Matte, shadowed,
@@ -13,6 +14,11 @@ import { loadBossModel, bossCopy } from './bossModels.js';
 
 const HOVER = 4.2; // height above the table
 const FLINCH_TIME = 0.12;
+const SQUASH = 0.22; // how far a hit flattens it
+const KNOCK = 0.9; // world units a hit shoves it (eases back)
+const KNOCK_MAX = 1.8;
+const PULSE_TIME = 0.45; // anger: it swells and settles
+const SAG = 2.2; // a stunned boss sinks this far toward the table
 const FLINCH_GAP = 0.25; // a swarm hits it non-stop: blink at most this often, or it would stay white
 const DOWN_TIME = 1.4;
 const ANGRY = new THREE.Color(0xff2a2a);
@@ -203,6 +209,11 @@ export function createBoss3d(scene) {
   let sinceFlinch = 1;
   let downT = -1;
   let shownPhase = 1;
+  let pulse = -1; // seconds into the anger swell, -1 when idle
+  const knock = new THREE.Vector2();
+  let reel = 0; // 0..1 how far into its stunned slump it is
+  const stars = createStunStars(root);
+  const debris = createDebris(root);
   const plateGeo = new THREE.CylinderGeometry(1, 1, 0.6, 6);
   const plateMat = plated(ART.steel, 0x8b93a8, 0x9aa2b4);
 
@@ -241,6 +252,11 @@ export function createBoss3d(scene) {
     downT = -1;
     flinch = 0;
     shownPhase = 1;
+    pulse = -1;
+    reel = 0;
+    knock.set(0, 0);
+    stars.update(null);
+    debris.clear();
   }
 
   /** @param {object|null} boss the sim's boss (world.boss) */
@@ -325,6 +341,7 @@ export function createBoss3d(scene) {
   }
 
   function update(boss, paddleX, time, dt) {
+    debris.update(dt);
     if (!model) return;
     if (downT >= 0) {
       // Beaten: parts fly apart, tumble and sink.
@@ -342,10 +359,23 @@ export function createBoss3d(scene) {
     if (!boss) return;
     flinch = Math.max(0, flinch - dt);
     sinceFlinch += dt;
-    const jitter = boss.phase === 3 ? (Math.random() - 0.5) * 0.3 : 0;
-    model.group.position.set(toWorldX(boss.x) + jitter, toWorldY(boss.y), HOVER + Math.sin(time * 2) * 0.4);
-    const squash = flinch > 0 ? 1 - 0.12 * (flinch / FLINCH_TIME) : 1;
-    model.group.scale.set(1 / squash, 1, squash);
+    knock.multiplyScalar(Math.exp(-10 * dt));
+    // Stunned: it slumps toward the table and lolls side to side under circling stars.
+    const stunned = boss.stun > 0;
+    reel += ((stunned ? 1 : 0) - reel) * Math.min(1, dt * (stunned ? 8 : 3));
+    const jitter = boss.phase === 3 && !stunned ? (Math.random() - 0.5) * 0.3 : 0;
+    const bob = Math.sin(time * 2) * 0.4 * (1 - reel);
+    model.group.position.set(toWorldX(boss.x) + jitter + knock.x, toWorldY(boss.y) + knock.y, HOVER + bob - SAG * reel);
+    model.group.rotation.set(-0.35 * reel, 0, 0.32 * reel * Math.sin(time * 6));
+    stars.update(stunned ? toWorldX(boss.x) : null, toWorldY(boss.y + boss.r * 0.85), HOVER + boss.r * 0.5 - SAG * reel, boss.r * 0.55, time);
+    let swell = 1;
+    if (pulse >= 0) {
+      pulse += dt;
+      swell = 1 + 0.3 * Math.sin(Math.min(1, pulse / PULSE_TIME) * Math.PI);
+      if (pulse > PULSE_TIME) pulse = -1;
+    }
+    const squash = flinch > 0 ? 1 - SQUASH * (flinch / FLINCH_TIME) : 1;
+    model.group.scale.set(swell / squash, swell, swell * squash);
     if (shownPhase !== boss.phase) shownPhase = boss.phase;
     tint(boss.phase);
     // After the tint, so a model's own colour animation (the saucer's lights) shows.
@@ -372,11 +402,30 @@ export function createBoss3d(scene) {
     setBoss,
     update,
     strike,
-    /** A ball hit it: squash and blink white. */
+    /** A ball hit it: shove it, squash it and blink white. */
     hit() {
       if (sinceFlinch < FLINCH_GAP) return;
       sinceFlinch = 0;
       flinch = FLINCH_TIME;
+      const a = Math.random() * Math.PI * 2;
+      knock.set(knock.x + Math.cos(a) * KNOCK, knock.y + Math.sin(a) * KNOCK);
+      if (knock.length() > KNOCK_MAX) knock.setLength(KNOCK_MAX);
+    },
+    /** It turned angry: a swell that settles back. */
+    enrage() { pulse = 0; },
+    /** Its armour broke: the plates fly off and it is knocked reeling. */
+    stun() {
+      if (!model) return;
+      const centre = model.group.position;
+      plates.forEach((p) => {
+        if (!p.visible) return;
+        const out = new THREE.Vector3(p.position.x - centre.x, p.position.y - centre.y, 0).setLength(14 + Math.random() * 8);
+        debris.launch(p, out.setZ(16 + Math.random() * 10));
+        p.visible = false;
+      });
+      flinch = FLINCH_TIME;
+      sinceFlinch = 0;
+      knock.set(0, 2.2); // thrown back up the board by the blow
     },
     /** Beaten: send every part flying outward from the centre. */
     down() {

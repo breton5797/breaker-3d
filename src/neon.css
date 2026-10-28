@@ -1,0 +1,105 @@
+/* Neon lettering, by role (loaded after style.css and overrides its flat text).
+   - Double neon (white core, pink then blue halo): big moments — logo, big toasts, clear title, scores.
+   - Cyberpunk (heavy, slanted, cyan/violet split): the boss name and its health bar.
+   - Neon outline (hollow letters, glowing edge): buttons and the stage name.
+   - Neon tube (soft rounded glow, like a bent glass sign): small notices and floating labels.
+   The glow is a text effect on the 2D overlay only; the 3D board stays matte. */
+
+:root {
+  --neon-pink: #ff4fd8;
+  --neon-blue: #3aa8ff;
+  --neon-cyan: #19f5e1;
+  --neon-violet: #b14aff;
+  --neon-lime: #b6ff3a;
+}
+
+/* ---------- Double neon ---------- */
+.logo, .toast.mega, .clear-title, .big-score {
+  background: none; -webkit-background-clip: border-box; background-clip: border-box;
+  color: #fff; -webkit-text-fill-color: #fff; filter: none;
+  -webkit-text-stroke: 1.5px var(--neon-pink);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 3px #fff,
+    0 0 8px var(--neon-pink),
+    0 0 18px var(--neon-pink),
+    0 0 32px var(--neon-blue),
+    0 0 56px var(--neon-blue);
+}
+.logo span { -webkit-text-stroke: 1px var(--neon-blue); text-shadow: 0 0 8px var(--neon-cyan), 0 0 20px var(--neon-blue); }
+.toast.mega.danger { -webkit-text-stroke-color: #ff3b5c; text-shadow: 0 0 3px #fff, 0 0 8px #ff3b5c, 0 0 18px #ff3b5c, 0 0 34px #ff8a3c, 0 0 58px #ff8a3c; }
+/* The big payoffs (stun, KO) slam in harder and shimmer. */
+.toast.neon-burst {
+  font-size: clamp(32px, 8.5vw, 62px);
+  animation: neonSlam 1.6s cubic-bezier(0.2, 1.5, 0.3, 1) forwards, neonFlicker 0.12s 0.35s 4 steps(2);
+}
+@keyframes neonSlam {
+  0% { opacity: 0; transform: scale(2.4) rotate(-6deg); }
+  18% { opacity: 1; transform: scale(0.92) rotate(1deg); }
+  28% { transform: scale(1.06); }
+  38%, 80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08) translateY(-12px); }
+}
+@keyframes neonFlicker { 50% { opacity: 0.55; } }
+
+/* ---------- Cyberpunk: boss name + health ---------- */
+#boss-bar {
+  color: #e9fffd; font-size: 15px; font-weight: 900; letter-spacing: 0.16em;
+  text-shadow: 2px 0 0 var(--neon-violet), -2px 0 0 var(--neon-cyan), 0 0 10px var(--neon-cyan), 0 0 22px var(--neon-violet);
+}
+#boss-name { display: inline-block; transform: skewX(-10deg); }
+#boss-bar .boss-hp {
+  height: 12px; border: 1.5px solid var(--neon-cyan); border-radius: 3px;
+  box-shadow: 0 0 8px var(--neon-cyan), inset 0 0 6px rgba(25, 245, 225, 0.35);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+#boss-fill { background: linear-gradient(90deg, var(--neon-violet), #ff3b8d 60%, #ff9a3c); transition: width 0.12s; }
+/* A hit makes the bar jolt. */
+#boss-bar.jolt .boss-hp { animation: jolt 0.18s; }
+@keyframes jolt { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+
+/* ---------- Neon outline: buttons + stage name ---------- */
+.primary {
+  color: #f4fdff; -webkit-text-stroke: 0.6px var(--neon-cyan);
+  text-shadow: 0 0 6px rgba(25, 245, 225, 0.9), 0 0 14px rgba(58, 168, 255, 0.7);
+  box-shadow: 0 0 0 1.5px rgba(25, 245, 225, 0.85), 0 0 18px rgba(25, 245, 225, 0.45), 0 8px 28px rgba(108, 140, 255, 0.45);
+}
+/* Small HUD text: a pale fill inside the glowing edge, or the hollow letters blur away on a phone. */
+.stage-name {
+  color: #d9fffb; -webkit-text-fill-color: #d9fffb;
+  -webkit-text-stroke: 0.5px var(--neon-cyan);
+  text-shadow: 0 0 6px rgba(25, 245, 225, 0.85), 0 0 12px rgba(25, 245, 225, 0.45);
+}
+
+/* ---------- Neon tube: small notices and labels ---------- */
+.toast:not(.mega) {
+  background: none; -webkit-background-clip: border-box; background-clip: border-box; filter: none;
+  color: #fff4fb; -webkit-text-fill-color: #fff4fb; font-weight: 700; letter-spacing: 0.04em;
+  -webkit-text-stroke: 0.6px #ffc2ec; paint-order: stroke fill;
+  text-shadow: 0 0 2px #fff, 0 0 6px var(--neon-pink), 0 0 14px var(--neon-pink), 0 0 26px rgba(255, 79, 216, 0.6);
+}
+.toast.danger:not(.mega) { -webkit-text-stroke-color: #ffb3c0; text-shadow: 0 0 2px #fff, 0 0 6px #ff3b5c, 0 0 14px #ff3b5c, 0 0 26px rgba(255, 59, 92, 0.6); }
+.floater { text-shadow: 0 0 3px #fff, 0 0 8px var(--neon-lime), 0 0 16px rgba(182, 255, 58, 0.6); }
+.floater-big { -webkit-text-stroke: 0.6px #fff7cf; }
+
+/* ---------- Boss damage numbers ---------- */
+.floater.dmg .floater-big {
+  font-size: 30px; font-style: italic; color: #fff; -webkit-text-stroke: 1px #ff3b5c;
+  text-shadow: 0 0 4px #fff, 0 0 10px #ff3b5c, 0 0 20px #ff3b5c;
+}
+.floater.dmg { animation: dmgPop 0.9s cubic-bezier(0.2, 1.4, 0.3, 1) forwards; }
+.floater.dmg.crit .floater-big {
+  font-size: 42px; -webkit-text-stroke-color: #ffb800;
+  text-shadow: 0 0 4px #fff, 0 0 12px #ffd23a, 0 0 26px #ff9a3c;
+}
+@keyframes dmgPop {
+  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.4); }
+  15% { opacity: 1; transform: translate(-50%, -100%) scale(1.35); }
+  35% { transform: translate(-50%, -110%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -230%) scale(0.9); }
+}
+
+/* ---------- KO flash ---------- */
+#flash { position: fixed; inset: 0; pointer-events: none; background: #fff; opacity: 0; }
+#flash.on { animation: koFlash 0.45s ease-out; }
+@keyframes koFlash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
