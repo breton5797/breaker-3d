@@ -65,6 +65,7 @@ export function createUI(h) {
   let lastBalls = 0;
   let shownGold = null; // HUD values last drawn, so icons aren't rebuilt every frame
   let shownMuted = null;
+  const shownCounts = { split: null, meteor: null };
   let sequence = []; // timers of the clear-screen choreography still pending
   let finishSequence = null; // jumps the choreography to its end (tap to skip)
 
@@ -265,10 +266,14 @@ export function createUI(h) {
     lastBalls = s.balls;
     $('progress-bar').style.width = `${Math.round(s.progress * 100)}%`;
     $('lives').textContent = '♥'.repeat(Math.max(0, s.lives));
-    $('count-split').textContent = String(s.charges.split);
-    $('count-meteor').textContent = String(s.charges.meteor);
-    $('skill-split').disabled = s.charges.split <= 0 || s.ready;
-    $('skill-meteor').disabled = s.charges.meteor <= 0;
+    // Out of charges: the badge shows what one more costs in gold (a tap buys and fires it).
+    for (const kind of ['split', 'meteor']) {
+      const offer = s.charges[kind] <= 0 ? s.prices?.[kind] : null;
+      const text = offer ? `🪙${offer.price}` : String(s.charges[kind]);
+      if (shownCounts[kind] !== text) { shownCounts[kind] = text; setRich($(`count-${kind}`), text); }
+      $(`count-${kind}`).classList.toggle('price', Boolean(offer));
+      $(`skill-${kind}`).disabled = (s.charges[kind] <= 0 && !offer?.can) || (kind === 'split' && s.ready);
+    }
     $('hint').hidden = !s.ready;
     if (s.muted !== shownMuted) {
       shownMuted = s.muted;
