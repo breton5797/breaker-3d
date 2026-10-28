@@ -27,6 +27,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   let ballMark = 0;
   let comboMark = 0;
   let zapCount = 0;
+  // Damage numbers: a swarm lands dozens of hits a frame, so they are pooled into one number now and then.
+  let dmgBank = 0;
+  let dmgAt = 0;
+  const DMG_EVERY = 120; // ms between damage numbers
 
   /** Finale send-off: staggered firework bursts across the board. */
   function fireworks() {
@@ -180,7 +184,28 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           break;
         case 'boss-hit':
           boss3d.hit();
+          dmgBank += e.dmg ?? 1;
           if (coreHits++ < 3) audio.coreHit();
+          break;
+        case 'boss-stun':
+          // The armour flies off and the blow leaves it seeing stars: the payoff moment.
+          boss3d.stun();
+          for (let k = 0; k < 40; k++) fx.shards(e.x, e.y, 0x9aa2b4, 2);
+          fx.firework(e.x, e.y, 0xffd23a, [1, 0.85, 0.3]);
+          stage.shake(1.8);
+          stage.kick(0, 0, -2);
+          pacing.hitStop(0.16);
+          slowMo(0.35, 0.7);
+          audio.thunder();
+          audio.bossDown();
+          haptics.play('clear');
+          ui.toast('💫 기절! 집중 공격!', 'mega neon-burst');
+          setTimeout(() => ui.toast(`${e.dur}초 동안 피해 2배`, 'small'), 700);
+          break;
+        case 'boss-wake':
+          stage.shake(0.6);
+          audio.rumble();
+          ui.toast('보스가 정신을 차렸다!', 'danger');
           break;
         case 'boss-shield':
           // The swarm hits faster than the boss can take damage: the rest clank off a shield.
@@ -192,7 +217,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           stage.shake(1);
           haptics.play('stun');
           for (let k = 0; k < 30; k++) fx.shards(e.x, e.y, e.phase === 3 ? 0x8b93a8 : 0xff2a2a, 1.6);
-          ui.toast(e.phase === 3 ? '갑옷이 부서졌다! 지금이야!' : '보스가 분노했다!', 'mega danger');
+          if (e.phase === 2) { boss3d.enrage(); pacing.hitStop(0.08); }
+          ui.toast(e.phase === 3 ? '갑옷이 부서졌다!' : '보스가 분노했다!', 'mega danger');
           break;
         case 'boss-warn':
           if (e.kind === 'sweep') audio.laser(); else audio.rumble();
@@ -209,12 +235,15 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           boss3d.down();
           fx.firework(e.x, e.y, 0xffd23a, [1, 0.8, 0.2]);
           fx.firework(e.x, e.y, 0xff5a3c, [1, 0.35, 0.2]);
-          stage.shake(2);
+          for (let k = 0; k < 9; k++) setTimeout(() => fx.firework(e.x + (Math.random() - 0.5) * 16, e.y + (Math.random() - 0.5) * 12, rainbow(k), [1, 0.6 + 0.4 * Math.random(), 0.3]), k * 90);
+          stage.shake(2.4);
           stage.kick(0, 0, -2.5);
-          pacing.hitStop(0.12);
+          pacing.hitStop(0.2);
+          slowMo(0.3, 1.1);
           audio.bossDown();
           haptics.play('clear');
-          ui.toast('BOSS 격파!', 'mega');
+          ui.screenFlash();
+          ui.toast('BOSS 격파!', 'mega neon-burst');
           break;
         case 'storm-warn':
           gimmicks3d.warnColumn(e.c, e.bottom, e.top);
@@ -250,6 +279,14 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     }
     if (booms >= 3) { slowMo(0.5, 0.35); pacing.hitStop(0.05); }
     if (booms >= 8) stage.shake(1.2);
+    const now = performance.now();
+    if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {
+      // Pops off the boss's body; bigger and gold while it is stunned (double damage).
+      const at = stage.project(w.boss.x + (Math.random() - 0.5) * w.boss.r, w.boss.y + w.boss.r * 0.6, 4);
+      ui.floatAt(at.x, at.y, [[{ big: `-${dmgBank}` }]], w.boss.stun > 0 ? 'dmg crit' : 'dmg');
+      dmgBank = 0;
+      dmgAt = now;
+    }
     milestones(w);
     ui.setFinale(w.finale && w.state === 'play' ? w.grid.remaining : null);
   }
