@@ -4,11 +4,12 @@ import { BALL_R, MAX_BALLS, COLS, ROWS } from '../sim/constants.js';
 const WHITE = new THREE.Color(1, 1, 1);
 const FIRE = new THREE.Color(1, 0.45, 0.08);
 
-/** Instanced glowing balls fed straight from the sim's typed arrays. */
+/** Instanced shaded balls fed straight from the sim's typed arrays. */
 export function createBalls3d(scene) {
   const mesh = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(BALL_R * 1.8, 10, 8), // drawn larger than the hitbox so it reads on phones
-    new THREE.MeshLambertMaterial(),
+    new THREE.SphereGeometry(BALL_R * 1.8, 16, 12), // drawn larger than the hitbox so it reads on phones
+    // A rounder, shaded ball: matte body with a small soft highlight from the room light (a sheen, not a glow).
+    new THREE.MeshPhongMaterial({ shininess: 60, specular: 0x666666 }),
     MAX_BALLS + 1,
   );
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

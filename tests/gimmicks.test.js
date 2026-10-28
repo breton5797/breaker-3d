@@ -80,7 +80,7 @@ describe('deep sea: currents', () => {
     const s0 = speed(w.balls, 0);
     for (let k = 0; k < 20; k++) bendBall(w.gimmick, w.balls, 0, 1 / 60);
     expect(Math.sign(w.balls.vx[0])).toBe(band.dir);
-    expect(speed(w.balls, 0)).toBeCloseTo(s0, 5);
+    expect(speed(w.balls, 0)).toBeCloseTo(s0, 4); // renormalised each step (float rounding grows with the stronger current)
   });
 
   it('never lets a ball drift sideways forever (keeps some vertical speed, same direction)', () => {

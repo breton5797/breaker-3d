@@ -1,10 +1,10 @@
 import {
-  COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W,
+  COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W, WALL_EVENTS_MAX,
   PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION, PRE_ENTRY_MAX,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
-import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
+import { hitCell, processPending, splitBall, aimBall, startFinale, wallKnock } from './cells.js';
 import { AIM_FAN } from './aim.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
@@ -164,8 +164,8 @@ function bouncePaddle(w, i) {
 function moveBall(w, i, h) {
   const b = w.balls;
   let nx = b.x[i] + b.vx[i] * h;
-  if (nx < BALL_R) { nx = BALL_R; b.vx[i] = Math.abs(b.vx[i]); }
-  else if (nx > COLS - BALL_R) { nx = COLS - BALL_R; b.vx[i] = -Math.abs(b.vx[i]); }
+  if (nx < BALL_R) { nx = BALL_R; b.vx[i] = Math.abs(b.vx[i]); wallKnock(w, i); }
+  else if (nx > COLS - BALL_R) { nx = COLS - BALL_R; b.vx[i] = -Math.abs(b.vx[i]); wallKnock(w, i); }
   else {
     const c = Math.floor(nx + Math.sign(b.vx[i]) * BALL_R);
     const r = Math.floor(b.y[i]);
@@ -221,6 +221,7 @@ function updateBalls(w, dt) {
 export function stepWorld(w, dt) {
   if (w.state === 'clear' || w.state === 'over') return;
   w.time += dt;
+  w.wallKnocks = WALL_EVENTS_MAX;
   w.comboTimer -= dt;
   if (w.comboTimer <= 0) w.combo = 0;
   processPending(w);

@@ -6,7 +6,7 @@ import { BOSS_KINDS } from '../src/sim/boss.js';
 import { MAP_BOSSES } from '../src/sim/mapBosses.js';
 
 const file = (path) => new URL(`../public/art/${path}`, import.meta.url);
-const KINDS = [...BOSS_KINDS, ...Object.values(MAP_BOSSES).map((b) => b.kind)];
+const KINDS = [...new Set([...BOSS_KINDS, ...Object.values(MAP_BOSSES).map((b) => b.kind)])]; // 놀이 세계 reuses earlier bosses
 
 describe('boss 3D models', () => {
   it('every boss (the big four and each map boss) has a model', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getLevel } from '../src/sim/levels.js';
-import { LAP } from '../src/sim/maps.js';
+import { LAP, PLAY } from '../src/sim/maps.js';
 import { stageSlot } from '../src/sim/sequence.js';
 import { MAP_BOSSES, MOVES, ATTACKS } from '../src/sim/mapBosses.js';
 import { createWorld, stepWorld, drainEvents, launch } from '../src/sim/world.js';
@@ -33,9 +33,12 @@ describe('map bosses: one per map', () => {
     }
   });
 
-  it('no two maps share a boss', () => {
-    const kinds = LAP.map((m) => MAP_BOSSES[m.id].kind);
-    expect(new Set(kinds).size).toBe(LAP.length);
+  it('no two maps share a boss within a chapter (놀이 세계 reuses earlier ones)', () => {
+    const first = LAP.length - PLAY.length; // 놀이 세계 closes the lap
+    for (const chapter of [LAP.slice(0, first), LAP.slice(first)]) {
+      const kinds = chapter.map((m) => MAP_BOSSES[m.id].kind);
+      expect(new Set(kinds).size).toBe(chapter.length);
+    }
   });
 
   it('a regular stage carries its map boss, smaller than a 10th-stage boss', () => {

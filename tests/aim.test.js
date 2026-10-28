@@ -14,7 +14,7 @@ const world = (n, seed = 3) => {
   return createWorld(level.lines, { box: level.box, holes: level.holes, boss: null, rng: rng(seed) });
 };
 /** Serves at `angle` and runs up to `seconds`: did a ball get into the box? */
-const entersFor = (n, x, angle, dt = 1 / 120, seconds = 4) => {
+const entersFor = (n, x, angle, dt = 1 / 120, seconds = 6) => { // the guide follows up to 320 cells: ~4.4 s at 72 cells/s
   const w = world(n);
   setPaddleX(w, x);
   launch(w, angle);

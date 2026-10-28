@@ -15,6 +15,7 @@ const BALL_MILESTONES = [50, 100, 250, 500, 1000, 2000, 3000];
 const COMBO_MILESTONES = [100, 300, 1000];
 const COIN_BURSTS = 3; // gold ring + chip bursts per frame at most
 const BOOM_FULL = 6; // bombs per frame that get scorch + dust; the rest just ring
+const KNOCK_GAP = 0.07; // seconds between wall tinks at most
 const PADDLE_TAP_BALLS = 8; // paddle bounces buzz only while the swarm is this small (else it would hum)
 
 const specialHex = Object.fromEntries(Object.entries(SPECIALS).map(([t, s]) => [t, new THREE.Color(...s.tint).multiplyScalar(0.45).getHex()]));
@@ -28,6 +29,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   const pacing = createPacing();
   const timers = createTimers(); // delayed effects of this stage, called off on reset
   let ballMark = 0;
+  let lastKnock = -Infinity; // world time of the last wall tink
   let comboMark = 0;
   let zapCount = 0;
   // Damage numbers: a swarm lands dozens of hits a frame, so they are pooled into one number now and then.
@@ -54,6 +56,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   }
 
   function reset() {
+    lastKnock = -Infinity;
     timers.cancelAll();
     hinted = false;
     ui.meteorHint(false);
@@ -76,6 +79,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     let coinX = 0;
     let coinBursts = 0;
     let paddleHits = 0;
+    let wallKnocks = 0;
     let chips = 0;
     let lasers = 0;
     let coreHits = 0;
@@ -173,8 +177,19 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
         case 'paddle':
           audio.paddle();
           if (paddleHits++ === 0) {
-            stage.paddle.punch(0.15);
-            if (w.balls.n <= PADDLE_TAP_BALLS) haptics.play('paddle');
+            // The first return each frame: a clear thump and a few sparks off the paddle face.
+            stage.paddle.punch(0.28);
+            for (let k = 0; k < 4; k++) fx.shards(e.x, PADDLE_Y + 0.7, 0xdff3ff, 0.55);
+            if (w.balls.n <= PADDLE_TAP_BALLS) { haptics.play('paddle'); stage.kick(0, 0, -0.25); }
+          }
+          break;
+        case 'wall':
+          // A ball knocking on the steel box or the field wall: sparks where it struck and a tink.
+          if (wallKnocks++ < 2) {
+            for (let k = 0; k < 3; k++) fx.shards(e.x, e.y, 0xcfd8ea, 0.5);
+            // A rally knocks every frame: tink at most every KNOCK_GAP so it never drowns the brick pops.
+            if (wallKnocks === 1 && Math.abs(w.time - lastKnock) >= KNOCK_GAP) { lastKnock = w.time; audio.wallKnock(); }
+            if (wallKnocks === 1 && w.balls.n <= PADDLE_TAP_BALLS) haptics.play('paddle');
           }
           break;
         case 'launch': audio.launch(); stage.paddle.punch(0.25); haptics.play('launch'); serveAt = w.time; break;

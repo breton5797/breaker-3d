@@ -395,7 +395,8 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
     bricks,
     bossName: slot.boss ? map.name : `BOSS · ${MAP_BOSSES[map.id]?.name ?? map.name}`,
     bossStage: slot.boss,
-    theme: map.theme ?? null, // chapter gimmick: 'space' | 'sea' | 'nature' (gimmicks.js)
+    theme: map.theme ?? null, // chapter theme; 'space' | 'sea' | 'nature' bring a gimmick (gimmicks.js)
     chapterStart: Boolean(map.chapterStart),
+    chapterName: map.chapterName ?? null, // the chapter this map opens (banner), else null
   };
 }
