@@ -325,6 +325,9 @@ export function createUI(h) {
     if (heavy) el.classList.add('heavy');
   }
 
+  /** Makes the meteor button pulse (a hint while no ball has got in yet). */
+  function meteorHint(on) { $('skill-meteor').classList.toggle('hint-pulse', on); }
+
   /** A white flash over everything for a knockout. */
   function screenFlash() { replay($('flash'), 'on'); }
 
@@ -518,6 +521,7 @@ export function createUI(h) {
     setBoss,
     bossShield,
     screenFlash,
+    meteorHint,
     layoutOverlays,
     setVibe,
     setPhotoCredit,

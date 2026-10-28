@@ -1,4 +1,5 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS, COIN_VALUE } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS, COIN_VALUE, BEAM_SHARE, OVERFLOW_SCORE } from './constants.js';
+import { beamBoss } from './boss.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
 import { isInside } from './box.js';
@@ -16,8 +17,12 @@ export const fruitGain = (mult) => FRUIT_GAINS[mult] ?? 2;
 export function multiplyBalls(w, mult) {
   const b = w.balls;
   const have = b.n + w.queued;
-  const target = Math.min(b.cap, Math.round(Math.max(have, 1) * mult));
+  const wanted = Math.round(Math.max(have, 1) * mult);
+  const target = Math.min(b.cap, wanted);
   w.queued += Math.max(0, target - have);
+  // At the cap the extra balls can't exist: they become score instead of nothing.
+  w.overflow = Math.max(0, wanted - Math.max(target, have));
+  w.score += w.overflow * OVERFLOW_SCORE;
   return target;
 }
 
@@ -87,7 +92,8 @@ export function updateDrops(w, dt) {
       w.catchStreak++;
       w.bestStreak = Math.max(w.bestStreak, w.catchStreak);
       w.bestFruit = Math.max(w.bestFruit, d.mult);
-      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak });
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak, overflow: w.overflow });
+      if (w.boss?.alive && w.finale) beamBoss(w, Math.max(1, Math.round(w.boss.hpMax * BEAM_SHARE * gain)));
     } else if (y < -1) {
       w.catchStreak = 0; // a dropped fruit breaks the catch combo
       w.events.push({ t: 'miss', x: d.x, mult: d.mult });

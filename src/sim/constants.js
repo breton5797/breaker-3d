@@ -5,6 +5,14 @@ export const ROWS = 128;
 export const BALL_R = 0.28;
 export const BALL_SPEED = 36;
 export const MAX_BALLS = 4000;
+// Until the first ball of a serve gets into the box, each paddle bounce adds a
+// ball (up to this many): the opening has more tries instead of dead time.
+export const PRE_ENTRY_MAX = 8;
+// After the boss's shield drops (finale), each caught fruit fires a beam at it:
+// this share of its max health per point of the fruit's ball gain (×7 apple = 10.5%).
+export const BEAM_SHARE = 0.015;
+// Balls a fruit would add past the cap turn into this much score each.
+export const OVERFLOW_SCORE = 5;
 export const MAX_SUBSTEP = 0.4; // max distance a ball travels per substep (cells)
 
 export const PADDLE_Y = 6;
@@ -93,5 +101,5 @@ export const UNIT_TIERS = Object.freeze([
 ]);
 export const UNIT_CHARS = Object.freeze(['J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'T', 'U']);
 export const UNIT_GRACE = 2.5; // seconds after serving before units open fire
-export const STUN_SHRINK = 0.6; // paddle width factor while stunned
+export const STUN_SHRINK = 0.75; // paddle width factor while stunned
 export const MAX_SHELLS = 80;

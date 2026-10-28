@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL, COLS, ROWS, PADDLE_Y } from './sim/constants.js';
+import { CELL, COLS, ROWS, PADDLE_Y, OVERFLOW_SCORE } from './sim/constants.js';
 import { SPECIALS } from './render/bricks.js';
 import { fruitFor } from './fruits.js';
 import { fruitArt } from './art.js';
@@ -33,6 +33,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   // Damage numbers: a swarm lands dozens of hits a frame, so they are pooled into one number now and then.
   let dmgBank = 0;
   let dmgAt = 0;
+  // Opening help: if no ball has got in a while after a serve, point at the meteor.
+  let serveAt = 0;
+  let hinted = false;
+  const HINT_AFTER = 8; // seconds of play without a ball inside
   const DMG_EVERY = 120; // ms between damage numbers
 
   /** Finale send-off: staggered firework bursts across the board. */
@@ -51,6 +55,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
 
   function reset() {
     timers.cancelAll();
+    hinted = false;
+    ui.meteorHint(false);
     ui.setFinale(null);
     pacing.reset();
     ballMark = 0;
@@ -126,7 +132,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           {
             const f = fruitFor(e.mult);
             const badge = { small: `×${e.gain}` };
-            ui.toast([{ emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, `!  →  ${ui.fmt(e.n)} BALLS`], e.mult >= 20 ? 'mega' : '');
+            // At the ball cap the extra balls became score: say so instead of a number that didn't move.
+            const tail = e.overflow > 0 ? `!  MAX +${ui.fmt(e.overflow * OVERFLOW_SCORE)}점` : `!  →  ${ui.fmt(e.n)} BALLS`;
+            ui.toast([{ emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, tail], e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
             ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji, art: fruitArt(f.id) }, badge]], e.streak >= 5 ? 'hot' : '');
@@ -169,8 +177,24 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
             if (w.balls.n <= PADDLE_TAP_BALLS) haptics.play('paddle');
           }
           break;
-        case 'launch': audio.launch(); stage.paddle.punch(0.25); haptics.play('launch'); break;
+        case 'launch': audio.launch(); stage.paddle.punch(0.25); haptics.play('launch'); serveAt = w.time; break;
+        case 'enter':
+          // The first ball of the serve slipped through a hole: the opening's big success.
+          slowMo(0.5, 0.3);
+          audio.milestone();
+          haptics.play('milestone');
+          stage.shake(0.4);
+          ui.meteorHint(false);
+          ui.toast('🎯 들어갔다!', '');
+          break;
+        case 'boss-beam':
+          fx.bossBeam(e.x, e.y);
+          pacing.hitStop(0.08);
+          stage.shake(0.8);
+          audio.laser();
+          break;
         case 'skill':
+          ui.meteorHint(false);
           audio.skill();
           stage.shake(0.6);
           stage.kick(0, 0, -1.5);
@@ -295,6 +319,11 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     }
     if (booms >= 3) { slowMo(0.5, 0.35); pacing.hitStop(0.05); }
     if (booms >= 8) stage.shake(1.2);
+    if (!hinted && w.state === 'play' && !w.entered && w.charges.meteor > 0 && w.time - serveAt > HINT_AFTER) {
+      hinted = true; // once a stage is enough
+      ui.meteorHint(true);
+      ui.toast('☄ 메테오로 한 번에 넣어 보세요!', 'small');
+    }
     const now = performance.now();
     if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {
       // Pops off the boss's body; bigger and gold while it is stunned (double damage).

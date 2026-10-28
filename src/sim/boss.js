@@ -153,6 +153,24 @@ function move(b, dt) {
 }
 
 /**
+ * A caught fruit's beam once the shield is down (finale): it ignores the
+ * per-second damage cap, so catching fruit makes the boss fall faster.
+ * @returns {number} damage dealt (0 before the finale)
+ */
+export function beamBoss(w, base) {
+  const b = w.boss;
+  if (!b || !b.alive || !w.finale) return 0;
+  const before = b.hp;
+  const budget = b.budget;
+  b.budget = Infinity;
+  damageBoss(w, base);
+  b.budget = budget;
+  const dmg = before - b.hp;
+  w.events.push({ t: 'boss-beam', x: b.x, y: b.y, dmg });
+  return dmg;
+}
+
+/**
  * Takes damage from the per-second budget; past it, hits bounce off a shield.
  * Crossing a phase threshold or reaching zero changes the fight.
  */

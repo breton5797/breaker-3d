@@ -1,12 +1,12 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W,
-  PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
+  PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION, PRE_ENTRY_MAX,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
 import { updateDrops } from './items.js';
-import { buildUnits, updateUnits, updateShells } from './units.js';
+import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
 import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
 
@@ -85,6 +85,7 @@ export function launch(w) {
     aimBall(b, k, drift + (k - (LAUNCH_BALLS - 1) / 2) * 0.28);
   }
   w.state = 'play';
+  w.entered = false; // a new serve: the opening assist is back on until a ball gets in
   w.events.push({ t: 'launch' });
   return true;
 }
@@ -140,11 +141,14 @@ function bouncePaddle(w, i) {
   const p = w.paddle;
   if (b.vy[i] >= 0 || b.y[i] - BALL_R > PADDLE_TOP || b.y[i] < PADDLE_Y - PADDLE_H) return;
   if (Math.abs(b.x[i] - p.x) > p.w / 2 + BALL_R) return;
+  // Not in yet this serve: each return off the paddle brings a friend (more tries, less dead time).
+  const assist = !w.entered && w.state === 'play' && b.n < PRE_ENTRY_MAX;
   let off = Math.max(-1, Math.min(1, (b.x[i] - p.x) / (p.w / 2)));
   // Never return a ball perfectly vertical: that can loop forever in a cleared column.
   if (Math.abs(off) < 0.08) off = w.rng() < 0.5 ? -0.08 : 0.08;
   aimBall(b, i, off * PADDLE_MAX_ANGLE, Math.hypot(b.vx[i], b.vy[i]));
   b.y[i] = PADDLE_TOP + BALL_R;
+  if (assist && addBall(b, b.x[i], b.y[i], 0, 1)) aimBall(b, b.n - 1, -off * PADDLE_MAX_ANGLE * 0.8 + (w.rng() - 0.5) * 0.3, Math.hypot(b.vx[i], b.vy[i]));
   if (w.events.length < 8000) w.events.push({ t: 'paddle', x: b.x[i] });
 }
 
@@ -220,6 +224,10 @@ export function stepWorld(w, dt) {
     updateShells(w, dt);
     updateBoss(w, dt);
     updateGimmick(w, dt);
+    if (!w.entered && ballInside(w)) {
+      w.entered = true;
+      w.events.push({ t: 'enter' });
+    }
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;
