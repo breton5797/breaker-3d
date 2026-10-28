@@ -245,7 +245,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           stage.shake(1);
           haptics.play('stun');
           for (let k = 0; k < 30; k++) fx.shards(e.x, e.y, e.phase === 3 ? 0x8b93a8 : 0xff2a2a, 1.6);
-          if (e.phase === 2) { boss3d.enrage(); pacing.hitStop(0.08); }
+          if (e.phase === 2) { boss3d.enrage(); pacing.hitStop(0.08); audio.roar(); }
           ui.toast(e.phase === 3 ? '갑옷이 부서졌다!' : '보스가 분노했다!', 'mega danger');
           break;
         case 'boss-warn':
@@ -254,8 +254,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
         case 'boss-strike':
           boss3d.strike(e, w.boss);
           if (e.kind === 'sweep') { audio.laser(); break; }
-          fx.boom(e.x - 0.5, PADDLE_Y - 0.5);
-          stage.shake(e.kind === 'stomp' ? 1.2 : 0.8);
+          (e.xs ?? [e.x]).forEach((x) => fx.boom(x - 0.5, PADDLE_Y - 0.5));
+          if (e.kind === 'dive') haptics.play('boom');
+          stage.shake(e.kind === 'stomp' || e.kind === 'dive' ? 1.2 : 0.8);
           stage.kick(0, 0, -1);
           audio.thunder();
           break;
@@ -271,7 +272,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.bossDown();
           haptics.play('clear');
           ui.screenFlash();
-          ui.toast('BOSS 격파!', 'mega neon-burst');
+          ui.bossCard({ kind: e.kind, mode: 'down' });
+          ui.shower();
           break;
         case 'storm-warn':
           gimmicks3d.warnColumn(e.c, e.bottom, e.top);

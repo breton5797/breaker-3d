@@ -101,6 +101,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .toast.small { font-size: clamp(15px, 3.6vw, 20px); }
 /* Floating labels over the board (combo at the paddle). */
 #floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+/* Boss card: the boss's portrait slides in with its name (entrance), or gets a KO stamp (beaten). */
+.boss-card {
+  position: fixed; left: 50%; top: 52%; z-index: 4; width: min(360px, 88vw); transform: translate(-50%, -50%);
+  display: grid; grid-template-columns: 44% 1fr; align-items: center; column-gap: 10px; padding: 10px 16px 10px 6px;
+  border-radius: 22px; border: 2px solid rgba(255, 79, 216, 0.75);
+  background: linear-gradient(120deg, rgba(40, 10, 50, 0.92), rgba(14, 19, 44, 0.94));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65); pointer-events: none; overflow: visible;
+  animation: cardIn 0.42s cubic-bezier(0.2, 1.35, 0.4, 1) both;
+}
+.boss-card.big { border-color: rgba(255, 59, 92, 0.9); background: repeating-linear-gradient(135deg, rgba(70, 8, 18, 0.94) 0 14px, rgba(40, 6, 14, 0.94) 14px 28px); }
+.boss-card.out { animation: cardOut 0.3s ease-in both; }
+.boss-card-art { width: 100%; aspect-ratio: 1; object-fit: contain; margin: -38px 0 -14px; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.55)); animation: artIn 0.55s 0.1s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.boss-card-text { display: grid; gap: 4px; text-align: left; }
+.boss-card-text small { font-weight: 900; letter-spacing: 0.3em; color: var(--neon-cyan, #19f5e1); }
+.boss-card-text b { font-size: clamp(20px, 6vw, 28px); font-weight: 900; line-height: 1.15; color: #fff; word-break: keep-all; }
+.boss-card-stamp { position: absolute; right: 14px; bottom: -14px; padding: 2px 12px; border-radius: 10px; font-style: normal; font-weight: 900;
+  font-size: 22px; color: #fff; background: #ff3b5c; transform: rotate(-8deg); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
+.boss-card-stamp:empty { display: none; }
+.boss-card.down .boss-card-art { filter: grayscale(0.6) drop-shadow(0 8px 10px rgba(0, 0, 0, 0.55)); }
+.boss-card.down .boss-card-stamp { animation: stamp 0.5s 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; }
+@keyframes cardIn { from { transform: translate(-150%, -50%) skewX(-12deg); opacity: 0; } }
+@keyframes cardOut { to { transform: translate(60%, -50%) skewX(10deg); opacity: 0; } }
+@keyframes artIn { from { transform: translateX(-40px) scale(0.6) rotate(-10deg); opacity: 0; } }
+/* Coins and fruit raining down the screen when a boss falls. */
+.shower { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.shower img { position: absolute; top: -60px; width: 40px; height: 40px; animation: fall linear both; }
+@keyframes fall { to { transform: translateY(calc(100vh + 120px)) rotate(var(--spin, 360deg)); } }
+@media (prefers-reduced-motion: reduce) { .boss-card, .boss-card-art, .boss-card.out { animation-duration: 0.01s; } }
 .floater {
   position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap;
   font-weight: 900; color: #fff; text-shadow: 0 2px 3px rgba(0, 0, 0, 0.7);

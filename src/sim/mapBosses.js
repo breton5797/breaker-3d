@@ -8,6 +8,8 @@
 // attack: telegraphed blow at the paddle — stomp (wide zone under it), slam
 // (a lash down a lane), rock (thrown at the paddle), sweep (a beam across).
 
+import { ATTACK_ZONE, mapAttacks } from './boss.js';
+
 export const MOVES = Object.freeze(['sway', 'eight', 'glide', 'hop']);
 export const ATTACKS = Object.freeze(['stomp', 'slam', 'rock', 'sweep']);
 
@@ -54,7 +56,6 @@ export const MAP_BOSSES = Object.freeze({
   iceberg: b('walrus', '거대 바다코끼리', 'sway', 'stomp'),
 });
 
-const ZONE = Object.freeze({ stomp: 12, slam: 8, rock: 7, sweep: 0 }); // warning width at the paddle row
 const BRICK_HP = 0.012; // health per brick on the stage (~40 for an average mural)
 const GENTLE_STAGES = 5; // stages 1-5: the boss only roams, it never strikes
 
@@ -76,7 +77,8 @@ export function mapBossSpec(mapId, n, bricks = 3000) {
     band: 18, // rows below the ceiling it may roam, bricks or not
     move: m.move,
     attack: m.attack,
-    zone: ZONE[m.attack],
+    attackKinds: mapAttacks(m.attack), // its signature blow, then a second one in turn
+    zone: ATTACK_ZONE[m.attack],
     attacks: n >= GENTLE_STAGES,
     attackEvery: 7, // a big boss strikes every 4.5 s
     hp: 50 + Math.floor(n * 0.8) + Math.floor(bricks * BRICK_HP),

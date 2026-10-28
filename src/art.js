@@ -33,6 +33,9 @@ export const BOSS_MODELS = Object.freeze({
 // keys by URL, so a new version makes returning players fetch the new art.
 const ART_VERSION = 1;
 
+/** @param {string} kind a boss kind @returns {string} its portrait (Higgsfield, see CREDITS.md) */
+export const bossArt = (kind) => `boss/${kind}.webp`;
+
 /** @param {string} id a fruit id from src/fruits.js */
 export const fruitArt = (id) => `fruit/${id}.png`;
 

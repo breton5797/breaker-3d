@@ -2,7 +2,8 @@ import { levelName } from './sim/levels.js';
 import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
-import { artUrl } from './art.js';
+import { artUrl, bossArt, fruitArt } from './art.js';
+import { FRUITS } from './fruits.js';
 import { iconArt, splitIcons } from './icons.js';
 import { LOADOUT, totalStars, nextGoals } from './meta.js';
 
@@ -113,6 +114,7 @@ export function createUI(h) {
     if (!on) setBoss(null);
     if (!on) setFinale(null);
     $('skills').hidden = !on;
+    if (!on) { clearTimeout(cardTimer); $('boss-card').hidden = true; }
     if (!on) { $('hint').hidden = true; $('photo-credit').hidden = true; }
   }
 
@@ -333,6 +335,56 @@ export function createUI(h) {
     el.classList.remove('pump');
     void el.offsetWidth; // restart the animation
     el.classList.add('pump');
+  }
+
+  const CARD_MS = { intro: 1900, down: 2100 };
+  let cardTimer = 0;
+  let cardName = ''; // the boss named by its entrance card, for its KO card
+  /** Slides the boss card away (its time is up; taps go through it to the game). */
+  function hideBossCard() {
+    const card = $('boss-card');
+    if (card.hidden || card.classList.contains('out')) return;
+    clearTimeout(cardTimer);
+    card.classList.add('out');
+    cardTimer = setTimeout(() => { card.hidden = true; }, 300);
+  }
+
+  /**
+   * The boss's card: its portrait and name as it arrives, or with a KO stamp when beaten.
+   * @param {{ kind:string, name?:string, big?:boolean, mode:'intro'|'down' }} info (name: the last card's when left out)
+   */
+  function bossCard({ kind, name = cardName, big = false, mode }) {
+    cardName = name;
+    const card = $('boss-card');
+    clearTimeout(cardTimer);
+    const art = $('boss-card-art');
+    art.hidden = false;
+    art.onerror = () => { art.hidden = true; };
+    art.src = artUrl(bossArt(kind));
+    $('boss-card-tag').textContent = mode === 'down' ? 'DEFEATED' : big ? 'WARNING' : 'BOSS';
+    $('boss-card-name').textContent = name;
+    $('boss-card-stamp').textContent = mode === 'down' ? '격파!' : '';
+    card.className = `boss-card ${mode}${big ? ' big' : ''}`;
+    card.hidden = false;
+    void card.offsetWidth; // restart the slide-in
+    cardTimer = setTimeout(hideBossCard, CARD_MS[mode]);
+  }
+
+  /** Coins and fruit pour down the screen (a boss just fell). */
+  function shower(count = 28) {
+    const layer = $('shower');
+    const pics = ['ui/coin.webp', ...FRUITS.map((f) => fruitArt(f.id))];
+    for (let k = 0; k < count; k++) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = artUrl(pics[k % 3 === 0 ? 0 : 1 + Math.floor(Math.random() * FRUITS.length)]);
+      img.style.left = `${Math.random() * 96}%`;
+      img.style.animationDuration = `${1.1 + Math.random() * 0.9}s`;
+      img.style.animationDelay = `${Math.random() * 0.6}s`;
+      img.style.setProperty('--spin', `${(Math.random() < 0.5 ? -1 : 1) * (180 + Math.random() * 540)}deg`);
+      img.addEventListener('animationend', () => img.remove());
+      layer.append(img);
+    }
   }
 
   /** Small label that pops up at a screen point and floats away (e.g. over the paddle). */
@@ -575,6 +627,9 @@ export function createUI(h) {
     showTitle,
     startStage,
     setHud,
+    bossCard,
+    hideBossCard,
+    shower,
     toast,
     showClear,
     showOver,
