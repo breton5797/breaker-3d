@@ -3,6 +3,7 @@ import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl } from './art.js';
+import { iconArt, splitIcons } from './icons.js';
 import { LOADOUT, totalStars, nextGoals } from './meta.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
@@ -14,14 +15,32 @@ const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
 function emojiSpan({ emoji, art }) {
   const span = document.createElement('span');
   span.className = 'toast-emoji';
-  if (!art) { span.textContent = emoji; return span; }
+  span.setAttribute('aria-hidden', 'true'); // decoration: the words or aria-label next to it carry the meaning
+  const pic = art ?? iconArt(emoji);
+  if (!pic) { span.textContent = emoji; return span; }
   const img = document.createElement('img');
   img.className = 'art-icon';
-  img.src = artUrl(art);
+  img.src = artUrl(pic);
   img.alt = '';
   img.onerror = () => { span.textContent = emoji; };
   span.append(img);
   return span;
+}
+
+/** @param {string} text @returns {(Text | HTMLElement)[]} the text with each known emoji drawn as its icon */
+const richParts = (text) => splitIcons(text).map((p) => (typeof p === 'string' ? document.createTextNode(p) : emojiSpan(p)));
+
+/** Like `el.textContent = text`, with icons in place of emoji. */
+const setRich = (el, text) => el.replaceChildren(...richParts(text));
+
+/** Swaps the emoji written straight into index.html for icons (text nodes only, markup untouched). */
+function iconifyStatic(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    if (splitIcons(node.data).some((p) => typeof p !== 'string')) node.replaceWith(...richParts(node.data));
+  }
 }
 
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
@@ -37,8 +56,14 @@ const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 
  *   impact:(kind:'slam'|'star')=>void }} h sfx plays a named sound (audio.js); impact shakes and buzzes
  */
 export function createUI(h) {
+  iconifyStatic(document.body);
+  const titleArt = $('title-art');
+  titleArt.onload = () => { titleArt.hidden = false; };
+  titleArt.src = artUrl('ui/title.webp');
   const overlay = $('overlay');
   let lastBalls = 0;
+  let shownGold = null; // HUD values last drawn, so icons aren't rebuilt every frame
+  let shownMuted = null;
   let sequence = []; // timers of the clear-screen choreography still pending
   let finishSequence = null; // jumps the choreography to its end (tap to skip)
 
@@ -127,8 +152,8 @@ export function createUI(h) {
     const next = save.unlocked - 1;
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
-    $('btn-achv').textContent = `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
-    $('title-gold').textContent = `🪙 ${fmt(save.gold)} 골드 · ⭐ ${fmt(totalStars(save))}`;
+    setRich($('btn-achv'), `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`);
+    setRich($('title-gold'), `🪙 ${fmt(save.gold)} 골드 · ⭐ ${fmt(totalStars(save))}`);
     const { toBoss } = nextGoals(Math.max(0, next));
     const goals = document.createElement('b');
     goals.textContent = toBoss === 0 ? '다음 판이 대형 보스!' : `다음 대형 보스까지 ${toBoss}판`;
@@ -143,7 +168,7 @@ export function createUI(h) {
       const item = LOADOUT[kind];
       const have = save.loadout?.[kind] ?? 0;
       const el = $(`btn-buy-${kind}`);
-      el.textContent = have >= item.max ? `${item.name} +${have} ✓` : `${item.name} +1 · 🪙${item.price}${have ? ` (${have})` : ''}`;
+      setRich(el, have >= item.max ? `${item.name} +${have} ✓` : `${item.name} +1 · 🪙${item.price}${have ? ` (${have})` : ''}`);
       el.setAttribute('aria-pressed', String(have > 0));
       el.disabled = have >= item.max || save.gold < item.price;
     }
@@ -172,7 +197,7 @@ export function createUI(h) {
       li.className = owned.has(a.id) ? '' : 'locked';
       const icon = document.createElement('span');
       icon.className = 'icon';
-      icon.textContent = a.icon;
+      icon.replaceChildren(emojiSpan({ emoji: a.icon }));
       const name = document.createElement('b');
       name.textContent = a.name;
       const desc = document.createElement('small');
@@ -222,7 +247,7 @@ export function createUI(h) {
   function setPhotoCredit(credit) {
     const el = $('photo-credit');
     el.hidden = !credit;
-    if (credit) el.textContent = `📷 ${credit.artist} · ${credit.license}`;
+    if (credit) setRich(el, `📷 ${credit.artist} · ${credit.license}`);
   }
 
   /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean, gold:number}} s */
@@ -243,8 +268,12 @@ export function createUI(h) {
     $('skill-split').disabled = s.charges.split <= 0 || s.ready;
     $('skill-meteor').disabled = s.charges.meteor <= 0;
     $('hint').hidden = !s.ready;
-    $('btn-mute').textContent = s.muted ? '🔇' : '🔊';
-    $('gold').textContent = `🪙 ${fmt(s.gold)}`;
+    if (s.muted !== shownMuted) {
+      shownMuted = s.muted;
+      setRich($('btn-mute'), s.muted ? '🔇' : '🔊');
+      $('btn-mute').setAttribute('aria-pressed', String(s.muted));
+    }
+    if (s.gold !== shownGold) { shownGold = s.gold; setRich($('gold'), `🪙 ${fmt(s.gold)}`); }
   }
 
   /**
@@ -259,8 +288,8 @@ export function createUI(h) {
     const el = document.createElement('div');
     el.className = `toast ${cls}`;
     const parts = Array.isArray(content) ? content : [content];
-    el.append(...parts.map((part) => {
-      if (typeof part === 'string') return document.createTextNode(part);
+    el.append(...parts.flatMap((part) => {
+      if (typeof part === 'string') return richParts(part);
       if (part.emoji) return emojiSpan(part);
       const span = document.createElement('small');
       span.className = 'toast-badge';
@@ -315,7 +344,7 @@ export function createUI(h) {
     lines.forEach((parts) => {
       const row = document.createElement('div');
       parts.forEach((part) => {
-        if (typeof part === 'string') { row.append(document.createTextNode(part)); return; }
+        if (typeof part === 'string') { row.append(...richParts(part)); return; }
         if (part.emoji) { row.append(emojiSpan(part)); return; }
         const span = document.createElement('span');
         span.className = part.small ? 'floater-small' : 'floater-big';
@@ -333,7 +362,7 @@ export function createUI(h) {
     document.querySelectorAll('.fs-btn').forEach((el) => {
       el.hidden = !supported;
       el.setAttribute('aria-pressed', String(on));
-      el.innerHTML = `<span aria-hidden="true">⛶</span> ${on ? '전체 화면 끄기' : '전체 화면'}`;
+      setRich(el, `⛶ ${on ? '전체 화면 끄기' : '전체 화면'}`);
     });
   }
 
@@ -363,7 +392,7 @@ export function createUI(h) {
   function setVibe(supported, on) {
     const el = $('btn-vibe');
     el.hidden = !supported;
-    el.textContent = on ? '📳 진동 켜짐' : '📴 진동 꺼짐';
+    setRich(el, on ? '📳 진동 켜짐' : '📴 진동 꺼짐');
   }
 
   /** Boss health bar: name and the core's remaining share (0..1); null hides it. */
@@ -502,7 +531,7 @@ export function createUI(h) {
     const el = $(id);
     el.hidden = !offer;
     el.disabled = false;
-    el.textContent = offer === 'ad' ? `📺 광고 보고 ${label}` : `🎁 ${label}`;
+    setRich(el, offer === 'ad' ? `📺 광고 보고 ${label}` : `🎁 ${label}`);
   }
 
   /** While a rewarded ad loads and plays: the button waits; afterwards it says what happened. */
@@ -518,7 +547,7 @@ export function createUI(h) {
   function setStore({ available, price, adsRemoved }) {
     $('btn-remove-ads').hidden = !available || adsRemoved;
     $('btn-restore').hidden = !available || adsRemoved;
-    $('btn-remove-ads').textContent = `🚫 광고 제거${price ? ` · ${price}` : ''}`;
+    setRich($('btn-remove-ads'), `🚫 광고 제거${price ? ` · ${price}` : ''}`);
   }
 
   /** Back to the board after a revive. */

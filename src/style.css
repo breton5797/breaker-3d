@@ -259,6 +259,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .logo span { margin-left: 6px; font-size: 0.5em; vertical-align: super; color: var(--accent-2); -webkit-text-fill-color: var(--accent-2); }
 .tagline { margin: 10px 0 20px; color: var(--muted); }
+/* Key art across the top of the title panel; the logo overlaps its faded lower edge. */
+.title-hero { position: relative; border-radius: 24px 24px 0 0; overflow: hidden; }
+.title-hero:has(.title-art:not([hidden])) { margin: -28px -22px 0; }
+.title-art {
+  display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 60% 50%;
+  -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent); mask-image: linear-gradient(180deg, #000 50%, transparent);
+}
+.title-hero:has(.title-art:not([hidden])) + .logo { position: relative; margin-top: -0.75em; }
 .eyebrow { margin: 0 0 6px; font-weight: 800; letter-spacing: 0.25em; color: var(--accent-2); }
 .eyebrow.danger { color: var(--hot); }
 .big-score { margin: 6px 0 14px; font-size: clamp(36px, 10vw, 52px); font-weight: 900; font-variant-numeric: tabular-nums; }

@@ -29,6 +29,7 @@
       #splash { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #06080f; color: #9fb4ff;
         font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 0.2em; transition: opacity 0.4s; }
       #splash b { display: block; font-size: 34px; color: #fff; letter-spacing: 0.05em; margin-bottom: 8px; }
+      #splash img { display: block; width: 112px; height: 112px; margin: 0 auto 18px; border-radius: 26px; }
       #splash.gone { opacity: 0; pointer-events: none; }
       #boot-error { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: #06080f;
         color: #dfe6ff; font: 16px/1.6 system-ui, sans-serif; text-align: center; }
@@ -43,7 +44,7 @@
   </head>
   <body>
     <noscript><p style="color:#fff;padding:24px;font:16px system-ui">BREAKER 3D를 하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
-    <div id="splash" aria-live="polite"><div><b>BREAKER 3D</b>LOADING…</div></div>
+    <div id="splash" aria-live="polite"><div><img src="%BASE_URL%icon-192.png" alt="" /><b>BREAKER 3D</b>LOADING…</div></div>
     <div id="boot-error" role="alert" hidden>
       <div>
         <p id="boot-error-text">이 브라우저에서는 3D 그래픽(WebGL)을 쓸 수 없어 게임을 시작할 수 없습니다.<br />최신 Chrome·Safari·Edge·Firefox에서 열거나, 브라우저 설정에서 하드웨어 가속을 켜 주세요.</p>
@@ -97,6 +98,7 @@
 
     <section id="overlay" class="overlay">
       <div id="screen-title" class="panel">
+        <div class="title-hero"><img id="title-art" class="title-art" alt="" hidden /></div>
         <h1 class="logo">BREAKER<span>3D</span></h1>
         <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
         <p id="title-gold" class="title-gold"></p>
