@@ -418,11 +418,12 @@ export function createUI(h) {
     });
   }
 
-  /** Pins the "tap to launch" hint at a screen point (just above the paddle). */
-  function placeHint(x, y) {
+  /** Pins the serve hint at a screen point (just above the paddle), with its text (how to aim, or the angle). */
+  function placeHint(x, y, text) {
     const el = $('hint');
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
+    if (text && el.textContent !== text) el.textContent = text;
   }
 
   /** Red edges pulse in when the player is hurt (a darkening vignette, not a glow). */

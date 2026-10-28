@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
-import { predictPath, AIM_MAX } from './sim/aim.js';
+import { predictPath } from './sim/aim.js';
+import { aimStep, aimLabel } from './aimInput.js';
 import { GUARD_FLOOR } from './sim/boss.js';
 import { getLevel, levelName } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
@@ -404,22 +405,16 @@ function pointerOnBoard(e) {
 const pointerToField = (e) => pointerOnBoard(e)?.paddleX ?? null;
 
 // Serving: press and the ball stays put while you aim; release fires along the guide.
-// Near the paddle the finger moves it; drawn up over the board, it tilts the aim instead.
-const AIM_LIFT = 8; // rows above the paddle where dragging turns from moving into tilting
+// Near the paddle the finger moves it; a little above it, it points the aim (aimInput.js).
 const NO_AIM = Object.freeze({ angle: 0, held: false, id: null }); // id: the finger (pointer) doing the aiming
 let aim = NO_AIM;
 
 function aimAt(e) {
   const p = pointerOnBoard(e);
   if (!p) return;
-  const ballY = PADDLE_Y + PADDLE_H / 2 + BALL_R;
-  if (p.y > PADDLE_Y + AIM_LIFT) {
-    const angle = Math.atan2(p.x - world.paddle.x, p.y - ballY);
-    aim = { ...aim, angle: Math.max(-AIM_MAX, Math.min(AIM_MAX, angle)) };
-  } else {
-    setPaddleX(world, p.paddleX);
-    aim = { ...aim, angle: 0 };
-  }
+  const step = aimStep(p, world.paddle.x, aim.angle);
+  if (step.paddleX !== null) setPaddleX(world, step.paddleX);
+  aim = { ...aim, angle: step.angle };
 }
 
 window.addEventListener('pointermove', (e) => {
@@ -478,7 +473,7 @@ function hud() {
   const g = world.grid;
   if (world.state === 'ready') {
     const at = stage.project(COLS / 2, PADDLE_Y + HINT_ABOVE, 1);
-    ui.placeHint(at.x, at.y);
+    ui.placeHint(at.x, at.y, aimLabel(aim.angle, aim.held));
   }
   ui.setHud({
     score: world.score,
