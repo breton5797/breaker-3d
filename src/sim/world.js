@@ -5,6 +5,7 @@ import {
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale } from './cells.js';
+import { AIM_FAN } from './aim.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
@@ -75,14 +76,21 @@ export function setPaddleX(w, x) {
   w.paddle = { ...w.paddle, x: Math.max(half, Math.min(COLS - half, x)) };
 }
 
-export function launch(w) {
+/**
+ * Serves the ball. Aimed (press, drag, release): the balls fly exactly along the
+ * aim guide in a tight bunch. Unaimed: a loose fan nudged by the paddle's motion.
+ * @param {number} [angle] radians from straight up (aim.js predictPath shows the flight)
+ */
+export function launch(w, angle) {
   if (w.state !== 'ready') return false;
   const b = w.balls;
   b.n = 0;
-  const drift = Math.max(-0.4, Math.min(0.4, (w.paddle.x - w.paddle.prevX) * 0.08)) + (w.rng() - 0.5) * 0.2;
+  const aimed = Number.isFinite(angle);
+  const drift = aimed ? angle : Math.max(-0.4, Math.min(0.4, (w.paddle.x - w.paddle.prevX) * 0.08)) + (w.rng() - 0.5) * 0.2;
+  const fan = aimed ? AIM_FAN : 0.28;
   for (let k = 0; k < LAUNCH_BALLS; k++) {
     addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, BALL_SPEED, 0);
-    aimBall(b, k, drift + (k - (LAUNCH_BALLS - 1) / 2) * 0.28);
+    aimBall(b, k, drift + (k - (LAUNCH_BALLS - 1) / 2) * fan);
   }
   w.state = 'play';
   w.entered = false; // a new serve: the opening assist is back on until a ball gets in

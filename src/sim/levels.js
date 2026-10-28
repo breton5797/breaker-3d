@@ -174,33 +174,38 @@ function seedUnits(lines, top, count, seed) {
 }
 
 const CAVITY = 8; // empty fine rows kept above the box floor so an entering ball keeps going
-const LANE = 7; // open fine columns between each side wall of the field and the box
+const LANES = [1, 2]; // open fine columns between each side wall of the field and the box (owner: 1-2, random per stage)
 const TOP_LANE = 6; // open fine rows between the ceiling and the box
-const INNER_COARSE = 40; // coarse columns inside the box (murals are drawn 48 wide)
-const INNER = INNER_COARSE * SCALE;
 const POCKET = 6; // fine cells kept clear behind every hole
 
+/** @param {number} n stage index @returns {number} its side lane width (1 or 2), the same every time */
+export const laneFor = (n) => LANES[Math.floor(mulberry32(n * 97 + 13)() * LANES.length)];
+/** Fine columns inside a box with side lanes `lane` wide (the murals fill all of it). */
+const innerCols = (lane) => GRID_COLS - 2 - 2 * lane;
+
 /** The steel box for a stage of `lineCount` lines: wall columns and rows (inclusive). */
-export const BOX = (lineCount) => ({ left: LANE, right: LANE + INNER + 1, bottom: ROWS - lineCount, top: ROWS - 1 - TOP_LANE });
+export const BOX = (lineCount, lane = LANES[0]) => ({ left: lane, right: lane + innerCols(lane) + 1, bottom: ROWS - lineCount, top: ROWS - 1 - TOP_LANE });
 
 // Where holes can go. `at` runs left to right on the floor and ceiling, bottom
 // to top on the side walls. odds = % of random serves that get in through that
-// hole alone, for a two-ball and a one-ball hole (measured by scripts/slot-odds.mjs).
+// hole alone, for a two-ball and a one-ball hole (measured by scripts/slot-odds.mjs; the one-ball
+// figures re-measured 2026-10-29 for the 1-2 cell side lanes, the only size stages use).
 export const SLOTS = [
-  { slot: 'bottom-l', side: 'bottom', at: 0.25, odds: [1.7, 0.67] },
+  { slot: 'bottom-l', side: 'bottom', at: 0.25, odds: [1.7, 0.8] },
   { slot: 'bottom-c', side: 'bottom', at: 0.5, odds: [2.03, 0.87] },
-  { slot: 'bottom-r', side: 'bottom', at: 0.75, odds: [1.87, 1.1] },
-  { slot: 'left-lo', side: 'left', at: 0.35, odds: [0.73, 0.3] },
-  { slot: 'left-hi', side: 'left', at: 0.7, odds: [1.13, 0.37] },
-  { slot: 'right-lo', side: 'right', at: 0.35, odds: [0.77, 0.27] },
-  { slot: 'right-hi', side: 'right', at: 0.7, odds: [1.0, 0.5] },
-  { slot: 'top-l', side: 'top', at: 0.3, odds: [0.93, 0.5] },
-  { slot: 'top-r', side: 'top', at: 0.7, odds: [0.97, 0.33] },
-  { slot: 'bl', side: 'bl', odds: [3.27, 1.73] },
-  { slot: 'br', side: 'br', odds: [2.87, 1.37] },
-  { slot: 'tl', side: 'tl', odds: [2.13, 1.27] },
-  { slot: 'tr', side: 'tr', odds: [2.87, 1.3] },
+  { slot: 'bottom-r', side: 'bottom', at: 0.75, odds: [1.87, 0.58] },
+  { slot: 'left-lo', side: 'left', at: 0.35, odds: [0.73, 0.28] },
+  { slot: 'left-hi', side: 'left', at: 0.7, odds: [1.13, 0.3] },
+  { slot: 'right-lo', side: 'right', at: 0.35, odds: [0.77, 0.25] },
+  { slot: 'right-hi', side: 'right', at: 0.7, odds: [1.0, 0.33] },
+  { slot: 'top-l', side: 'top', at: 0.3, odds: [0.93, 0.07] },
+  { slot: 'top-r', side: 'top', at: 0.7, odds: [0.97, 0.12] },
+  { slot: 'bl', side: 'bl', odds: [3.27, 1.45] },
+  { slot: 'br', side: 'br', odds: [2.87, 1.42] },
+  { slot: 'tl', side: 'tl', odds: [2.13, 0.18] },
+  { slot: 'tr', side: 'tr', odds: [2.87, 0.37] },
 ];
+const CEILING_SIDES = new Set(['top', 'tl', 'tr']); // slots only a ball up a side lane can reach
 const FLOOR_UNTIL = 10; // before this stage one hole is always in the floor
 const HARDEST_AT = 199; // from this stage on the hardest hole spots are used
 const SPREAD = 0.04; // share of the ranking around the stage's spot to pick from (variety)
@@ -225,6 +230,9 @@ function pickSlots(n, count, size, noCeiling = false) {
     .filter((set) => n >= FLOOR_UNTIL || set.some((s) => s.side === 'bottom'))
     // A big boss's short arena sits right under the boss: a ceiling hole there can't be reached.
     .filter((set) => !noCeiling || set.every((s) => s.side !== 'top'))
+    // The side lanes are only 1-2 cells, so the ceiling side is reached by a random bounce
+    // at best (lane-odds.mjs: 6-9x harder, never aimable): no holes up there.
+    .filter((set) => set.every((s) => !CEILING_SIDES.has(s.side)))
     .map((set) => ({ set, odds: odds(set) }))
     .sort((a, b) => b.odds - a.odds);
   const at = Math.round(Math.min(1, n / HARDEST_AT) * (sets.length - 1));
@@ -240,6 +248,7 @@ function pickSlots(n, count, size, noCeiling = false) {
  * (interior columns ic, rows ir counted from the top).
  */
 function holeGeometry({ slot, side, at }, size, box, innerRows) {
+  const INNER = box.right - box.left - 1; // fine columns inside this box
   const rowOf = (ir) => box.top - 1 - ir; // interior row (from top) -> grid row
   const span = (a, len) => Math.round(a * len - size / 2);
   const range = (a, k) => Array.from({ length: k }, (_, i) => a + i);
@@ -316,8 +325,8 @@ function carveOpenings(coarse, holes) {
 
 /** Wraps the fine interior in a steel box with open lanes around it, then opens the holes. */
 function frame(inner, box, holes) {
-  const lane = '.'.repeat(LANE);
-  const wall = `${lane}${'S'.repeat(INNER + 2)}${lane}`;
+  const lane = '.'.repeat(box.left);
+  const wall = `${lane}${'S'.repeat(box.right - box.left + 1)}${lane}`;
   const rows = [
     ...Array(TOP_LANE).fill('.'.repeat(GRID_COLS)),
     wall,
@@ -342,7 +351,7 @@ export const levelName = (i) => {
  * steel box: the list in order, then again at sunset and at night. The holes
  * (how many, how big, on which walls) and every other knob come from stageParams(i).
  * @param {number} i
- * @param {{ slots?: string[] }} [opts] force these hole slots (balance scripts and tests)
+ * @param {{ slots?: string[], lane?: number }} [opts] force these hole slots or this side lane width (balance scripts and tests)
  */
 /** Boss toughness and attack strength rise with the stage. */
 const bossSpec = (kind, n) => ({
@@ -352,14 +361,15 @@ const bossSpec = (kind, n) => ({
   tier: Math.min(10, 2 + Math.floor(n / 25)), // stun (and later lethal) strength of its attacks
 });
 
-export function getLevel(i, { slots } = {}) {
+export function getLevel(i, { slots, lane: forcedLane } = {}) {
   const n = stageIndex(i);
   const p = stageParams(n);
   const slot = stageSlot(n);
   const map = slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content);
-  const mural = thicken(narrow(map.build(), INNER_COARSE));
+  const lane = forcedLane ?? laneFor(n);
+  const mural = thicken(narrow(map.build(), innerCols(lane) / SCALE));
   const innerRows = mural.length * SCALE;
-  const box = BOX(TOP_LANE + innerRows + 2);
+  const box = BOX(TOP_LANE + innerRows + 2, lane);
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize, slot.boss);
   const holes = chosen.map((s) => holeGeometry(s, p.holeSize, box, innerRows));
   const coarse = carveOpenings(mural, holes);
