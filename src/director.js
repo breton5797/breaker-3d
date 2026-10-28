@@ -9,6 +9,7 @@ import { fruitHaptic } from './haptics.js';
 const SHARD_BUDGET = 260; // debris spawned per frame at most
 const RAINBOW = [0xff4d4d, 0xff9f43, 0xfeca57, 0x1dd1a1, 0x48dbfb, 0x2e86de, 0xa55eea, 0xff6b81];
 const rainbow = (k) => RAINBOW[k % RAINBOW.length];
+const FINALE_ABOVE = 9; // cells above the paddle where the finale count sits (where the launch hint goes)
 const BALL_MILESTONES = [50, 100, 250, 500, 1000, 2000, 3000];
 const COMBO_MILESTONES = [100, 300, 1000];
 const COIN_BURSTS = 3; // gold ring + chip bursts per frame at most
@@ -299,7 +300,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
       dmgAt = now;
     }
     milestones(w);
-    ui.setFinale(w.finale && w.state === 'play' ? w.grid.remaining : null);
+    // Below the board, just above the paddle, so it never hides the boss; gone once nothing is left to count.
+    const counting = w.finale && w.state === 'play' && w.grid.remaining > 0;
+    ui.setFinale(counting ? w.grid.remaining : null, counting ? stage.project(COLS / 2, PADDLE_Y + FINALE_ABOVE, 1) : null);
   }
 
   function milestones(w) {
