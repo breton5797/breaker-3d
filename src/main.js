@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { COLS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
-import { getLevel } from './sim/levels.js';
+import { getLevel, levelName } from './sim/levels.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -24,7 +24,10 @@ import { createDirector } from './director.js';
 import { loadSave, writeSave, recordClear, unlockAchievements, addGold } from './storage.js';
 import { loadCredits } from './credits.js';
 import { fruitFor } from './fruits.js';
-import { ACHIEVEMENTS, earned } from './achievements.js';
+import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
+import {
+  buyLoadout, takeLoadout, recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
+} from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
 import { createMonetization } from './monetize/platform.js';
@@ -110,6 +113,7 @@ const ui = createUI({
   onPause: () => togglePause(),
   onResume: () => togglePause(),
   onAchievements: () => ui.showAchievements(save),
+  onBuy: (kind) => buyCharge(kind),
   onCredits: () => ui.showCredits(credits),
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
@@ -131,8 +135,23 @@ window.addEventListener('resize', layoutOverlays);
 // Stage-intro tips and achievement toasts: called off when the stage is left.
 const stageTimers = createTimers();
 
+/** "출발 준비": spend gold on an extra skill charge for the next stage. */
+function buyCharge(kind) {
+  const next = buyLoadout(save, kind);
+  if (!next) return;
+  save = next;
+  writeSave(save);
+  audio.coin();
+  haptics.play('coin');
+  ui.showTitle(save);
+}
+
 function startLevel(i) {
   stageTimers.cancelAll();
+  // Charges bought before the stage come on top of the usual two of each.
+  const taken = takeLoadout(save);
+  save = taken.save;
+  writeSave(save);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
   level = getLevel(i);
   coins3d.reset();
@@ -142,7 +161,9 @@ function startLevel(i) {
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
     dropSpeed: p.dropSpeed, aggression: p.aggression,
     boss: level.boss, theme: level.theme ?? null,
+    charges: { split: 2 + taken.extra.split, meteor: 2 + taken.extra.meteor },
   });
+  if (taken.extra.split || taken.extra.meteor) stageTimers.later(() => ui.toast('🎒 출발 준비 완료: 스킬 충전 추가!', 'small'), 1800);
   bricks.setLevel(world.grid, level.palette);
   beacon.setLevel(world.grid);
   photo.setLevel(level);
@@ -186,16 +207,18 @@ function checkAchievements(cleared) {
     stage: level.index, cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
     bestFruit: w.bestFruit, topKill: w.topKill,
     livesLost: Math.max(0, level.params.lives - w.lives), elapsed,
+    totalStars: totalStars(save), streak: save.daily.streak, beaten: save.beaten,
   };
   const fresh = earned(stats, save.achievements);
   if (!fresh.length) return;
-  save = unlockAchievements(save, fresh);
+  const reward = achievementGold(fresh);
+  save = addGold(unlockAchievements(save, fresh), reward);
   writeSave(save);
   audio.achievement();
   haptics.play('achievement');
   fresh.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name}`], 'small'), 400 + k * 700);
+    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
   });
 }
 
@@ -238,17 +261,32 @@ function finishLevel(cleared) {
     for (const c of w.coins) for (let k = 0; k < 8; k++) fx.shards(c.x, c.y, 0xf2b705, 1.2);
     w.gold += w.coins.length * COIN_VALUE;
     w.coins = [];
-    save = addGold(recordClear(save, level.index, w.score), w.gold);
+    const prevBest = save.best[level.index] ?? 0;
+    const full = level.params.lives; // stars are relative to this stage's starting lives
+    const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
+    save = recordStars(addGold(recordClear(save, level.index, w.score), w.gold), level.index, stars);
+    if (w.boss && !w.boss.alive) save = recordBeaten(save, w.boss.kind);
+    // Stars open chests; the day's first clear pays (and grows the streak).
+    const chest = claimChests(save);
+    const daily = dailyBonus(chest.save, today());
+    save = daily.save;
     writeSave(save);
     run.clearGold = w.gold + run.goldBanked; // all gold this attempt (before and after a revive)
     checkAchievements(true);
-    const full = level.params.lives; // stars are relative to this stage's starting lives
-    const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
+    const bonus = [
+      ...(daily.gold ? [`📅 오늘의 첫 클리어 +${ui.fmt(daily.gold)} 골드 · ${daily.streak}일 연속`] : []),
+      ...(chest.gold ? [`🎁 별 상자 열림 +${ui.fmt(chest.gold)} 골드`] : []),
+    ];
+    const upcoming = getLevel(level.index + 1);
     setTimeout(() => ui.showClear({
       score: w.score,
       stars,
       hasNext: true, // endless
       goldOffer: offers().doubleGold,
+      newBest: prevBest > 0 && w.score > prevBest,
+      bonus,
+      // A big boss stage is named after its boss already; a map stage names its own boss.
+      next: { name: levelName(level.index + 1), boss: upcoming.bossStage ? null : upcoming.bossName.replace('BOSS · ', '') },
       stats: [
         ['클리어 시간', `${elapsed.toFixed(1)}초`],
         ['최대 공 개수', ui.fmt(w.peakBalls)],
@@ -264,7 +302,7 @@ function finishLevel(cleared) {
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
-    setTimeout(() => ui.showOver(w.score, offers().revive), 900);
+    setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid)), 900);
   }
 }
 

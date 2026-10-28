@@ -16,7 +16,7 @@ beforeEach(() => { globalThis.localStorage = fakeStorage(); });
 
 describe('save data', () => {
   it('a fresh save has no achievements', () => {
-    expect(loadSave()).toEqual({ unlocked: 1, best: {}, muted: false, vibrate: true, adsRemoved: false, achievements: [], gold: 0 });
+    expect(loadSave()).toEqual({ unlocked: 1, best: {}, muted: false, vibrate: true, adsRemoved: false, achievements: [], gold: 0, stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [] });
   });
 
   it('round-trips achievements', () => {
@@ -33,7 +33,7 @@ describe('save data', () => {
 
   it('old saves without achievements still load', () => {
     localStorage.setItem(KEY, JSON.stringify({ unlocked: 7, best: { 2: 900 }, muted: true }));
-    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, vibrate: false, adsRemoved: false, achievements: [], gold: 0 });
+    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, vibrate: false, adsRemoved: false, achievements: [], gold: 0, stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [] });
   });
 
   it('unlockAchievements returns a new save and never duplicates', () => {
