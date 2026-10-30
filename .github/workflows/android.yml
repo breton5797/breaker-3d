@@ -40,6 +40,13 @@ jobs:
       - name: Gradle assembleDebug
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
+      - name: Release bundle signs (temporary key)
+        run: |
+          BREAKER_RELEASE_DIR="$RUNNER_TEMP/key" bash scripts/release/android-keystore.sh
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/key/upload.p12"
+          export ANDROID_KEYSTORE_PASSWORD="$(cat "$RUNNER_TEMP/key/upload.password")"
+          (cd android && ./gradlew bundleRelease --no-daemon -PVERSION_CODE=2 -PVERSION_NAME=check)
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab | grep -q "jar verified"
       - uses: actions/upload-artifact@v4
         with:
           name: breaker3d-debug-apk

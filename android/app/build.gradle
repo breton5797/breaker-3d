@@ -7,8 +7,9 @@ android {
         applicationId "io.github.breton5797.breaker3d"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        // Release builds pass -PVERSION_CODE (must grow with every Play upload) and -PVERSION_NAME.
+        versionCode((project.findProperty('VERSION_CODE') ?: '1') as Integer)
+        versionName(project.findProperty('VERSION_NAME') ?: '1.0.0')
         // Real AdMob app id comes from the build (-PADMOB_APP_ID=...); Google's test id otherwise.
         manifestPlaceholders = [admobAppId: (project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713')]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -18,8 +19,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Upload key for Google Play (Play App Signing re-signs with the app key). Comes from the
+    // environment (scripts/release/android-keystore.sh, CI secrets); unsigned release otherwise.
+    def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+    signingConfigs {
+        if (keystorePath) {
+            release {
+                storeFile file(keystorePath)
+                storeType 'pkcs12'
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'upload'
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePath) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
