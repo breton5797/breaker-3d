@@ -3,14 +3,14 @@
 
 export const BOSS_EVERY = 10;
 
+/** @param {number} k index of a regular map (content) @returns {number} the stage index it sits on (every 10th stage is a boss) */
+export const stageOfContent = (k) => k + Math.floor(k / (BOSS_EVERY - 1));
+
 /**
  * @param {number} n stage index (0-based: stage 1 is n = 0)
  * @returns {{ boss:boolean, bossIndex:number, content:number }} content: index of the
  *   regular map to show (counts only non-boss stages); bossIndex: which boss (in turn)
  */
-/** @param {number} k index of a regular map (content) @returns {number} the stage index it sits on (every 10th stage is a boss) */
-export const stageOfContent = (k) => k + Math.floor(k / (BOSS_EVERY - 1));
-
 export function stageSlot(n) {
   const bossesSoFar = Math.floor((n + 1) / BOSS_EVERY);
   const boss = (n + 1) % BOSS_EVERY === 0;

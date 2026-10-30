@@ -92,7 +92,7 @@ export function updateDrops(w, dt) {
       w.catchStreak++;
       w.bestStreak = Math.max(w.bestStreak, w.catchStreak);
       w.bestFruit = Math.max(w.bestFruit, d.mult);
-      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak, overflow: w.overflow });
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak, overflow: w.overflow, first: w.collected === 1 });
       if (w.boss?.alive && w.finale) beamBoss(w, Math.max(1, Math.round(w.boss.hpMax * BEAM_SHARE * gain)));
     } else if (y < -1) {
       if (!w.finale) w.catchStreak = 0; // a dropped fruit breaks the catch combo (not in the finale: they all fall at once)

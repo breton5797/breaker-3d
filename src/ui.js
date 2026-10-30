@@ -37,6 +37,9 @@ const richParts = (text) => splitIcons(text).map((p) => (typeof p === 'string' ?
 /** Like `el.textContent = text`, with icons in place of emoji. */
 const setRich = (el, text) => el.replaceChildren(...richParts(text));
 
+/** A list of bonus lines (clear / game over), each with its icons. */
+const bonusList = (list, lines) => list.replaceChildren(...lines.map((line) => { const li = document.createElement('li'); setRich(li, line); return li; }));
+
 /** Swaps the emoji written straight into index.html for icons (text nodes only, markup untouched). */
 function iconifyStatic(root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -413,6 +416,7 @@ export function createUI(h) {
     const hud = $('hud').getBoundingClientRect().bottom;
     const bar = $('boss-bar');
     const toasts = $('toasts');
+    bar.classList.remove('lane'); // judge with the bar's normal height, whatever form it had last time
     const compact = boardTop - hud < (bar.offsetHeight || 34) + 12;
     bar.classList.toggle('lane', compact);
     toasts.classList.toggle('one', compact); // one toast at a time: the lane is short
@@ -622,11 +626,7 @@ export function createUI(h) {
     $('clear-best').hidden = !newBest;
     $('clear-meta').hidden = !meta;
     setRich($('clear-meta'), meta);
-    $('clear-bonus').replaceChildren(...bonus.map((line) => {
-      const li = document.createElement('li');
-      setRich(li, line); // the coin and calendar as the game's icons, not the OS emoji
-      return li;
-    }));
+    bonusList($('clear-bonus'), bonus); // the coin and calendar as the game's icons, not the OS emoji
     const nextEl = $('clear-next');
     if (next) {
       const name = document.createElement('b');
@@ -747,8 +747,9 @@ export function createUI(h) {
     // How close it was: a reason to try again.
     setRich($('over-progress'), t('over.progress', { p: progress ?? 0 }) + (extra.best > 0 ? t('over.best', { score: extra.best }) : ''));
     $('over-progress').hidden = progress === null;
-    $('over-gold').hidden = extra.gold === undefined;
-    if (extra.gold !== undefined) setRich($('over-gold'), t('over.gold', { gold: extra.gold, total: extra.total ?? 0 }));
+    $('over-gold').hidden = !(extra.gold > 0);
+    if (extra.gold > 0) setRich($('over-gold'), t('over.gold', { gold: extra.gold, total: extra.total ?? 0 }));
+    bonusList($('over-bonus'), extra.bonus ?? []);
     $('over-tip').hidden = !extra.tip;
     if (extra.tip) setRich($('over-tip'), `🎯 ${extra.tip}`);
     setReward('btn-revive', reviveOffer, t('over.revive'));

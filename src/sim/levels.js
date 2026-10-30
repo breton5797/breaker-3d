@@ -141,9 +141,9 @@ function seedItems(lines, count, bigShare, seed, near = { count: 0, zones: [] })
     if (!pool.length) continue;
     const j = Math.floor(rng() * pool.length);
     const [x, y] = pool[j];
-    g[y][x] = pickItem(rng, bigShare);
-    placed++;
-    pools = pools.map((cells, i) => (i === k % pools.length ? cells.filter((_, m) => m !== j) : cells));
+    // Zones overlap (a floor hole next to a corner): a cell already turned into fruit by another zone is skipped.
+    if (hosts(g[y][x])) { g[y][x] = pickItem(rng, bigShare); placed++; }
+    pools = pools.map((cells) => cells.filter(([cx, cy]) => cx !== x || cy !== y));
   }
   for (let tries = 0; placed < count && tries < 5000; tries++) {
     const x = Math.floor(rng() * g[0].length);

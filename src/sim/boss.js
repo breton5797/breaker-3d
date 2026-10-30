@@ -193,10 +193,7 @@ function drainBeam(w, b, dt) {
   if (!(b.beamBank > 0)) return;
   const give = Math.min(b.beamBank, b.hpMax * BEAM_RATE * dt);
   b.beamBank -= give;
-  const budget = b.budget;
-  b.budget = Infinity;
-  damageBoss(w, give);
-  b.budget = budget;
+  damageBoss(w, give, true);
 }
 
 /** Where a sweeping beam leaves its gap: a short dash from the paddle (never where it already stands), clear of the walls. */
@@ -213,19 +210,22 @@ function sweepGap(w, b) {
 /**
  * Takes damage from the per-second budget; past it, hits bounce off a shield.
  * Crossing a phase threshold or reaching zero changes the fight.
+ * @param {boolean} [pastBudget] fruit beams: land in full without touching the budget (so the stun bonus it may add stays)
  */
-export function damageBoss(w, base) {
+export function damageBoss(w, base, pastBudget = false) {
   const b = w.boss;
   if (!b || !b.alive) return;
   const amount = b.stun > 0 ? base * STUN_DAMAGE : base;
-  if (b.budget < amount) {
-    if (b.shieldAt !== w.time) {
-      b.shieldAt = w.time; // one shield flash per step is plenty
-      w.events.push({ t: 'boss-shield' });
+  if (!pastBudget) {
+    if (b.budget < amount) {
+      if (b.shieldAt !== w.time) {
+        b.shieldAt = w.time; // one shield flash per step is plenty
+        w.events.push({ t: 'boss-shield' });
+      }
+      return;
     }
-    return;
+    b.budget -= amount;
   }
-  b.budget -= amount;
   const before = b.hp;
   b.hp = Math.max(0, b.hp - amount);
   if (!w.finale) {
@@ -343,9 +343,11 @@ function startAttack(w, b) {
   const x = kind === 'stomp' ? b.x : kind === 'sweep' ? (dir > 0 ? 0 : COLS) : w.paddle.x;
   const xs = kind === 'rain' ? rainSpots(w, b, RAIN_DROPS[b.phase - 1], width) : null;
   const from = { x: b.x, y: b.y };
-  const safe = kind === 'sweep' ? sweepGap(w, b) : undefined; // the beam skips this spot: every attack can be dodged
-  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, xs, w: width, dir, hit: false, beam: x, from, safe };
-  w.events.push({ t: 'boss-warn', kind, x, xs, w: width, dir, dur: WARN_TIME, from, safe });
+  // A sweep skips a gap: every attack can be dodged. The gap is at least as wide as the paddle, so standing in it is enough.
+  const safe = kind === 'sweep' ? sweepGap(w, b) : undefined;
+  const gap = kind === 'sweep' ? Math.max(SWEEP_GAP, w.paddle.w + 2) : undefined;
+  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, xs, w: width, dir, hit: false, beam: x, from, safe, gap };
+  w.events.push({ t: 'boss-warn', kind, x, xs, w: width, dir, dur: WARN_TIME, from, safe, gap });
 }
 
 function runAttack(w, b, dt) {
@@ -365,7 +367,7 @@ function runAttack(w, b, dt) {
   // The beam crosses the paddle row from one side to the other, skipping the gap.
   const u = 1 - Math.max(0, a.t) / SWEEP_TIME;
   a.beam = a.dir > 0 ? u * COLS : COLS - u * COLS;
-  if (paddleIn(w, a.beam, 1) && Math.abs(w.paddle.x - a.safe) > SWEEP_GAP / 2) hitPaddle(w, a);
+  if (paddleIn(w, a.beam, 1) && Math.abs(a.beam - a.safe) > a.gap / 2) hitPaddle(w, a); // judged where the beam is drawn
   if (a.t <= 0) b.attack = null;
 }
 

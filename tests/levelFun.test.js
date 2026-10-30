@@ -276,7 +276,8 @@ describe('coins and the stage start', () => {
 
   it("the stage's first fruit is its own small event, and coins climb in pitch as they chain", () => {
     const director = read('src/director.js');
-    expect(director).toMatch(/w\.collected === 1/);
+    expect(director).toMatch(/const first = Boolean\(e\.first\)/);
+    expect(read('src/sim/items.js')).toMatch(/first: w\.collected === 1/);
     expect(director).toMatch(/audio\.coin\(coinStreak\)/);
     expect(read('src/audio.js')).toMatch(/coin\(streak = 0\)/);
   });

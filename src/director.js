@@ -169,7 +169,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
             const f = fruitFor(e.mult);
             const badge = { small: `×${e.gain}` };
             // The stage's first fruit is its own small event: this is where "more fruit = more balls" clicks.
-            const first = w.collected === 1;
+            const first = Boolean(e.first);
             if (first) { slowMo(0.4, 0.4); stage.kick(0, 0, -0.8); haptics.play('milestone'); }
             // At the ball cap the extra balls became score: say so instead of a number that didn't move.
             const tail = e.overflow > 0 ? t('game.max', { score: e.overflow * OVERFLOW_SCORE }) : t('game.balls', { n: e.n });
@@ -411,7 +411,12 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
       dmgBank = 0;
       dmgAt = now;
     }
-    if (!quiet) milestones(w); else { ballMark = BALL_MILESTONES.filter((m) => w.balls.n >= m).length; comboMark = COMBO_MILESTONES.filter((m) => w.combo >= m).length; }
+    if (!quiet) milestones(w);
+    else {
+      // The finale holds the toasts: the marks still advance (never back: a combo that ran out must not re-announce "COMBO 100" after the KO).
+      ballMark = Math.max(ballMark, BALL_MILESTONES.filter((m) => w.balls.n >= m).length);
+      comboMark = Math.max(comboMark, COMBO_MILESTONES.filter((m) => w.combo >= m).length);
+    }
     // Under the paddle, so it hides neither the boss nor what is falling; gone once nothing is left to count.
     const counting = w.finale && w.state === 'play' && w.grid.remaining > 0;
     ui.setFinale(counting ? w.grid.remaining : null, counting ? stage.project(COLS / 2, PADDLE_Y - FINALE_BELOW, 1) : null);

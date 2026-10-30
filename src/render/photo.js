@@ -61,6 +61,7 @@ export function createPhoto(scene) {
     loader.load(`${BASE}landmarks/${id}.jpg`, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       if (!recent.includes(id)) { tex.dispose(); return; } // too slow: the player is stages ahead by now
+      if (cache.has(id)) { tex.dispose(); show(cache.get(id)); return; } // loaded twice (menu preview, then play): keep the first
       cache.set(id, tex);
       show(tex);
     });

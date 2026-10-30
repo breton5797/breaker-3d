@@ -33,7 +33,7 @@ import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
 import {
   recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
-  buyInPlay, SKILL_USES, SKILL_PRICES, refundLoadout, firstClearBonus, chestProgress,
+  buyInPlay, SKILL_USES, SKILL_PRICES, refundLoadout, firstClearBonus, chestProgress, achievementStage,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
@@ -175,6 +175,7 @@ const stageTimers = createTimers();
 
 let usedSkills = { split: 0, meteor: 0 }; // skills bought and fired this stage (SKILL_USES each)
 let stageAchievements = []; // ids unlocked during this stage, listed on the clear screen
+let heldAchievements = []; // ...whose toasts were held during the finale (announced if the run is lost instead)
 let picking = false; // the split picker is open: the stage holds still while you choose
 
 /** Can this skill fire right now? (A split needs balls in flight; a meteor works before the serve too.) */
@@ -244,6 +245,7 @@ function startLevel(i) {
   stageTimers.cancelAll();
   usedSkills = { split: 0, meteor: 0 };
   stageAchievements = [];
+  heldAchievements = [];
   picking = false;
   ui.showSplitPicker(null);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
@@ -305,7 +307,7 @@ function startLevel(i) {
 function checkAchievements(cleared) {
   const w = world;
   const stats = {
-    stage: level.index, cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
+    stage: achievementStage(level.index, save), cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
     bestFruit: w.bestFruit, topKill: w.topKill,
     livesLost: Math.max(0, level.params.lives - w.lives), elapsed,
     totalStars: totalStars(save), streak: save.daily.streak, beaten: save.beaten,
@@ -319,11 +321,17 @@ function checkAchievements(cleared) {
   audio.achievement();
   haptics.play('achievement');
   // Toasts only in the thick of play: during the finale and the clear they would be lost (or cover the
-  // boss), and the clear screen lists everything the stage earned anyway.
-  if (cleared || (w.finale && w.boss?.alive)) return;
-  fresh.forEach((id, k) => {
+  // boss), and the clear screen lists everything the stage earned anyway. Held ones come out if the run is lost.
+  if (cleared) return;
+  if (w.finale && w.boss?.alive) { heldAchievements = [...heldAchievements, ...fresh]; return; }
+  announceAchievements(fresh);
+}
+
+/** Achievement toasts, one after another. */
+function announceAchievements(ids) {
+  ids.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, t('achv.unlocked'), { emoji: a.icon }, ` ${achievementName(a)} +${a.gold}🪙`], 'small'), 400 + k * 700);
+    if (a) stageTimers.later(() => ui.toast([{ emoji: '🏆' }, t('achv.unlocked'), { emoji: a.icon }, ` ${achievementName(a)} +${a.gold}🪙`], 'small'), 400 + k * 700);
   });
 }
 
@@ -412,9 +420,14 @@ function finishLevel(cleared) {
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
-    // What the run still earned, and one thing to try next time.
-    const tip = !w.entered ? t('over.tipMeteor', { price: SKILL_PRICES.meteor }) : w.boss ? t('over.tipBoss') : t('over.tipFruit');
-    const over = { gold: run.goldBanked, total: save.gold, best: save.best[level.index] ?? 0, tip };
+    // What the run still earned, and one thing to try next time (a meteor only when the coins cover one).
+    // Achievements earned during the finale were held back then; the run is over, so they are listed here.
+    const canMeteor = save.gold + run.goldBanked >= SKILL_PRICES.meteor;
+    const tip = !w.entered ? (canMeteor ? t('over.tipMeteor', { price: SKILL_PRICES.meteor }) : t('game.coinHint'))
+      : w.boss ? t('over.tipBoss') : t('over.tipFruit');
+    const bonus = heldAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean).map((a) => t('clear.achv', { name: achievementName(a), gold: a.gold }));
+    heldAchievements = [];
+    const over = { gold: run.goldBanked, total: save.gold, best: save.best[level.index] ?? 0, tip, bonus };
     setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid), over), 900);
   }
 }
