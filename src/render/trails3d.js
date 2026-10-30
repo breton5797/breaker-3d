@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { BALL_R, COLS, ROWS } from '../sim/constants.js';
+import { BALL_DRAW } from './balls3d.js';
 
 const MAX_TRAILS = 600; // only the first balls get a streak; past this the swarm reads as a cloud anyway
 const LENGTH = 0.045; // streak length per unit of ball speed (seconds of travel)
 const MAX_LEN = 3.2;
-const WIDTH = BALL_R * 3.2; // ball diameter as drawn (balls3d draws them 1.8x the hitbox)
+const WIDTH = BALL_R * 2 * BALL_DRAW * 0.9; // a little under the ball's drawn diameter, whatever balls3d sets it to
 const WHITE = new THREE.Color(0.85, 0.9, 1);
 const FIRE = new THREE.Color(1, 0.5, 0.12);
 

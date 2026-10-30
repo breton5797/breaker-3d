@@ -42,12 +42,13 @@ async function networkFirst(request) {
 }
 
 /**
- * "/assets/main-AbC12_9x.js" -> "/assets/main" (a build file's name without its 8-character
- * hash; the hash itself may contain "-" or "_"), else null.
+ * "/assets/main-AbC12_9x.js" -> "/assets/main.js" (a build file's name without its 8-character
+ * hash; the hash itself may contain "-" or "_"), else null. The extension stays: index-*.js
+ * and index-*.css are two files, not two versions of one.
  */
 function stem(url) {
-  const m = /^(.*\/assets\/[^/]+?)-[\w-]{8}\.\w+$/.exec(new URL(url).pathname);
-  return m ? m[1] : null;
+  const m = /^(.*\/assets\/[^/]+?)-[\w-]{8}(\.\w+)$/.exec(new URL(url).pathname);
+  return m ? m[1] + m[2] : null;
 }
 
 /** "/art/x.png?v=2" -> "/art/x.png": a versioned file without its version, else null. */

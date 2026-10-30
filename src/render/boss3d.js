@@ -28,7 +28,7 @@ const RAIN_MAX = 5; // drops in one rain attack, at most
 const DROP_FALL = 26; // how high (world units) a rain drop starts above the table
 const DIVE_TIME = 0.55; // seconds of the swoop down a lane and back
 const DIVE_CROUCH = 1.5; // it rears back this far while the dive is telegraphed
-const ENTRY_TIME = 0.8; // seconds of the drop onto the board when the boss appears
+export const ENTRY_TIME = 0.8; // seconds of the drop onto the board when the boss appears (main.js times the card to it)
 const ENTRY_HEIGHT = 45; // and how high it starts
 const WHITE = new THREE.Color(0xffffff);
 
