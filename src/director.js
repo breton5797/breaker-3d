@@ -7,6 +7,8 @@ import { createPacing } from './pacing.js';
 import { fruitHaptic } from './haptics.js';
 import { createTimers } from './timers.js';
 import { SKILL_PRICES } from './meta.js';
+import { t } from './i18n.js';
+import { fruitName } from './names.js';
 
 const SHARD_BUDGET = 260; // debris spawned per frame at most
 const RAINBOW = [0xff4d4d, 0xff9f43, 0xfeca57, 0x1dd1a1, 0x48dbfb, 0x2e86de, 0xa55eea, 0xff6b81];
@@ -87,7 +89,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   /** The climax summed up in one line (fruit caught during the finale, what they became). */
   function showTally() {
     if (!tally.fruit) return;
-    ui.toast(`🍉 과일 ${tally.fruit}개 → 공 ${ui.fmt(tally.balls)}${tally.score ? ` · +${ui.fmt(tally.score)}점` : ''}`, 'small');
+    ui.toast(t('game.tally', { n: tally.fruit, balls: tally.balls }) + (tally.score ? t('game.tallyScore', { score: tally.score }) : ''), 'small');
     tally = { fruit: 0, balls: 0, score: 0 };
   }
 
@@ -142,7 +144,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('laser');
           break;
         case 'split': fx.split(e.c, e.r, e.n); audio.split(e.n); break;
-        case 'gold': fx.gold(e.c, e.r); audio.gold(); ui.pumpGold(); ui.toast(`🪙 +${e.coins} 보너스`, 'small'); break;
+        case 'gold': fx.gold(e.c, e.r); audio.gold(); ui.pumpGold(); ui.toast(t('game.goldBonus', { n: e.coins }), 'small'); break;
         case 'fire': audio.split(5); break;
         case 'zap':
           fx.zap(e.c, e.r, rainbow(zapCount));
@@ -170,11 +172,11 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
             const first = Boolean(e.first);
             if (first) { slowMo(0.4, 0.4); stage.kick(0, 0, -0.8); haptics.play('milestone'); }
             // At the ball cap the extra balls became score: say so instead of a number that didn't move.
-            const tail = e.overflow > 0 ? `!  MAX +${ui.fmt(e.overflow * OVERFLOW_SCORE)}점` : `!  →  ${ui.fmt(e.n)} BALLS`;
-            ui.toast([...(first ? ['첫 과일! '] : []), { emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, tail], first || e.mult >= 20 ? 'mega' : '');
+            const tail = e.overflow > 0 ? t('game.max', { score: e.overflow * OVERFLOW_SCORE }) : t('game.balls', { n: e.n });
+            ui.toast([...(first ? [t('game.firstFruit')] : []), { emoji: f.emoji, art: fruitArt(f.id) }, ` ${fruitName(f.id)} `, badge, tail], first || e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
-            ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji, art: fruitArt(f.id) }, badge]], e.streak >= 5 ? 'hot' : '');
+            ui.floatAt(at.x, at.y, [[{ big: t('game.comboFloat', { n: e.streak }) }], [{ emoji: f.emoji, art: fruitArt(f.id) }, badge]], e.streak >= 5 ? 'hot' : '');
           }
           if (e.mult >= 50) slowMo(0.4, 0.5);
           break;
@@ -208,7 +210,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.boom();
           haptics.play('unitDown');
           if (e.tier >= 3) pacing.hitStop(0.05);
-          ui.toast(`Lv.${e.tier} 유닛 격파! +${ui.fmt(200 * e.tier)}`, 'small');
+          ui.toast(t('game.unitDown', { tier: e.tier, score: 200 * e.tier }), 'small');
           break;
         case 'paddle-hit':
           stage.shake(e.lethal ? 1.4 : 0.7);
@@ -218,11 +220,11 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.stunned();
           haptics.play(e.lethal ? 'lethal' : 'stun');
           ui.damageFlash(e.lethal);
-          ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
+          ui.toast(e.lethal ? t('game.lethal') : t('game.stunned'), 'danger');
           break;
         case 'miss':
           if (e.finale) break; // the finale drops everything at once: no blame for what could not be caught
-          ui.toast([{ emoji: fruitFor(e.mult).emoji, art: fruitArt(fruitFor(e.mult).id) }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger');
+          ui.toast([{ emoji: fruitFor(e.mult).emoji, art: fruitArt(fruitFor(e.mult).id) }, t('game.miss', { fruit: fruitName(fruitFor(e.mult).id) })], 'small danger');
           break;
         case 'paddle':
           audio.paddle();
@@ -250,7 +252,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('milestone');
           stage.shake(0.4);
           ui.meteorHint(false);
-          ui.toast('🎯 들어갔다!', '');
+          ui.toast(t('game.entered'), '');
           // Now that the ball is in, the stage's tips (gimmick, units) have a reader.
           entryTips.forEach((tip, k) => timers.later(() => ui.toast(tip.text, tip.cls ?? 'small'), 900 + k * 1400));
           entryTips = [];
@@ -267,7 +269,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           stage.shake(0.6);
           stage.kick(0, 0, -1.5);
           haptics.play('skill');
-          ui.toast(e.name === 'split' ? `전체 ×${e.mult ?? 3} 분열!` : '메테오!', 'mega');
+          ui.toast(e.name === 'split' ? t('game.split', { n: e.mult ?? 3 }) : t('game.meteor'), 'mega');
           break;
         case 'lost':
           audio.lost();
@@ -276,7 +278,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           pacing.hitStop(0.1);
           haptics.play('lost');
           ui.damageFlash(true);
-          ui.toast('−1 ♥', 'danger');
+          ui.toast(t('game.lost'), 'danger');
           break;
         case 'boss-hit':
           // A blow on the protected (blue-green) part takes nothing off: the bar flashes, no flinch or number.
@@ -297,13 +299,13 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.thunder();
           audio.bossDown();
           haptics.play('clear');
-          ui.toast('💫 기절! 집중 공격!', 'mega neon-burst');
-          timers.later(() => ui.toast(`${e.dur}초 동안 피해 2배`, 'small'), 700);
+          ui.toast(t('game.bossStun'), 'mega neon-burst');
+          timers.later(() => ui.toast(t('game.stunBonus', { s: e.dur }), 'small'), 700);
           break;
         case 'boss-wake':
           stage.shake(0.6);
           audio.rumble();
-          ui.toast('보스가 정신을 차렸다!', 'danger');
+          ui.toast(t('game.bossWake'), 'danger');
           break;
         case 'boss-shield':
           // The swarm hits faster than the boss can take damage: the rest clank off a shield.
@@ -316,7 +318,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           haptics.play('stun');
           for (let k = 0; k < 30; k++) fx.shards(e.x, e.y, e.phase === 3 ? 0x8b93a8 : 0xff2a2a, 1.6);
           if (e.phase === 2) { boss3d.enrage(); pacing.hitStop(0.08); audio.roar(); }
-          ui.toast(e.phase === 3 ? '갑옷이 부서졌다!' : '보스가 분노했다!', 'mega danger');
+          ui.toast(e.phase === 3 ? t('game.armorBroke') : t('game.enraged'), 'mega danger');
           break;
         case 'boss-warn':
           if (e.kind === 'sweep') audio.laser(); else audio.rumble();
@@ -367,14 +369,14 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           break;
         case 'boss-guard':
           // Its health hit the floor while bricks still stand: tell the player what unlocks it.
-          ui.toast('🛡 벽돌을 먼저 다 깨라!', 'danger');
+          ui.toast(t('game.guard'), 'danger');
           break;
         case 'boss-open':
           stage.shake(1.2);
           haptics.play('stun');
           // The last bricks are still shattering (the finale counts them): the news is the boss's shield.
-          ui.toast('보스 방어막 해제!', 'mega neon-burst');
-          timers.later(() => ui.toast('이제 보스를 쓰러뜨려라!', 'danger'), 600);
+          ui.toast(t('game.shieldDown'), 'mega neon-burst');
+          timers.later(() => ui.toast(t('game.killBoss'), 'danger'), 600);
           break;
         case 'clear': haptics.play('clear'); if (w.finale) fireworks(); break;
         default: break;
@@ -398,8 +400,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
       hinted = true; // once a stage is enough
       if (canAfford(SKILL_PRICES.meteor)) {
         ui.meteorHint(true);
-        ui.toast(`☄ 메테오(🪙${SKILL_PRICES.meteor})로 한 번에 넣어 보세요!`, 'small');
-      } else ui.toast('🪙 코인 벽돌을 깨면 동전이 떨어져요 · 모아서 메테오를 사요', 'small'); // a button it cannot afford would just blink
+        ui.toast(t('game.meteorHint', { price: SKILL_PRICES.meteor }), 'small');
+      } else ui.toast(t('game.coinHint'), 'small'); // a button it cannot afford would just blink
     }
     const now = performance.now();
     if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {
@@ -427,7 +429,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     let top = -1;
     while (ballMark < BALL_MILESTONES.length && n >= BALL_MILESTONES[ballMark]) top = ballMark++;
     if (top >= 0) {
-      ui.toast(`${ui.fmt(BALL_MILESTONES[top])} BALLS!`, top >= 4 ? 'mega' : '');
+      ui.toast(t('game.ballsMilestone', { n: BALL_MILESTONES[top] }), top >= 4 ? 'mega' : '');
       audio.milestone();
       haptics.play('milestone');
       milestoneAt = w.time;
@@ -436,7 +438,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     let combo = -1;
     while (comboMark < COMBO_MILESTONES.length && w.combo >= COMBO_MILESTONES[comboMark]) combo = comboMark++;
     if (combo >= 0) {
-      ui.toast(`COMBO ${ui.fmt(COMBO_MILESTONES[combo])}`, combo >= 2 ? 'mega' : '');
+      ui.toast(t('game.combo', { n: COMBO_MILESTONES[combo] }), combo >= 2 ? 'mega' : '');
       audio.milestone();
       haptics.play('milestone');
       milestoneAt = w.time;

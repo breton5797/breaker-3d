@@ -11,18 +11,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="BREAKER 3D" />
     <link rel="apple-touch-icon" href="%BASE_URL%icon-180.png" />
-    <title>BREAKER 3D — 세계 랜드마크 3D 벽돌 깨기</title>
-    <meta name="description" content="좁은 틈을 뚫고 과일을 받아 공을 수천 개로 불려라! 피라미드·에펠탑·숭례문 등 세계 랜드마크 24곳을 무한 스테이지로 부수는 무료 3D 벽돌 깨기 게임." />
+    <title>BREAKER 3D — 3D Brick Breaker of World Landmarks · 세계 랜드마크 3D 벽돌 깨기</title>
+    <meta name="description" content="Slip through the gap, catch fruit and multiply your balls into thousands! A free 3D brick breaker through world landmarks and wonders — Giza, the Eiffel Tower, Sungnyemun — in endless stages, in 14 languages. 좁은 틈을 뚫고 과일을 받아 공을 수천 개로 불려라! 세계 랜드마크를 부수는 무료 3D 벽돌 깨기." />
     <link rel="canonical" href="https://breton5797.github.io/breaker-3d/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BREAKER 3D" />
-    <meta property="og:title" content="BREAKER 3D — 세계 랜드마크 3D 벽돌 깨기" />
-    <meta property="og:description" content="과일을 받아 공을 수천 개로! 세계 랜드마크 24곳을 부수는 무료 3D 벽돌 깨기." />
+    <meta property="og:title" content="BREAKER 3D — 3D Brick Breaker of World Landmarks" />
+    <meta property="og:description" content="Catch fruit, multiply your balls into thousands and break the world's landmarks. Free, in 14 languages. 과일을 받아 공을 수천 개로! 세계 랜드마크를 부수는 무료 3D 벽돌 깨기." />
     <meta property="og:url" content="https://breton5797.github.io/breaker-3d/" />
     <meta property="og:image" content="https://breton5797.github.io/breaker-3d/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
     <style>
       html, body { background: #06080f; }
@@ -46,7 +47,7 @@
     <link rel="stylesheet" href="/src/neon.css" />
   </head>
   <body>
-    <noscript><p style="color:#fff;padding:24px;font:16px system-ui">BREAKER 3D를 하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
+    <noscript><p style="color:#fff;padding:24px;font:16px system-ui">BREAKER 3D needs JavaScript. Please enable it in your browser. · BREAKER 3D를 하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
     <div id="splash" aria-live="polite"><div><img src="%BASE_URL%icon-192.png" alt="" /><b>BREAKER 3D</b>LOADING…</div></div>
     <div id="boot-error" role="alert" hidden>
       <div>
@@ -54,7 +55,7 @@
         <button id="boot-error-reload" type="button">새로고침</button>
       </div>
     </div>
-    <canvas id="game" aria-label="게임 화면"></canvas>
+    <canvas id="game" aria-label="게임 화면" data-i18n-aria="hud.canvas"></canvas>
     <div id="lens" aria-hidden="true"></div>
 
     <header id="hud" hidden>
@@ -64,39 +65,39 @@
       </div>
       <div class="hud-center">
         <div id="score" class="score">0</div>
-        <div class="balls"><span id="ball-count">1</span><small>BALLS</small></div>
+        <div class="balls"><span id="ball-count">1</span><small data-i18n="hud.balls">BALLS</small></div>
       </div>
       <div class="hud-right">
-        <div id="lives" class="lives" aria-label="남은 목숨"></div>
-        <div id="gold" class="gold-count" aria-label="골드">🪙 0</div>
-        <button id="btn-mute" class="icon-btn" aria-label="소리 켜기/끄기">🔊</button>
-        <button id="btn-pause" class="icon-btn" aria-label="일시정지">⏸</button>
+        <div id="lives" class="lives" aria-label="남은 목숨" data-i18n-aria="hud.lives"></div>
+        <div id="gold" class="gold-count" aria-label="골드" data-i18n-aria="hud.gold">🪙 0</div>
+        <button id="btn-mute" class="icon-btn" aria-label="소리 켜기/끄기" data-i18n-aria="hud.mute">🔊</button>
+        <button id="btn-pause" class="icon-btn" aria-label="일시정지" data-i18n-aria="hud.pause">⏸</button>
       </div>
     </header>
 
     <div id="skills" hidden>
-      <button id="skill-split" class="skill" data-skill="split" aria-label="전체 분열 스킬 (1)">
-        <span class="skill-icon">×3</span><span class="skill-name">분열</span><span class="skill-count" id="count-split">0</span>
+      <button id="skill-split" class="skill" data-skill="split" aria-label="전체 분열 스킬 (1)" data-i18n-aria="skill.splitAria">
+        <span class="skill-icon">×3</span><span class="skill-name" data-i18n="skill.split">분열</span><span class="skill-count" id="count-split">0</span>
       </button>
-      <button id="skill-meteor" class="skill" data-skill="meteor" aria-label="메테오 스킬 (2)">
-        <span class="skill-icon">☄</span><span class="skill-name">메테오</span><span class="skill-count" id="count-meteor">0</span>
+      <button id="skill-meteor" class="skill" data-skill="meteor" aria-label="메테오 스킬 (2)" data-i18n-aria="skill.meteorAria">
+        <span class="skill-icon">☄</span><span class="skill-name" data-i18n="skill.meteor">메테오</span><span class="skill-count" id="count-meteor">0</span>
       </button>
     </div>
 
-    <div id="split-picker" class="split-picker" hidden aria-label="분열 배수 고르기">
-      <p class="split-picker-title">분열 · 공 하나가 몇 개로?</p>
+    <div id="split-picker" class="split-picker" hidden aria-label="분열 배수 고르기" data-i18n-aria="skill.pickerAria">
+      <p class="split-picker-title" data-i18n="skill.pickerTitle">분열 · 공 하나가 몇 개로?</p>
       <div class="split-picker-row">
         <button id="pick-split-2" class="pick" data-mult="2"><b>×2</b><small></small></button>
         <button id="pick-split-3" class="pick" data-mult="3"><b>×3</b><small></small></button>
         <button id="pick-split-4" class="pick" data-mult="4"><b>×4</b><small></small></button>
         <button id="pick-split-5" class="pick" data-mult="5"><b>×5</b><small></small></button>
       </div>
-      <button id="pick-close" class="link">닫기</button>
+      <button id="pick-close" class="link" data-i18n="skill.close">닫기</button>
     </div>
 
     <div id="photo-credit" class="photo-credit" hidden></div>
 
-    <div id="hint" class="hint" hidden>누른 채 위로 끌면 각도 조절 · 떼면 발사</div>
+    <div id="hint" class="hint" hidden data-i18n="aim.hint">누른 채 위로 끌면 각도 조절 · 떼면 발사</div>
     <div id="toasts" aria-live="polite"></div>
     <div id="boss-card" class="boss-card" hidden><img id="boss-card-art" class="boss-card-art" alt="" /><div class="boss-card-text"><small id="boss-card-tag">BOSS</small><b id="boss-card-name"></b></div><em id="boss-card-stamp" class="boss-card-stamp"></em></div>
     <div id="shower" class="shower" aria-hidden="true"></div>
@@ -105,61 +106,62 @@
     <div id="flash" aria-hidden="true"></div>
     <div id="boss-bar" hidden aria-live="polite">
       <span id="boss-name"></span>
-      <div class="boss-hp" title="청록 구간은 벽돌을 다 깨야 줄어들어요"><div id="boss-fill"></div><div id="boss-guard"></div></div>
+      <div class="boss-hp" title="청록 구간은 벽돌을 다 깨야 줄어들어요" data-i18n-title="boss.guardTitle"><div id="boss-fill"></div><div id="boss-guard"></div></div>
     </div>
     <div id="finale-banner" hidden>
-      <b>FINALE</b>
-      <span>남은 벽돌 <em id="finale-left">0</em></span>
+      <b data-i18n="finale.label">FINALE</b>
+      <span><i data-i18n="finale.left">남은 벽돌</i> <em id="finale-left">0</em></span>
     </div>
 
     <section id="overlay" class="overlay">
       <div id="screen-title" class="panel">
         <div class="title-hero"><img id="title-art" class="title-art" alt="" hidden /></div>
         <h1 class="logo">BREAKER<span>3D</span></h1>
-        <p class="tagline">좁은 틈을 뚫고, 과일을 받아라</p>
+        <p class="tagline" data-i18n="title.tagline">좁은 틈을 뚫고, 과일을 받아라</p>
         <p id="title-gold" class="title-gold"></p>
         <p id="title-goals" class="title-goals"></p>
-        <button id="btn-start" class="primary">시작하기</button>
+        <button id="btn-start" class="primary" data-i18n="title.start">시작하기</button>
         <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
         <button id="btn-collection" class="ghost achv-btn"></button>
         <button id="btn-remove-ads" class="ghost store-btn" hidden></button>
-        <button id="btn-restore" class="link store-btn" hidden>구매 복원</button>
-        <button id="btn-credits" class="link credits-link">📷 사진 출처</button>
+        <button id="btn-restore" class="link store-btn" hidden data-i18n="title.restore">구매 복원</button>
+        <button id="btn-credits" class="link credits-link" data-i18n="title.credits">📷 사진 출처</button>
         <ul class="legend">
-          <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>
-          <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 상자의 작은 구멍(아래·옆·모서리)으로 진입</li>
-          <li><b class="chip c-unit">Lv.1~10</b> 벽 속 적 유닛: 폭탄 투하 (피하라!)</li>
-          <li><b class="chip c-bomb">●</b> 연쇄 폭발</li>
-          <li><b class="chip c-laser">⟷ ↕</b> 한 줄 레이저</li>
-          <li><b class="chip c-fire">🔥</b> 관통하는 화염공</li>
-          <li><b class="chip c-gold">★</b> 보너스 코인 (분열·메테오는 코인으로 구매)</li>
-          <li><b class="chip c-coin">🪙</b> 골드 벽돌: 떨어지는 동전을 받으면 골드가 쌓여요</li>
+          <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> <span data-i18n="legend.fruit">과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</span></li>
+          <li><b class="chip c-gate" data-i18n="legend.holeChip">▮ 구멍 ▮</b> <span data-i18n="legend.hole">강철 상자의 작은 구멍(아래·옆·모서리)으로 진입</span></li>
+          <li><b class="chip c-unit">Lv.1~10</b> <span data-i18n="legend.unit">벽 속 적 유닛: 폭탄 투하 (피하라!)</span></li>
+          <li><b class="chip c-bomb">●</b> <span data-i18n="legend.bomb">연쇄 폭발</span></li>
+          <li><b class="chip c-laser">⟷ ↕</b> <span data-i18n="legend.laser">한 줄 레이저</span></li>
+          <li><b class="chip c-fire">🔥</b> <span data-i18n="legend.fire">관통하는 화염공</span></li>
+          <li><b class="chip c-gold">★</b> <span data-i18n="legend.gold">보너스 코인 (분열·메테오는 코인으로 구매)</span></li>
+          <li><b class="chip c-coin">🪙</b> <span data-i18n="legend.coin">골드 벽돌: 떨어지는 동전을 받으면 골드가 쌓여요</span></li>
         </ul>
-        <p class="controls">마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지</p>
-        <p class="legal-links"><a href="%BASE_URL%privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a> · <a href="%BASE_URL%licenses.txt" target="_blank" rel="noopener">오픈소스 라이선스</a> · <span id="app-version"></span></p>
+        <p class="controls" data-i18n="title.controls">마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지</p>
+        <label class="lang-row"><span data-i18n="lang.label">언어</span> <select id="lang-select" class="lang-select" aria-label="언어" data-i18n-aria="lang.label"></select></label>
+        <p class="legal-links"><a href="%BASE_URL%privacy.html" target="_blank" rel="noopener" data-i18n="legal.privacy">개인정보 처리방침</a> · <a href="%BASE_URL%licenses.txt" target="_blank" rel="noopener" data-i18n="legal.licenses">오픈소스 라이선스</a> · <span id="app-version"></span></p>
       </div>
 
       <div id="screen-clear" class="panel" hidden>
-        <p class="eyebrow clear-title">STAGE CLEAR</p>
+        <p class="eyebrow clear-title" data-i18n="clear.title">STAGE CLEAR</p>
         <div id="stars" class="stars"></div>
         <p id="clear-meta" class="clear-meta" hidden></p>
-        <p id="clear-best" class="new-best" hidden>NEW BEST!</p>
+        <p id="clear-best" class="new-best" hidden data-i18n="clear.best">NEW BEST!</p>
         <h2 id="clear-score" class="big-score"></h2>
         <dl id="clear-stats" class="stats"></dl>
         <ul id="clear-bonus" class="clear-bonus"></ul>
         <p id="clear-next" class="clear-next"></p>
         <button id="btn-double-gold" class="ghost reward-btn clear-actions" hidden></button>
         <div id="clear-actions" class="row clear-actions">
-          <button id="btn-retry" class="ghost">다시</button>
-          <button id="btn-next" class="primary">다음 스테이지</button>
+          <button id="btn-retry" class="ghost" data-i18n="clear.retry">다시</button>
+          <button id="btn-next" class="primary" data-i18n="clear.next">다음 스테이지</button>
         </div>
-        <button id="btn-menu" class="link clear-actions">스테이지 선택</button>
+        <button id="btn-menu" class="link clear-actions" data-i18n="clear.menu">스테이지 선택</button>
       </div>
 
       <div id="screen-over" class="panel" hidden>
-        <p class="eyebrow danger">GAME OVER</p>
+        <p class="eyebrow danger" data-i18n="over.title">GAME OVER</p>
         <h2 id="over-score" class="big-score"></h2>
         <p id="over-progress" class="over-progress"></p>
         <p id="over-gold" class="over-gold" hidden></p>
@@ -167,45 +169,46 @@
         <ul id="over-bonus" class="clear-bonus"></ul>
         <button id="btn-revive" class="primary reward-btn" hidden></button>
         <div class="row">
-          <button id="btn-over-menu" class="ghost">메뉴</button>
-          <button id="btn-over-retry" class="primary">다시 도전</button>
+          <button id="btn-over-menu" class="ghost" data-i18n="over.menu">메뉴</button>
+          <button id="btn-over-retry" class="primary" data-i18n="over.retry">다시 도전</button>
         </div>
       </div>
 
       <div id="screen-achv" class="panel" hidden>
-        <button id="btn-achv-close" class="close-x" aria-label="닫기">✕</button>
-        <p class="eyebrow">ACHIEVEMENTS</p>
+        <button id="btn-achv-close" class="close-x" aria-label="닫기" data-i18n-aria="achv.close">✕</button>
+        <p class="eyebrow" data-i18n="achv.title">ACHIEVEMENTS</p>
         <h2 id="achv-count" class="achv-count"></h2>
         <ul id="achv-list" class="achv-list"></ul>
-        <button id="btn-achv-back" class="primary">돌아가기</button>
+        <button id="btn-achv-back" class="primary" data-i18n="achv.back">돌아가기</button>
       </div>
 
       <div id="screen-credits" class="panel" hidden>
-        <button id="btn-credits-close" class="close-x" aria-label="닫기">✕</button>
-        <p class="eyebrow">PHOTO CREDITS</p>
-        <p class="credits-note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.</p>
+        <button id="btn-credits-close" class="close-x" aria-label="닫기" data-i18n-aria="achv.close">✕</button>
+        <p class="eyebrow" data-i18n="credits.title">PHOTO CREDITS</p>
+        <p class="credits-note" data-i18n="credits.note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.</p>
         <ul id="credits-list" class="credits-list"></ul>
-        <button id="btn-credits-back" class="primary">돌아가기</button>
+        <button id="btn-credits-back" class="primary" data-i18n="achv.back">돌아가기</button>
       </div>
 
       <div id="screen-collection" class="panel" hidden>
-        <button id="btn-collection-close" class="close-x" aria-label="닫기">✕</button>
-        <p class="eyebrow">COLLECTION</p>
+        <button id="btn-collection-close" class="close-x" aria-label="닫기" data-i18n-aria="achv.close">✕</button>
+        <p class="eyebrow" data-i18n="coll.title">COLLECTION</p>
         <div class="tabs" role="tablist">
           <button id="collection-tab-boss" class="tab on" role="tab"></button>
           <button id="collection-tab-travel" class="tab" role="tab"></button>
         </div>
         <ul id="collection-chapters" class="chapter-bars"></ul>
         <ul id="collection-list" class="dex-grid"></ul>
-        <button id="btn-collection-back" class="primary">돌아가기</button>
+        <button id="btn-collection-back" class="primary" data-i18n="achv.back">돌아가기</button>
       </div>
 
       <div id="screen-pause" class="panel" hidden>
-        <p class="eyebrow">일시정지</p>
+        <p class="eyebrow" data-i18n="pause.title">일시정지</p>
         <div class="row">
-          <button id="btn-pause-menu" class="ghost">메뉴</button>
-          <button id="btn-resume" class="primary">계속하기</button>
+          <button id="btn-pause-menu" class="ghost" data-i18n="pause.menu">메뉴</button>
+          <button id="btn-resume" class="primary" data-i18n="pause.resume">계속하기</button>
         </div>
+        <select id="lang-select-pause" class="lang-select" aria-label="언어" data-i18n-aria="lang.label"></select>
         <button id="btn-vibe" class="link" hidden>📳 진동 켜짐</button>
         <button id="btn-full-pause" class="link fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
       </div>

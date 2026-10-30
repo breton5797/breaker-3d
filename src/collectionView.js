@@ -2,6 +2,8 @@
 // Everything unmet is shown dim, so the gaps are the goals.
 
 import { artUrl, bossArt } from './art.js';
+import { t } from './i18n.js';
+import { bossName, mapName, chapterName } from './names.js';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -21,7 +23,7 @@ export function renderBossDex(list, entries) {
     img.loading = 'lazy';
     img.src = artUrl(bossArt(e.kind));
     img.onerror = () => { img.replaceWith(el('div', 'tile')); };
-    li.append(img, el('b', '', e.name), el('small', '', e.beaten ? (e.metAt === null ? '격파' : `${e.metAt + 1}판 격파`) : e.big ? '대형 보스' : '미격파'));
+    li.append(img, el('b', '', bossName(e.kind)), el('small', '', e.beaten ? (e.metAt === null ? t('coll.beaten') : t('coll.beatenAt', { n: e.metAt + 1 })) : e.big ? t('coll.big') : t('coll.unbeaten')));
     return li;
   }));
 }
@@ -38,9 +40,9 @@ export function renderTravel(list, entries) {
       img.onerror = () => { img.replaceWith(tile(m.palette)); };
       li.append(img);
     } else li.append(tile(m.palette));
-    const stars = m.cleared ? '★'.repeat(m.bestStars) + '☆'.repeat(3 - m.bestStars) : '미방문';
+    const stars = m.cleared ? '★'.repeat(m.bestStars) + '☆'.repeat(3 - m.bestStars) : t('coll.unvisited');
     const stamps = m.chapter === 0 ? `${m.stamps.sunset ? ' 🌅' : ''}${m.stamps.night ? ' 🌙' : ''}` : '';
-    li.append(el('b', '', m.name), el('small', '', `${stars}${stamps}`));
+    li.append(el('b', '', mapName(m.id)), el('small', '', `${stars}${stamps}`));
     return li;
   }));
 }
@@ -61,7 +63,7 @@ export function renderChapters(list, chapters) {
     const fill = el('i');
     fill.style.width = `${Math.round((100 * c.have) / Math.max(1, c.total))}%`;
     bar.append(fill);
-    li.append(el('span', '', c.name), el('span', '', `${c.have} / ${c.total}`), bar);
+    li.append(el('span', '', chapterName(c.id)), el('span', '', `${c.have} / ${c.total}`), bar);
     return li;
   }));
 }

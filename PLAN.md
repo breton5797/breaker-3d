@@ -563,6 +563,13 @@ index.css를 같은 키로 묶어 오프라인 캐시가 번갈아 지워짐, �
 - 글꼴: Pretendard(한·영·베트남어 라틴 확장) + 시스템 글꼴 폴백(데바나가리·태국어·일본어·중국어는 OS 글꼴), 긴 번역은 버튼 자동 줄바꿈·축소.
 - 메타: `<title>`·설명·OG·manifest 이름은 영어 기본 + 한국어 병기, 스토어 문구는 사용자 계정 작업.
 - 검증: 모든 키가 14개 사전에 존재(테스트), 미번역 키는 한국어로 폴백, 4개 언어(ko·en·vi·hi)로 주요 화면 스크린샷.
+- 구현(2026-10-30): `src/i18n.js`(LANGUAGES 14종, detectLanguage: 저장된 선택 > 기기 언어 1순위 부분 태그 매칭 > 영어, setLanguage는
+  `import.meta.glob('./locales/*.js')`로 언어별 청크 지연 로드, t(key, params)는 숫자를 그 언어 로캘로 포맷, applyStatic은 `data-i18n`·
+  `data-i18n-aria`·`data-i18n-title`과 `<title>`), `src/names.js`(맵·보스·과일·업적 이름을 id로 번역; sim 데이터의 한국어 이름은 그대로 두고
+  표시할 때만 바꿈 — 테스트·봇·저장 호환), `src/locales/<code>.js` 14개(ko 원본 329키; en은 직접, 나머지 12개는 번역 에이전트 4개가 병렬 작성 후
+  키·플레이스홀더·이모지·미번역 검사). 타이틀·일시정지에 언어 선택(자동 = 기기 언어, 저장 `save.lang` 검증). boot.js 오류 문구는 사전 로드 전이라
+  기기 언어로 ko/en 2개 내장. index.html 메타는 영어 우선 + 한국어 병기, og:locale en_US(+ko_KR alternate).
+  main.js는 저장 로드 → 언어 설정을 모듈 최상단 top-level await로(그 뒤 선언보다 먼저 실행되는 promise 콜백이 TDZ에 걸리던 버그 수정).
 
 다음 라운드로 미룬 것: 꾸미기 상점(확정 가격 싱크), 일일 도전, 앱 저장 미러·진행 코드, 벽돌 InstancedMesh 용량 축소(모바일 실측 후),
 ui.js 화면별 모듈 분할, iOS AdMob ID xcconfig(출시 체크리스트), 개발 의존성 취약점(prod 0건), RTL 언어.

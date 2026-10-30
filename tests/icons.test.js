@@ -10,7 +10,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 // Colour emoji draw differently on every phone (or as tofu boxes); the UI swaps them for
 // the matching clay icon. Plain glyphs styled by CSS (★ ☆ ♥ ✓ ×) stay text on purpose.
 const COLOUR_EMOJI = /\p{Extended_Pictographic}/u;
-const GLYPHS = new Set(['★', '☆', '♥', '✓', '↕', '▶']);
+const GLYPHS = new Set(['★', '☆', '♥', '✓', '↕', '▶', '◀']);
 
 describe('icon set', () => {
   it('every icon ships as a small WebP in public/art/ui', () => {
@@ -33,7 +33,7 @@ describe('icon set', () => {
   });
 
   it('every colour emoji the UI prints has an icon', () => {
-    const sources = ['index.html', 'src/ui.js', 'src/main.js', 'src/director.js'].map(read).join('\n');
+    const sources = ['index.html', 'src/ui.js', 'src/main.js', 'src/director.js', 'src/locales/ko.js'].map(read).join('\n');
     const missing = [...new Set(sources.match(new RegExp(COLOUR_EMOJI, 'gu')) ?? [])]
       .filter((e) => !GLYPHS.has(e) && !iconArt(e));
     expect(missing).toEqual([]);

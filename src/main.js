@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { predictPath } from './sim/aim.js';
-import { aimStep, aimLabel } from './aimInput.js';
+import { aimStep } from './aimInput.js';
 import { GUARD_FLOOR } from './sim/boss.js';
-import { getLevel, levelName } from './sim/levels.js';
-import { BOSS_PREFIX } from './sim/maps.js';
+import { getLevel } from './sim/levels.js';
+import { t, detectLanguage, setLanguage } from './i18n.js';
+import { stageTitleAt, bossBarName, stageBossName, bossName, chapterName, achievementName } from './names.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -32,7 +33,7 @@ import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
 import {
   recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
-  buyInPlay, SKILL_USES, SKILL_PRICES, LOADOUT, refundLoadout, firstClearBonus, chestProgress, achievementStage,
+  buyInPlay, SKILL_USES, SKILL_PRICES, refundLoadout, firstClearBonus, chestProgress, achievementStage,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
@@ -43,6 +44,11 @@ import { PRODUCT_REMOVE_ADS } from './monetize/store.js';
 const BOSS_LANDING_MS = ENTRY_TIME * 1000; // the boss's drop onto the board (boss3d)
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
+
+// The save first, then the language (the player's pick, else the device's) before anything else
+// runs: this await is the only one at module level, so nothing below is half-initialised during it.
+let save = refundLoadout(loadSave()); // the title's next-stage shop is gone: its charges come back as gold
+await setLanguage(detectLanguage(navigator.languages, save.lang));
 
 const stage = createStage(document.getElementById('game'));
 const bricks = createBricks(stage.scene);
@@ -74,13 +80,12 @@ const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
 const STUN_HEX = 0xff3040;
 
-let save = refundLoadout(loadSave()); // the title's next-stage shop is gone: its charges come back as gold
 let saveWarned = false;
 /** Saves progress; the first time it cannot (private mode, full storage) the player is told once. */
 function persist() {
   if (writeSave(save) || saveWarned) return;
   saveWarned = true;
-  ui.toast('⚠ 진행이 저장되지 않는 환경이에요 (시크릿 모드·저장 공간)', 'small danger');
+  ui.toast(t('stage.saveFail'), 'small danger');
 }
 // Photo credits (author and licence per landmark), shown on the credits screen and under each stage.
 let credits = {};
@@ -132,8 +137,16 @@ const ui = createUI({
   onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
   onCollection: () => ui.showCollection(save, 'boss'),
+  onLanguage: async (code) => {
+    save = { ...save, lang: code }; // '' = follow the device
+    persist();
+    await setLanguage(detectLanguage(navigator.languages, code));
+    ui.relocalize(code);
+    if (mode === 'title') showMenu();
+  },
   later: (fn, ms) => stageTimers.later(fn, ms), // stage-bound delays (cancelled when the stage is left)
 });
+ui.relocalize(save.lang); // the language pickers show the saved choice ('' = device)
 // Every button press clicks (the press itself unlocks audio on the first tap).
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
 const director = createDirector({
@@ -173,12 +186,12 @@ let lastBuy = 0;
 /** Buys one use of a skill with coins (this stage's first, then banked) and fires it. Never charges for a skill that can't fire. */
 function buySkill(kind, mult) {
   if (!world || mode !== 'play') return false;
-  if (!canFire(kind)) { ui.toast('공을 쏜 뒤에 쓸 수 있어요', 'small'); return false; }
+  if (!canFire(kind)) { ui.toast(t('skill.needBall'), 'small'); return false; }
   const now = performance.now();
   if (now - lastBuy < BUY_GAP) return false;
   const r = buyInPlay(save, world.gold, kind, usedSkills[kind], mult);
   if (!r.ok) {
-    ui.toast(usedSkills[kind] >= SKILL_USES ? `이번 판 ${LOADOUT[kind].name}은 ${SKILL_USES}번까지` : '코인이 부족해요', 'small');
+    ui.toast(usedSkills[kind] >= SKILL_USES ? t('skill.limit', { skill: t(`skill.${kind}`), n: SKILL_USES }) : t('skill.noCoins'), 'small');
     return false;
   }
   save = r.save;
@@ -198,8 +211,8 @@ function trySkill(kind) {
   if (!world || mode !== 'play') return;
   if (kind === 'meteor') { buySkill('meteor'); return; }
   if (picking) { closePicker(); return; }
-  if (!canFire('split')) { ui.toast('공을 쏜 뒤에 쓸 수 있어요', 'small'); return; }
-  if (usedSkills.split >= SKILL_USES) { ui.toast(`이번 판 분열은 ${SKILL_USES}번까지`, 'small'); return; }
+  if (!canFire('split')) { ui.toast(t('skill.needBall'), 'small'); return; }
+  if (usedSkills.split >= SKILL_USES) { ui.toast(t('skill.limit', { skill: t('skill.split'), n: SKILL_USES }), 'small'); return; }
   picking = true;
   ui.showSplitPicker(splitOffers());
 }
@@ -263,7 +276,7 @@ function startLevel(i) {
   if (level.bossStage) audio.bossWarn(); else audio.stageIntro();
   if (level.boss) {
     // The boss drops onto the board (boss3d) and its card slides in: a roar and a thud as it lands.
-    const name = level.bossName.replace(BOSS_PREFIX, '');
+    const name = stageBossName(level);
     stageTimers.later(() => {
       ui.bossCard({ kind: level.boss.kind, name, big: level.bossStage, mode: 'intro' });
       audio.roar();
@@ -273,21 +286,19 @@ function startLevel(i) {
     }, BOSS_LANDING_MS);
     // The how-to line only while it is news: the first stages, and the first big bosses.
     if (level.index < 3 || (level.bossStage && level.index < 20)) {
-      stageTimers.later(() => ui.toast(level.bossStage ? '빨간 영역 = 공격 예고, 피하세요!' : '쓰러뜨리면 클리어!', 'small'), BOSS_LANDING_MS + 2000);
+      stageTimers.later(() => ui.toast(level.bossStage ? t('stage.bossTipBig') : t('stage.bossTip'), 'small'), BOSS_LANDING_MS + 2000);
     }
   }
-  const CHAPTER_TIPS = { '경이의 세계': '우주·심해·자연 — 맵마다 새로운 기믹!', '놀이 세계': '숫자·알파벳·한글·동물을 깨 보세요!' };
-  if (level.chapterStart && level.chapterName) {
-    stageTimers.later(() => ui.toast(`✨ 새 챕터: ${level.chapterName}`, 'mega'), 400);
-    if (CHAPTER_TIPS[level.chapterName]) stageTimers.later(() => ui.toast(CHAPTER_TIPS[level.chapterName], 'small'), 1600);
+  if (level.chapterStart && level.chapterId) {
+    stageTimers.later(() => ui.toast(t('stage.newChapter', { name: chapterName(level.chapterId) }), 'mega'), 400);
+    stageTimers.later(() => ui.toast(t(`chapter.tip.${level.chapterId}`), 'small'), 1600);
   }
   // Gimmick and unit tips wait for the first ball to get in (the opening has enough going on).
-  const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
   const tips = [];
-  if (GIMMICK_TIPS[level.theme]) tips.push({ text: GIMMICK_TIPS[level.theme] });
+  if (['space', 'sea', 'nature'].includes(level.theme)) tips.push({ text: t(`gimmick.${level.theme}`) });
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
-    tips.push({ text: `적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, cls: 'small danger' });
+    tips.push({ text: t('stage.units', { top, n: world.units.length }), cls: 'small danger' });
   }
   director.setEntryTips(tips);
 }
@@ -320,7 +331,7 @@ function checkAchievements(cleared) {
 function announceAchievements(ids) {
   ids.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    if (a) stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
+    if (a) stageTimers.later(() => ui.toast([{ emoji: '🏆' }, t('achv.unlocked'), { emoji: a.icon }, ` ${achievementName(a)} +${a.gold}🪙`], 'small'), 400 + k * 700);
   });
 }
 
@@ -330,7 +341,7 @@ function applyQuality(levelIndex) {
   balls3d.setShadows(q.ballShadows);
   trails3d.setEnabled(q.trails);
   stage.setQuality(q);
-  ui.toast('화질 자동 조정', 'small');
+  ui.toast(t('stage.quality'), 'small');
 }
 
 /** Leaving a stage mid-run (pause -> menu) keeps the gold caught so far, as a game over does. */
@@ -377,11 +388,11 @@ function finishLevel(cleared) {
     run.clearGold = w.gold + run.goldBanked; // all gold this attempt (before and after a revive)
     checkAchievements(true);
     const bonus = [
-      ...(firstClear ? [`🪙 스테이지 첫 클리어 +${ui.fmt(firstClear)} 골드`] : []),
-      ...(daily.gold ? [`📅 오늘의 첫 클리어 +${ui.fmt(daily.gold)} 골드 · ${daily.streak}일 연속`] : []),
-      ...(chest.gold ? [`🎁 별 상자 열림 +${ui.fmt(chest.gold)} 골드`] : []),
+      ...(firstClear ? [t('clear.firstClear', { gold: firstClear })] : []),
+      ...(daily.gold ? [t('clear.daily', { gold: daily.gold, n: daily.streak })] : []),
+      ...(chest.gold ? [t('clear.chest', { gold: chest.gold })] : []),
       ...stageAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean)
-        .map((a) => `🏆 ${a.name} +${ui.fmt(a.gold)} 골드`),
+        .map((a) => t('clear.achv', { name: achievementName(a), gold: a.gold })),
     ];
     const upcoming = getLevel(level.index + 1);
     setTimeout(() => ui.showClear({
@@ -391,16 +402,16 @@ function finishLevel(cleared) {
       goldOffer: offers().doubleGold,
       newBest: prevBest > 0 && w.score > prevBest,
       bonus,
-      meta: `⭐ 총 ${ui.fmt(totalStars(save))} · 다음 별 상자까지 ★${chestProgress(save).toNext}`,
+      meta: t('clear.meta', { stars: totalStars(save), n: chestProgress(save).toNext }),
       // A big boss stage is named after its boss already; a map stage names its own boss.
-      next: { name: levelName(level.index + 1), boss: upcoming.bossStage ? null : upcoming.bossName.replace(BOSS_PREFIX, '') },
+      next: { name: stageTitleAt(level.index + 1), boss: upcoming.bossStage ? null : bossName(upcoming.boss.kind) },
       stats: [
-        ['클리어 시간', `${elapsed.toFixed(1)}초`],
-        ['최대 공 개수', ui.fmt(w.peakBalls)],
-        ['최고 콤보', ui.fmt(w.bestCombo)],
-        ['부순 벽돌', ui.fmt(w.broken)],
-        ['획득 골드', `🪙 ${ui.fmt(run.clearGold)}`],
-        ['남은 목숨', '♥'.repeat(w.lives)],
+        [t('clear.time'), t('clear.seconds', { s: elapsed.toFixed(1) })],
+        [t('clear.peak'), ui.fmt(w.peakBalls)],
+        [t('clear.combo'), ui.fmt(w.bestCombo)],
+        [t('clear.broken'), ui.fmt(w.broken)],
+        [t('clear.gold'), `🪙 ${ui.fmt(run.clearGold)}`],
+        [t('clear.lives'), '♥'.repeat(w.lives)],
       ],
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
@@ -412,9 +423,9 @@ function finishLevel(cleared) {
     // What the run still earned, and one thing to try next time (a meteor only when the coins cover one).
     // Achievements earned during the finale were held back then; the run is over, so they are listed here.
     const canMeteor = save.gold + run.goldBanked >= SKILL_PRICES.meteor;
-    const tip = !w.entered ? (canMeteor ? `☄ 메테오(🪙${SKILL_PRICES.meteor})로 바로 넣을 수 있어요` : '🪙 코인 벽돌을 깨면 동전이 떨어져요 · 모아서 메테오를 사요')
-      : w.boss ? '빨간 영역은 공격 예고 · 미리 피하세요' : '과일을 받을수록 공이 늘어나요';
-    const bonus = heldAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean).map((a) => `🏆 ${a.name} +${ui.fmt(a.gold)} 골드`);
+    const tip = !w.entered ? (canMeteor ? t('over.tipMeteor', { price: SKILL_PRICES.meteor }) : t('game.coinHint'))
+      : w.boss ? t('over.tipBoss') : t('over.tipFruit');
+    const bonus = heldAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean).map((a) => t('clear.achv', { name: achievementName(a), gold: a.gold }));
     heldAchievements = [];
     const over = { gold: run.goldBanked, total: save.gold, best: save.best[level.index] ?? 0, tip, bonus };
     setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid), over), 900);
@@ -454,7 +465,7 @@ function reviveRun() {
   ui.resumePlay();
   audio.achievement();
   haptics.play('skill');
-  ui.toast('부활! ♥+1', 'mega');
+  ui.toast(t('reward.revived'), 'mega');
 }
 
 function doubleClearGold(buttonId) {
@@ -464,7 +475,7 @@ function doubleClearGold(buttonId) {
   persist();
   audio.coin();
   haptics.play('coin');
-  ui.rewardState(buttonId, 'done', `골드 2배 받음 (+${ui.fmt(run.clearGold)})`);
+  ui.rewardState(buttonId, 'done', t('clear.doubled', { gold: run.clearGold }));
   ui.toast([{ emoji: '🪙' }, ` +${ui.fmt(run.clearGold)}`], 'mega');
 }
 
@@ -482,15 +493,15 @@ async function buyRemoveAds() {
   if (!(await store.buy(PRODUCT_REMOVE_ADS))) return;
   grantRemoveAds();
   audio.achievement();
-  ui.toast('광고 제거 완료! 보상은 이제 광고 없이 받아요', 'small');
+  ui.toast(t('store.removed'), 'small');
 }
 
 async function restorePurchases() {
   const owned = await store.restore();
   if (owned.includes(PRODUCT_REMOVE_ADS)) {
     grantRemoveAds();
-    ui.toast('구매를 복원했어요', 'small');
-  } else ui.toast('복원할 구매가 없어요', 'small');
+    ui.toast(t('store.restored'), 'small');
+  } else ui.toast(t('store.nothing'), 'small');
 }
 
 // ---------- input ----------
@@ -582,11 +593,19 @@ function keyboardPaddle(dt) {
 
 const HINT_ABOVE = 9; // cells above the paddle where the launch hint floats
 
+/** The serve hint in the player's language (aimInput.aimLabel is the Korean original, kept for its tests). */
+function aimText(angle, held) {
+  if (!held) return t('aim.hint');
+  const deg = Math.round((Math.abs(angle) * 180) / Math.PI);
+  if (deg === 0) return t('aim.vertical');
+  return t('aim.angle', { angle: angle < 0 ? `◀ ${deg}°` : `${deg}° ▶` });
+}
+
 function hud() {
   const g = world.grid;
   if (world.state === 'ready') {
     const at = stage.project(COLS / 2, PADDLE_Y + HINT_ABOVE, 1);
-    ui.placeHint(at.x, at.y, aimLabel(aim.angle, aim.held));
+    ui.placeHint(at.x, at.y, aimText(aim.angle, aim.held));
   }
   ui.setHud({
     score: world.score,
@@ -599,7 +618,8 @@ function hud() {
     gold: save.gold + world.gold,
     prices: skillPrices(),
   });
-  ui.setBoss(world.boss?.alive ? level.bossName : null, world.boss ? world.boss.hp / world.boss.hpMax : 1, GUARD_FLOOR);
+  const barName = world.boss?.alive ? bossBarName(level) : null;
+  ui.setBoss(barName, world.boss ? world.boss.hp / world.boss.hpMax : 1, GUARD_FLOOR);
 }
 
 let last = performance.now();
@@ -620,7 +640,7 @@ function frame(now) {
     last = now;
     if (crashes === 1) console.error(err);
     if (crashes >= MAX_CRASHES) {
-      document.getElementById('boot-error-text').textContent = '문제가 생겨 게임이 멈췄습니다. 새로고침하면 이어서 할 수 있어요(진행 상황은 저장되어 있습니다).';
+      document.getElementById('boot-error-text').textContent = t('boot.crashed');
       document.getElementById('boot-error').hidden = false;
       return;
     }

@@ -130,7 +130,8 @@ describe('icons and copy', () => {
   it('the clear screen draws stats and bonus lines through the icon system (no OS emoji for the coin)', () => {
     const body = fnBody(ui(), 'showClear');
     expect(body).toMatch(/setRich\(dd, v\)/);
-    expect(body).toMatch(/setRich\(li, line\)/);
+    expect(body).toMatch(/bonusList\(\$\('clear-bonus'\), bonus\)/);
+    expect(ui()).toMatch(/const bonusList = \(list, lines\) => [^\n]*setRich\(li, line\)/);
     expect(body).not.toMatch(/textContent: line/);
   });
 
@@ -142,7 +143,7 @@ describe('icons and copy', () => {
     expect(useSkill(w, 'split', 5)).toBe(true);
     const ev = drainEvents(w).find((e) => e.t === 'skill');
     expect(ev).toMatchObject({ name: 'split', mult: 5 });
-    expect(read('src/director.js')).toMatch(/전체 ×\$\{e\.mult/);
+    expect(read('src/director.js')).toMatch(/t\('game\.split', \{ n: e\.mult/);
   });
 });
 

@@ -436,6 +436,8 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
   const bricks = lines.reduce((sum, line) => sum + [...line].filter((ch) => ch !== '.' && ch !== 'S').length, 0);
   return {
     index: n,
+    id: map.id, // names.js shows it in the player's language
+    variant: map.variant ?? null, // 'sunset' | 'night' on later laps
     name: map.name,
     subtitle: map.subtitle,
     palette: map.palette,
@@ -454,5 +456,6 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
     theme: map.theme ?? null, // chapter theme; 'space' | 'sea' | 'nature' bring a gimmick (gimmicks.js)
     chapterStart: Boolean(map.chapterStart),
     chapterName: map.chapterName ?? null, // the chapter this map opens (banner), else null
+    chapterId: map.chapterId ?? null, // its dictionary key (i18n)
   };
 }
