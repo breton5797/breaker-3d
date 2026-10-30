@@ -1,0 +1,94 @@
+name: Android release
+
+# Builds the signed Google Play bundle (.aab) on demand (Actions > Android release > Run workflow).
+# Needs, once (docs/store/README.md):
+#   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD  (scripts/release/android-keystore.sh --secrets)
+#   variables ADMOB_APP_ID_ANDROID, ADMOB_REWARDED_ANDROID       (AdMob console; not secret)
+# Upload the .aab artifact in Play Console (internal / closed testing first).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'versionCode (integer, larger than every bundle already uploaded to Play)'
+        required: true
+      test_ads:
+        description: 'Allow Google test ads when the AdMob variables are missing (internal testing only)'
+        type: boolean
+        default: false
+      throwaway_key:
+        description: 'Sign with a temporary key (checks the build only; Play will reject it)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    env:
+      ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID_ANDROID }}
+      VITE_ADMOB_REWARDED_ANDROID: ${{ vars.ADMOB_REWARDED_ANDROID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check inputs
+        env:
+          VERSION_CODE: ${{ inputs.version_code }}
+          TEST_ADS: ${{ inputs.test_ads }}
+        run: |
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]{0,8}$ ]] || { echo "::error::version_code must be a positive integer"; exit 1; }
+          if [[ -z "$ADMOB_APP_ID" || -z "$VITE_ADMOB_REWARDED_ANDROID" ]]; then
+            [[ "$TEST_ADS" == "true" ]] || { echo "::error::Set repository variables ADMOB_APP_ID_ANDROID and ADMOB_REWARDED_ANDROID, or run with test_ads"; exit 1; }
+            echo "::warning::Building with Google test ads (no revenue) - internal testing only"
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          THROWAWAY: ${{ inputs.throwaway_key }}
+        run: |
+          KS="$RUNNER_TEMP/upload.p12"
+          if [[ "$THROWAWAY" == "true" ]]; then
+            BREAKER_RELEASE_DIR="$RUNNER_TEMP/key" bash scripts/release/android-keystore.sh
+            cp "$RUNNER_TEMP/key/upload.p12" "$KS"
+            KEYSTORE_PASSWORD="$(cat "$RUNNER_TEMP/key/upload.password")"
+            echo "::add-mask::$KEYSTORE_PASSWORD"
+          else
+            [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" ]] || { echo "::error::Missing secrets ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KS"
+          fi
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+      - name: Gradle bundleRelease
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          VERSION_NAME="$(node -p "require('../package.json').version")"
+          ARGS=(-PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME")
+          [[ -n "$ADMOB_APP_ID" ]] && ARGS+=(-PADMOB_APP_ID="$ADMOB_APP_ID")
+          ./gradlew bundleRelease --no-daemon "${ARGS[@]}"
+      - name: Verify signature
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" | tail -1
+          jarsigner -verify "$AAB" | grep -q "jar verified"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breaker3d-release-aab-${{ inputs.version_code }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30

@@ -23,11 +23,13 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>$(ADMOB_APP_ID)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>광고를 더 알맞게 보여 드리기 위해 사용됩니다. 허용하지 않아도 게임과 보상형 광고는 그대로 이용할 수 있어요.</string>
+	<string>Used to show you more relevant ads. The game and rewarded ads work the same if you don't allow it. / 광고를 더 알맞게 보여 드리기 위해 사용됩니다. 허용하지 않아도 게임과 보상형 광고는 그대로 이용할 수 있어요.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
@@ -65,13 +67,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>

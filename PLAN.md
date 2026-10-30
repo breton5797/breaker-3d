@@ -574,6 +574,18 @@ index.css를 같은 키로 묶어 오프라인 캐시가 번갈아 지워짐, �
 다음 라운드로 미룬 것: 꾸미기 상점(확정 가격 싱크), 일일 도전, 앱 저장 미러·진행 코드, 벽돌 InstancedMesh 용량 축소(모바일 실측 후),
 ui.js 화면별 모듈 분할, iOS AdMob ID xcconfig(출시 체크리스트), 개발 의존성 취약점(prod 0건), RTL 언어.
 
+## v39 — Google Play·App Store 출시 준비 (사용자 결정, 2026-10-31)
+
+- 결정: 전체 진행, **iPhone 전용**(iPad 미지원), Play·Apple 개발자 계정 있음 / AdMob 아직 없음, 문의 메일 breton5797@gmail.com.
+- 안드로이드: `build.gradle` 릴리스 서명(환경변수 `ANDROID_KEYSTORE_PATH/PASSWORD`, PKCS12, 별칭 upload), `-PVERSION_CODE/-PVERSION_NAME`.
+  `scripts/release/android-keystore.sh`(openssl로 업로드 키 — JDK 불필요, `--secrets`로 GitHub Secrets 등록, 키는 `~/.breaker3d-release`).
+  `.github/workflows/android-release.yml`(수동 실행, 서명된 `.aab`, AdMob ID는 저장소 변수 `ADMOB_APP_ID_ANDROID`·`ADMOB_REWARDED_ANDROID`,
+  없으면 `test_ads` 선택 시에만 테스트 광고). PR 빌드(`android.yml`)는 임시 키로 릴리스 번들 서명까지 확인.
+- iOS: `TARGETED_DEVICE_FAMILY = 1`, `GADApplicationIdentifier = $(ADMOB_APP_ID)`(빌드 설정, 기본 테스트 ID), `ITSAppUsesNonExemptEncryption = false`,
+  ATT 문구 영·한 병기. `scripts/release/ios-release.sh`(아카이브 → App Store Connect 업로드, `--check`는 서명 없는 Release 아카이브 확인).
+- 자료: `docs/store/`(README 안내서, listing 한·영 문구, forms 설문 답안, screenshots, feature-graphic). privacy.html 영문판·문의 메일.
+- 이 PR에서 미룬 것: Android 뒤로가기(@capacitor/app), 스토어 문구 12개 언어, app-ads.txt(게시자 ID 받은 뒤 사용자 사이트 저장소에).
+
 ## 구조
 
 - `src/sim/` — 순수 로직(렌더 무관, 테스트 대상). 셀 그리드 + 공 풀(TypedArray, 최대 3000개),
