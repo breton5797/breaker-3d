@@ -1,4 +1,4 @@
-package io.github.breton5797.breaker3d;
+package com.minimalkorea.breaker3d;
 
 import com.getcapacitor.BridgeActivity;
 
