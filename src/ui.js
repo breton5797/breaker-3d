@@ -724,9 +724,9 @@ export function createUI(h) {
     if (state === 'failed') { el.disabled = false; el.textContent = t('reward.failed'); }
   }
 
-  /** Title-screen purchase buttons; hidden where there is no store (web). */
+  /** Title-screen purchase buttons; hidden where there is no store (web) or the product isn't live yet (no price). */
   function setStore({ available, price, adsRemoved }) {
-    $('btn-remove-ads').hidden = !available || adsRemoved;
+    $('btn-remove-ads').hidden = !available || adsRemoved || !price;
     $('btn-restore').hidden = !available || adsRemoved;
     setRich($('btn-remove-ads'), t('store.removeAds') + (price ? ` · ${price}` : ''));
   }
