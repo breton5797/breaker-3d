@@ -396,6 +396,7 @@ export function createUI(h) {
     const hud = $('hud').getBoundingClientRect().bottom;
     const bar = $('boss-bar');
     const toasts = $('toasts');
+    bar.classList.remove('lane'); // judge with the bar's normal height, whatever form it had last time
     const compact = boardTop - hud < (bar.offsetHeight || 34) + 12;
     bar.classList.toggle('lane', compact);
     toasts.classList.toggle('one', compact); // one toast at a time: the lane is short
@@ -732,8 +733,13 @@ export function createUI(h) {
     share.textContent = `${progress ?? 0}%`;
     $('over-progress').replaceChildren('벽돌 ', share, ' 깼어요', ...(extra.best > 0 ? [` · 이 판 최고 ${fmt(extra.best)}점`] : []));
     $('over-progress').hidden = progress === null;
-    $('over-gold').hidden = extra.gold === undefined;
-    if (extra.gold !== undefined) setRich($('over-gold'), `🪙 +${fmt(extra.gold)} 저장됨 · 보유 ${fmt(extra.total ?? 0)}`);
+    $('over-gold').hidden = !(extra.gold > 0);
+    if (extra.gold > 0) setRich($('over-gold'), `🪙 +${fmt(extra.gold)} 저장됨 · 보유 ${fmt(extra.total ?? 0)}`);
+    $('over-bonus').replaceChildren(...(extra.bonus ?? []).map((line) => {
+      const li = document.createElement('li');
+      setRich(li, line);
+      return li;
+    }));
     $('over-tip').hidden = !extra.tip;
     if (extra.tip) setRich($('over-tip'), `🎯 ${extra.tip}`);
     setReward('btn-revive', reviveOffer, '이어하기 ♥+1');

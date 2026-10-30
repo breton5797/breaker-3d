@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
-  nextGoals, dailyStatus, chestProgress, firstClearBonus, FIRST_CLEAR_GOLD, recordBeaten, dailyBonus, DAILY_GOLD, STARS_PER_CHEST, recordStars,
+  nextGoals, dailyStatus, chestProgress, firstClearBonus, FIRST_CLEAR_GOLD, recordBeaten, dailyBonus, DAILY_GOLD, STARS_PER_CHEST, recordStars, achievementStage,
 } from '../src/meta.js';
 import { ACHIEVEMENTS, earned, lapEndStage } from '../src/achievements.js';
 import { loadSave, writeSave, recordClear } from '../src/storage.js';
@@ -75,6 +75,14 @@ describe('the title shows the daily bonus and the next chest', () => {
   });
 });
 
+describe('stage achievements for players who were already past them', () => {
+  it('judges a run by its stage or the furthest cleared, whichever is higher', () => {
+    expect(achievementStage(3, { unlocked: 41 })).toBe(39);
+    expect(achievementStage(50, { unlocked: 41 })).toBe(50);
+    expect(achievementStage(0, {})).toBe(0);
+  });
+});
+
 describe('gold for a first clear (owner, 2026-10-30)', () => {
   it(`a stage's first clear pays ${FIRST_CLEAR_GOLD} gold, a replay pays none`, () => {
     expect(FIRST_CLEAR_GOLD).toBe(20);
@@ -136,7 +144,7 @@ describe('save data', () => {
 
   it('a daily date in the future (a clock that was ahead) is reset, so the bonus is not locked for years', () => {
     localStorage.setItem(KEY, JSON.stringify({ daily: { last: daysFromNow(400), streak: 3 } }));
-    expect(loadSave().daily).toEqual({ last: '', streak: 0 });
+    expect(loadSave().daily).toEqual({ last: daysFromNow(0), streak: 0 }); // today counts as claimed: no bonus by turning the clock back and forth
     localStorage.setItem(KEY, JSON.stringify({ daily: { last: daysFromNow(1), streak: 3 } })); // a day ahead: time zones, kept
     expect(loadSave().daily).toEqual({ last: daysFromNow(1), streak: 3 });
   });
@@ -201,7 +209,7 @@ describe('wiring', () => {
 
   it('the game-over screen reports the gold kept and a tip; the title has the collection button; the clear screen shows stars to the chest', () => {
     const html = read('index.html');
-    for (const id of ['over-gold', 'over-tip', 'btn-collection', 'screen-collection', 'clear-meta', 'collection-tab-boss', 'collection-tab-travel']) expect(html, id).toContain(`id="${id}"`);
+    for (const id of ['over-gold', 'over-tip', 'over-bonus', 'btn-collection', 'screen-collection', 'clear-meta', 'collection-tab-boss', 'collection-tab-travel']) expect(html, id).toContain(`id="${id}"`);
     const ui = read('src/ui.js');
     expect(ui).toMatch(/function showCollection\(/);
     expect(ui).toMatch(/achv-gold/);

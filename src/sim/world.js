@@ -136,7 +136,7 @@ export function useSkill(w, name, mult = 3) {
     const cap = n0 + SPLIT_SKILL_MAX;
     for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(mult, 1 + cap - b.n));
   } else {
-    if (w.state === 'ready') b.n = 0;
+    if (w.state === 'ready') { b.n = 0; w.entered = false; w.outsideFor = 0; } // a serve like launch(): the opening help is back on
     for (let k = 0; k < METEOR_COUNT; k++) {
       if (!addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, 0, METEOR_FIRE)) break;
       aimBall(b, b.n - 1, ((k / (METEOR_COUNT - 1)) - 0.5) * 2 * 1.1);

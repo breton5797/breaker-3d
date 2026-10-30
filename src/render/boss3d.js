@@ -361,7 +361,7 @@ export function createBoss3d(scene) {
       const top = boss.y;
       zone.material.opacity = 0.3;
       sweepZones(a, py);
-      beam.visible = Math.abs(a.beam - a.safe) > SWEEP_GAP / 2;
+      beam.visible = Math.abs(a.beam - a.safe) > (a.gap ?? SWEEP_GAP) / 2;
       beam.scale.set(1, top - PADDLE_Y, 1);
       beam.position.set(toWorldX(a.beam), toWorldY((top + PADDLE_Y) / 2), 1.2);
     }
@@ -369,8 +369,9 @@ export function createBoss3d(scene) {
 
   /** The sweep's warning: the whole paddle row in red except the gap the player can stand in. */
   function sweepZones(a, py) {
-    const gapL = a.safe - SWEEP_GAP / 2;
-    const gapR = a.safe + SWEEP_GAP / 2;
+    const half = (a.gap ?? SWEEP_GAP) / 2;
+    const gapL = a.safe - half;
+    const gapR = a.safe + half;
     zone.visible = gapL > 0;
     zone.scale.set(Math.max(0.01, gapL), 1, 1);
     zone.position.set(toWorldX(gapL / 2), py, 0.15);

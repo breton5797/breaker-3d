@@ -22,8 +22,10 @@ function metaFields(raw) {
   // A last date more than a day ahead of today came from a clock that was set wrong: kept, it would
   // lock the daily bonus until that date comes round. A day ahead is a time zone, and stays.
   const future = (iso) => dayNumber(iso) > dayNumber(today()) + 1;
-  const daily = d && typeof d.last === 'string' && DATE.test(d.last) && isInt(d.streak, 1, 3650) && !future(d.last)
-    ? { last: d.last, streak: d.streak } : { last: '', streak: 0 };
+  const valid = d && typeof d.last === 'string' && DATE.test(d.last) && isInt(d.streak, 1, 3650);
+  const daily = !valid ? { last: '', streak: 0 }
+    : future(d.last) ? { last: today(), streak: 0 } // unlocked, but today's bonus counts as taken: no second claim by turning the clock
+    : { last: d.last, streak: d.streak };
   const charge = (kind) => {
     const v = raw.loadout?.[kind];
     return Number.isInteger(v) ? Math.max(0, Math.min(LOADOUT[kind].max, v)) : 0;

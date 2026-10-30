@@ -24,6 +24,12 @@ export const DAILY_GOLD = Object.freeze([100, 125, 150, 175, 200, 250, 300]);
 /** A stage's first clear pays this (owner, 2026-10-30): play income for players who buy skills every stage. */
 export const FIRST_CLEAR_GOLD = 20;
 
+/**
+ * The stage the stage-count achievements judge a run by: this stage, or the furthest already cleared if that is
+ * higher (a player who had passed stage 26 before those achievements existed earns them on their next clear).
+ */
+export const achievementStage = (levelIndex, save) => Math.max(levelIndex, (save.unlocked ?? 1) - 2);
+
 /** @returns {number} gold for clearing stage `levelIndex` for the first time (0 on a replay) */
 export const firstClearBonus = (save, levelIndex) => ((save.best?.[levelIndex] ?? 0) > 0 ? 0 : FIRST_CLEAR_GOLD);
 

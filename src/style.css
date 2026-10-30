@@ -437,4 +437,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .clear-title { font-size: 18px; }
   .boss-card { width: min(300px, 60vw); }
   .split-picker { bottom: 60px; }
+  .close-x { margin-top: -8px; }
 }

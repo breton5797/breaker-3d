@@ -103,10 +103,11 @@ export function loadBossModel(kind) {
   touched.evicted.forEach(release);
   if (!cache.has(kind)) {
     const path = BOSS_MODELS[kind];
-    cache.set(kind, !path ? Promise.resolve(null) : getLoader()
+    const load = !path ? Promise.resolve(null) : getLoader()
       .then((l) => l.loadAsync(artUrl(path)))
       .then((gltf) => prepare(gltf.scene, kind))
-      .catch(() => { cache.delete(kind); return null; }));
+      .catch(() => { if (cache.get(kind) === load) cache.delete(kind); return null; }); // retry next time (only our own entry)
+    cache.set(kind, load);
   }
   return cache.get(kind);
 }
