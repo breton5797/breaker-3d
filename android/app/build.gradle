@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "io.github.breton5797.breaker3d"
+    namespace = "com.minimalkorea.breaker3d"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.breton5797.breaker3d"
+        applicationId "com.minimalkorea.breaker3d"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Release builds pass -PVERSION_CODE (must grow with every Play upload) and -PVERSION_NAME.

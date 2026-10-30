@@ -38,7 +38,7 @@
 8. 프로덕션 출시 → 심사(보통 수일).
 
 ## 3. App Store
-1. developer.apple.com > Certificates, IDs & Profiles > Identifiers > **App ID 등록**: `io.github.breton5797.breaker3d`
+1. developer.apple.com > Certificates, IDs & Profiles > Identifiers > **App ID 등록**: `com.minimalkorea.breaker3d`
    (Capabilities: In-App Purchase 기본 포함). **Team ID**(Membership 페이지)를 메모.
 2. App Store Connect > 비즈니스(계약/세금/은행): **유료 앱 계약** 동의 + 세금·은행 정보 — 없으면 인앱 결제가 안 됨.
 3. EU 디지털서비스법 **판매자(Trader) 신고**: 판매자로 신고하면 주소·전화·이메일이 EU 스토어에 공개됨.

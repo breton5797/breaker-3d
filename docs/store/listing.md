@@ -13,7 +13,7 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 | 웹사이트 | https://breton5797.github.io/breaker-3d/ |
 | 개인정보 처리방침 URL | https://breton5797.github.io/breaker-3d/privacy.html |
 | 지원 URL (Apple 필수) | https://github.com/breton5797/breaker-3d/issues |
-| 저작권 (Apple) | 2026 breton5797 |
+| 저작권 (Apple) | 2026 MINIMALKOREA |
 | 가격 | 무료 (인앱 상품 `remove_ads` 1개) |
 
 ---
