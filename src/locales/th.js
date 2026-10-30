@@ -74,7 +74,7 @@ export default {
 
   'clear.title': 'ผ่านด่าน',
   'clear.best': 'สถิติใหม่!',
-  'clear.retry': 'เล่นอีกครั้ง',
+  'clear.retry': 'เล่นใหม่',
   'clear.next': 'ด่านถัดไป',
   'clear.menu': 'เลือกด่าน',
   'clear.nextLabel': 'ถัดไป ▶ ',
