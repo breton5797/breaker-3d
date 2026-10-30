@@ -58,8 +58,8 @@ export function travelAlbum(save) {
 export function collectionCounts(save) {
   const dex = bossDex(save);
   const album = travelAlbum(save);
-  const chapters = [['세계 랜드마크', LEVELS.length], ['경이의 세계', WONDERS.length], ['놀이 세계', PLAY.length]]
-    .map(([name, total], c) => ({ name, total, have: album.filter((m) => m.chapter === c && m.cleared).length }));
+  const chapters = [['landmarks', '세계 랜드마크', LEVELS.length], ['wonders', '경이의 세계', WONDERS.length], ['play', '놀이 세계', PLAY.length]]
+    .map(([id, name, total], c) => ({ id, name, total, have: album.filter((m) => m.chapter === c && m.cleared).length }));
   return {
     bosses: { have: dex.filter((e) => e.beaten).length, total: dex.length },
     maps: { have: album.filter((m) => m.cleared).length, total: album.length },

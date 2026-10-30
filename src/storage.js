@@ -1,11 +1,12 @@
 import { LOADOUT, dayNumber, today } from './meta.js';
+import { isLanguage } from './i18n.js';
 import { BOSS_KINDS } from './sim/boss.js';
 import { MAP_BOSSES } from './sim/mapBosses.js';
 
 const KEY = 'breaker3d.v1';
 const EMPTY = Object.freeze({
   unlocked: 1, best: {}, muted: false, vibrate: true, adsRemoved: false, achievements: [], gold: 0,
-  stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [], beatenAt: {},
+  stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [], beatenAt: {}, lang: '',
 });
 const ACHIEVEMENT_ID = /^[a-z0-9_]{1,40}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -61,6 +62,7 @@ export function loadSave() {
     return {
       unlocked, best, muted: raw.muted === true, vibrate: typeof raw.vibrate === 'boolean' ? raw.vibrate : raw.muted !== true,
       adsRemoved: raw.adsRemoved === true, achievements, gold, ...metaFields(raw),
+      lang: isLanguage(raw.lang) ? raw.lang : '', // '' = follow the device
     };
   } catch {
     return structuredClone(EMPTY);

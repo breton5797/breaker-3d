@@ -143,7 +143,7 @@ export function recordBeaten(save, kind, stage) {
 
 /**
  * @param {number} next index of the next stage to play
- * @returns {{ toBoss:number, bossKind:string, bossName:string, toChapter:number|null, chapterName:string|null }}
+ * @returns {{ toBoss:number, bossKind:string, bossName:string, toChapter:number|null, chapterName:string|null, chapterId:string|null }}
  *   stages before the next big boss (and which), and before the next chapter opens (null when none is ahead)
  */
 export function nextGoals(next) {
@@ -155,9 +155,9 @@ export function nextGoals(next) {
   const k0 = slot.boss ? slot.content + 1 : slot.content;
   for (let k = k0; k < k0 + LAP.length; k++) {
     const m = landmarkAt(k);
-    if (m.chapterStart) return { ...goals, toChapter: stageOfContent(k) - next, chapterName: m.chapterName };
+    if (m.chapterStart) return { ...goals, toChapter: stageOfContent(k) - next, chapterName: m.chapterName, chapterId: m.chapterId };
   }
-  return { ...goals, toChapter: null, chapterName: null };
+  return { ...goals, toChapter: null, chapterName: null, chapterId: null };
 }
 
 /** @returns {number} percent of the mural broken (0-100) */

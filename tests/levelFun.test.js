@@ -247,7 +247,7 @@ describe('finale climax', () => {
     const src = read('src/director.js');
     expect(src).toMatch(/MILESTONE_GAP = 1\.2/);
     expect(src).toMatch(/const quiet = [^;]*w\.finale/);
-    expect(src).toMatch(/과일 \$\{[^}]+\}개/);
+    expect(src).toMatch(/t\('game\.tally', \{ n: tally\.fruit/);
   });
 });
 
@@ -266,7 +266,7 @@ describe('coins and the stage start', () => {
   it('the stage opens with one card (name + subtitle together); the mission line only on the first stages; gimmick and unit tips wait for the first entry', () => {
     const ui = read('src/ui.js');
     const start = ui.slice(ui.indexOf('function startStage('), ui.indexOf('/** Achievement collection'));
-    expect(start).toMatch(/toast\(level\.name, 'mega'\);\s*toast\(level\.subtitle, 'small'\)/);
+    expect(start).toMatch(/toast\(stageTitle\(level\), 'mega'\);\s*toast\(mapSubtitle\(level\.id\), 'small'\)/);
     expect(start).toMatch(/level\.index < 10/);
     const main = read('src/main.js');
     expect(main).toMatch(/director\.setEntryTips\(/);
@@ -295,6 +295,6 @@ describe('the achievements of a stage reach the clear screen', () => {
   it('main lists them in the clear bonus and holds their toasts during the finale', () => {
     const main = read('src/main.js');
     expect(main).toMatch(/stageAchievements/);
-    expect(main).toMatch(/🏆 /);
+    expect(main).toMatch(/t\('clear\.achv', \{ name: achievementName\(a\)/);
   });
 });

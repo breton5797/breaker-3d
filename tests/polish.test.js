@@ -131,7 +131,7 @@ describe('icons and copy', () => {
     expect(useSkill(w, 'split', 5)).toBe(true);
     const ev = drainEvents(w).find((e) => e.t === 'skill');
     expect(ev).toMatchObject({ name: 'split', mult: 5 });
-    expect(read('src/director.js')).toMatch(/전체 ×\$\{e\.mult/);
+    expect(read('src/director.js')).toMatch(/t\('game\.split', \{ n: e\.mult/);
   });
 });
 

@@ -46,8 +46,10 @@ describe('the next goal is concrete', () => {
     expect(g.bossName).toBe('석상 거인');
     expect(g.toChapter).toBe(26);
     expect(g.chapterName).toBe('경이의 세계');
+    expect(g.chapterId).toBe('wonders');
+    expect(g.bossKind).toBe('colossus');
     expect(nextGoals(26)).toMatchObject({ toChapter: 0, chapterName: '경이의 세계' });
-    expect(nextGoals(40)).toMatchObject({ toChapter: 0, chapterName: '놀이 세계' });
+    expect(nextGoals(40)).toMatchObject({ toChapter: 0, chapterName: '놀이 세계', chapterId: 'play' });
     const later = nextGoals(41); // past the last opener of the lap: the next lap's first chapter
     expect(later.chapterName).toBe('경이의 세계');
     expect(later.toChapter).toBe(stageOfContent(LAP.length + LEVELS.length) - 41);
@@ -188,7 +190,7 @@ describe('wiring', () => {
   it('the meteor hint only points at a meteor the player can buy; otherwise it points at the coins', () => {
     const director = read('src/director.js');
     expect(director).toMatch(/canAfford\(SKILL_PRICES\.meteor\)/);
-    expect(director).toMatch(/코인 벽돌을 깨면/);
+    expect(director).toMatch(/t\('game\.coinHint'\)/);
     expect(read('src/main.js')).toMatch(/canAfford: \(price\) =>/);
   });
 
@@ -196,7 +198,7 @@ describe('wiring', () => {
     const main = read('src/main.js');
     expect(main).toMatch(/function persist\(\)/);
     expect(main).not.toMatch(/\bwriteSave\(save\);/);
-    expect(main).toMatch(/저장되지 않/);
+    expect(main).toMatch(/t\('stage\.saveFail'\)/);
   });
 
   it('the game-over screen reports the gold kept and a tip; the title has the collection button; the clear screen shows stars to the chest', () => {

@@ -1,4 +1,3 @@
-import { levelName } from './sim/levels.js';
 import { LAP } from './sim/maps.js';
 import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
@@ -8,11 +7,13 @@ import { iconArt, splitIcons } from './icons.js';
 import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
 import { bossDex, travelAlbum, collectionCounts } from './collection.js';
 import { renderBossDex, renderTravel, renderChapters } from './collectionView.js';
+import { t, applyStatic, fillLanguageSelects, locale } from './i18n.js';
+import { stageTitle, stageTitleAt, mapName, mapSubtitle, bossName, chapterName, achievementName, achievementDesc } from './names.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
 const $ = (id) => document.getElementById(id);
-const fmt = (n) => Math.floor(n).toLocaleString('ko-KR');
+const fmt = (n) => Math.floor(n).toLocaleString(locale());
 
 /** A fruit (or other emoji) inline in text: its picture when it has one, the emoji if that fails to load. */
 function emojiSpan({ emoji, art }) {
@@ -60,7 +61,11 @@ const SUBSCREENS = ['screen-achv', 'screen-credits', 'screen-collection']; // li
  *   impact:(kind:'slam'|'star')=>void }} h sfx plays a named sound (audio.js); impact shakes and buzzes
  */
 export function createUI(h) {
-  iconifyStatic(document.body);
+  applyStatic(document.body); // the page's static text in the chosen language...
+  iconifyStatic(document.body); // ...then its emoji as icons
+  // Language pickers (title, pause): the device language or a fixed one, kept in the save (main.js).
+  const fillLanguages = (current) => fillLanguageSelects(['lang-select', 'lang-select-pause'].map($), current, (code) => h.onLanguage?.(code));
+  fillLanguages('');
   const titleArt = $('title-art');
   titleArt.onload = () => { titleArt.hidden = false; };
   titleArt.src = artUrl('ui/title.webp');
@@ -142,8 +147,8 @@ export function createUI(h) {
       const b = document.createElement('button');
       b.className = 'stage-btn';
       b.disabled = i >= save.unlocked;
-      b.title = levelName(i);
-      b.setAttribute('aria-label', `스테이지 ${i + 1}${b.disabled ? ' (잠김)' : ''}`);
+      b.title = stageTitleAt(i);
+      b.setAttribute('aria-label', t('title.stageAria', { n: i + 1 }) + (b.disabled ? t('title.locked') : ''));
       const num = document.createElement('b');
       num.textContent = String(i + 1);
       b.append(num);
@@ -164,22 +169,23 @@ export function createUI(h) {
       grid.append(b);
     }
     const next = save.unlocked - 1;
-    $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
+    $('btn-start').textContent = next > 0 ? t('title.continue', { n: next + 1 }) : t('title.start');
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
     lastSave = save;
-    setRich($('btn-achv'), `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`);
+    setRich($('btn-achv'), t('title.achievements', { have: ownedCount(save), total: ACHIEVEMENTS.length }));
     const counts = collectionCounts(save);
-    setRich($('btn-collection'), `👾 도감 ${counts.bosses.have}/${counts.bosses.total} · 🌍 여행 ${counts.maps.have}/${counts.maps.total}`);
-    setRich($('title-gold'), `🪙 ${fmt(save.gold)} 골드 · ⭐ ${fmt(totalStars(save))}`);
+    setRich($('btn-collection'), t('title.collection', { b: counts.bosses.have, bt: counts.bosses.total, m: counts.maps.have, mt: counts.maps.total }));
+    setRich($('title-gold'), t('title.gold', { gold: save.gold, stars: totalStars(save) }));
     // What is ahead and what coming back pays, in plain words (no "lose it" pressure).
     const g = nextGoals(Math.max(0, next));
-    const chapterLine = g.toChapter === null ? '' : ` · ✨ ${g.chapterName}까지 ${g.toChapter === 0 ? '다음 판' : `${g.toChapter}판`}`;
+    const chapterLine = g.toChapter === null ? ''
+      : g.toChapter === 0 ? t('title.chapterNext', { name: chapterName(g.chapterId) }) : t('title.chapter', { name: chapterName(g.chapterId), n: g.toChapter });
     const d = dailyStatus(save, today());
     const dailyLine = d.claimed
-      ? `📅 오늘의 첫 클리어 보너스 받음 · ${d.streak}일 연속`
-      : `📅 오늘 첫 클리어 +${fmt(d.nextGold)} 골드${d.streak ? ` · ${d.streak}일 연속 이어가기` : ''}`;
+      ? t('title.dailyClaimed', { n: d.streak })
+      : t('title.daily', { gold: d.nextGold }) + (d.streak ? t('title.dailyStreak', { n: d.streak }) : '');
     const chest = chestProgress(save);
-    const lines = [[emojiSpan({ emoji: '👾', art: bossArt(g.bossKind) }), ...richParts(toBossLine(g) + chapterLine)], richParts(dailyLine), richParts(`🎁 다음 별 상자까지 ★${chest.toNext}`)];
+    const lines = [[emojiSpan({ emoji: '👾', art: bossArt(g.bossKind) }), ...richParts(toBossLine(g) + chapterLine)], richParts(dailyLine), richParts(t('title.chest', { n: chest.toNext }))];
     $('title-goals').replaceChildren(...lines.map((parts) => {
       const b = document.createElement('b');
       b.replaceChildren(...parts);
@@ -196,7 +202,18 @@ export function createUI(h) {
   }
 
   /** "석상 거인까지 3판" / "다음 판이 대형 보스 석상 거인!" (drawn after the boss's portrait) */
-  const toBossLine = (g) => (g.toBoss === 0 ? ` 다음 판이 대형 보스 ${g.bossName}!` : ` ${g.bossName}까지 ${g.toBoss}판`);
+  const toBossLine = (g) => (g.toBoss === 0 ? t('title.bossNext', { name: bossName(g.bossKind) }) : t('title.nextBoss', { name: bossName(g.bossKind), n: g.toBoss }));
+
+  /** The language changed: static text, cached labels and the pickers follow (dynamic text is rebuilt on its next draw). */
+  function relocalize(current) {
+    applyStatic(document.body);
+    iconifyStatic(document.body);
+    fillLanguages(current);
+    shownMuted = null;
+    shownGold = null;
+    shownCounts.split = null;
+    shownCounts.meteor = null;
+  }
 
   /**
    * The collection: the boss dex (portraits, grey until beaten, the stage each was first beaten on)
@@ -210,8 +227,8 @@ export function createUI(h) {
     const counts = collectionCounts(save);
     $('collection-tab-boss').classList.toggle('on', tab === 'boss');
     $('collection-tab-travel').classList.toggle('on', tab === 'travel');
-    setRich($('collection-tab-boss'), `👾 보스 도감 ${counts.bosses.have}/${counts.bosses.total}`);
-    setRich($('collection-tab-travel'), `🌍 여행 앨범 ${counts.maps.have}/${counts.maps.total}`);
+    setRich($('collection-tab-boss'), t('coll.bossTab', { have: counts.bosses.have, total: counts.bosses.total }));
+    setRich($('collection-tab-travel'), t('coll.travelTab', { have: counts.maps.have, total: counts.maps.total }));
     renderChapters($('collection-chapters'), counts.chapters);
     if (tab === 'boss') renderBossDex($('collection-list'), bossDex(save));
     else renderTravel($('collection-list'), travelAlbum(save));
@@ -240,13 +257,13 @@ export function createUI(h) {
     // Number and name on their own lines, so a long name ("자유의 여신상 · 노을") isn't cut off on a phone.
     const no = document.createElement('small');
     no.className = 'stage-no';
-    no.textContent = `STAGE ${level.index + 1}`;
-    $('stage-name').replaceChildren(no, document.createTextNode(level.name));
+    no.textContent = t('hud.stage', { n: level.index + 1 });
+    $('stage-name').replaceChildren(no, document.createTextNode(stageTitle(level)));
     lastBalls = 0;
     // One card: the name with its subtitle right under it; the mission line only while the game is new.
-    toast(level.name, 'mega');
-    toast(level.subtitle, 'small');
-    if (level.index < 10) later(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1500);
+    toast(stageTitle(level), 'mega');
+    toast(mapSubtitle(level.id), 'small');
+    if (level.index < 10) later(() => toast(t('stage.mission'), 'small'), 1500);
   }
 
   /** Achievement list: each with its gold, the countable ones with their progress, and the gold still to earn. */
@@ -255,7 +272,7 @@ export function createUI(h) {
     // The save as a run's stats, for the progress counters (stages cleared, stars, streak, bosses).
     const stats = { stage: Math.max(0, save.unlocked - 2), cleared: save.unlocked > 1, totalStars: totalStars(save), streak: save.daily?.streak ?? 0, beaten: save.beaten ?? [] };
     const left = ACHIEVEMENTS.filter((a) => !owned.has(a.id)).reduce((sum, a) => sum + a.gold, 0);
-    setRich($('achv-count'), `${ownedCount(save)} / ${ACHIEVEMENTS.length} · 남은 보상 🪙 ${fmt(left)}`);
+    setRich($('achv-count'), t('achv.count', { have: ownedCount(save), total: ACHIEVEMENTS.length, gold: left }));
     $('achv-list').replaceChildren(...ACHIEVEMENTS.map((a) => {
       const li = document.createElement('li');
       const has = owned.has(a.id);
@@ -264,10 +281,10 @@ export function createUI(h) {
       icon.className = 'icon';
       icon.replaceChildren(emojiSpan({ emoji: a.icon }));
       const name = document.createElement('b');
-      name.textContent = a.name;
+      name.textContent = achievementName(a);
       const desc = document.createElement('small');
       const prog = !has && a.progress ? a.progress(stats) : null;
-      desc.textContent = prog ? `${a.desc} · ${fmt(prog[0])}/${fmt(prog[1])}` : a.desc;
+      desc.textContent = prog ? `${achievementDesc(a)} · ${fmt(prog[0])}/${fmt(prog[1])}` : achievementDesc(a);
       const gold = document.createElement('small');
       gold.className = 'achv-gold';
       setRich(gold, `${has ? '✓' : '+'}${fmt(a.gold)}🪙`);
@@ -283,7 +300,7 @@ export function createUI(h) {
       const c = credits[m.id];
       const li = document.createElement('li');
       const name = document.createElement('b');
-      name.textContent = m.name;
+      name.textContent = mapName(m.id);
       const link = document.createElement('a');
       link.href = c.source;
       link.target = '_blank';
@@ -305,7 +322,7 @@ export function createUI(h) {
     });
     if (!rows.length) {
       const li = document.createElement('li');
-      li.textContent = '사진 정보를 불러오지 못했습니다.';
+      li.textContent = t('credits.failed');
       rows.push(li);
     }
     $('credits-list').replaceChildren(...rows);
@@ -316,7 +333,7 @@ export function createUI(h) {
   function setPhotoCredit(credit) {
     const el = $('photo-credit');
     el.hidden = !credit;
-    if (credit) setRich(el, `📷 ${credit.artist} · ${credit.license}`);
+    if (credit) setRich(el, t('credits.caption', { artist: credit.artist, license: credit.license }));
   }
 
   /** @param {{score:number, balls:number, progress:number, lives:number, charges:{split:number,meteor:number}, ready:boolean, muted:boolean, gold:number}} s */
@@ -459,9 +476,9 @@ export function createUI(h) {
     art.hidden = false;
     art.onerror = () => { art.hidden = true; };
     art.src = artUrl(bossArt(kind));
-    $('boss-card-tag').textContent = mode === 'down' ? 'DEFEATED' : big ? 'WARNING' : 'BOSS';
+    $('boss-card-tag').textContent = mode === 'down' ? t('boss.tagDefeated') : big ? t('boss.tagWarning') : t('boss.tag');
     $('boss-card-name').textContent = name;
-    $('boss-card-stamp').textContent = mode === 'down' ? '격파!' : '';
+    $('boss-card-stamp').textContent = mode === 'down' ? t('boss.ko') : '';
     card.className = `boss-card ${mode}${big ? ' big' : ''}`;
     card.hidden = false;
     void card.offsetWidth; // restart the slide-in
@@ -512,7 +529,7 @@ export function createUI(h) {
     document.querySelectorAll('.fs-btn').forEach((el) => {
       el.hidden = !supported;
       el.setAttribute('aria-pressed', String(on));
-      setRich(el, `⛶ ${on ? '전체 화면 끄기' : '전체 화면'}`);
+      setRich(el, on ? t('title.fullscreenOff') : t('title.fullscreen'));
     });
   }
 
@@ -543,7 +560,7 @@ export function createUI(h) {
   function setVibe(supported, on) {
     const el = $('btn-vibe');
     el.hidden = !supported;
-    setRich(el, on ? '📳 진동 켜짐' : '📴 진동 꺼짐');
+    setRich(el, on ? t('pause.vibeOn') : t('pause.vibeOff'));
   }
 
   /** Boss health bar: name and the core's remaining share (0..1); null hides it. */
@@ -614,9 +631,9 @@ export function createUI(h) {
     if (next) {
       const name = document.createElement('b');
       name.textContent = next.name;
-      nextEl.replaceChildren('NEXT ▶ ', name, next.boss ? ` · ${next.boss}` : '');
+      nextEl.replaceChildren(t('clear.nextLabel'), name, next.boss ? ` · ${next.boss}` : '');
     } else nextEl.replaceChildren();
-    setReward('btn-double-gold', goldOffer, '골드 2배');
+    setReward('btn-double-gold', goldOffer, t('clear.doubleGold'));
     const panel = $('screen-clear');
     const scoreEl = $('clear-score');
     scoreEl.textContent = '0';
@@ -695,23 +712,23 @@ export function createUI(h) {
     const el = $(id);
     el.hidden = !offer;
     el.disabled = false;
-    setRich(el, offer === 'ad' ? `📺 광고 보고 ${label}` : `🎁 ${label}`);
+    setRich(el, offer === 'ad' ? t('reward.ad', { label }) : t('reward.free', { label }));
   }
 
   /** While a rewarded ad loads and plays: the button waits; afterwards it says what happened. */
   function rewardState(id, state, doneLabel = '') {
     const el = $(id);
     el.disabled = state !== 'ready';
-    if (state === 'loading') el.textContent = '광고 불러오는 중…';
+    if (state === 'loading') el.textContent = t('reward.loading');
     if (state === 'done') el.textContent = `✓ ${doneLabel}`;
-    if (state === 'failed') { el.disabled = false; el.textContent = '광고를 불러오지 못했어요 · 다시 시도'; }
+    if (state === 'failed') { el.disabled = false; el.textContent = t('reward.failed'); }
   }
 
   /** Title-screen purchase buttons; hidden where there is no store (web). */
   function setStore({ available, price, adsRemoved }) {
     $('btn-remove-ads').hidden = !available || adsRemoved;
     $('btn-restore').hidden = !available || adsRemoved;
-    setRich($('btn-remove-ads'), `🚫 광고 제거${price ? ` · ${price}` : ''}`);
+    setRich($('btn-remove-ads'), t('store.removeAds') + (price ? ` · ${price}` : ''));
   }
 
   /** Back to the board after a revive. */
@@ -728,15 +745,13 @@ export function createUI(h) {
     playing(false);
     $('over-score').textContent = fmt(score);
     // How close it was: a reason to try again.
-    const share = document.createElement('b');
-    share.textContent = `${progress ?? 0}%`;
-    $('over-progress').replaceChildren('벽돌 ', share, ' 깼어요', ...(extra.best > 0 ? [` · 이 판 최고 ${fmt(extra.best)}점`] : []));
+    setRich($('over-progress'), t('over.progress', { p: progress ?? 0 }) + (extra.best > 0 ? t('over.best', { score: extra.best }) : ''));
     $('over-progress').hidden = progress === null;
     $('over-gold').hidden = extra.gold === undefined;
-    if (extra.gold !== undefined) setRich($('over-gold'), `🪙 +${fmt(extra.gold)} 저장됨 · 보유 ${fmt(extra.total ?? 0)}`);
+    if (extra.gold !== undefined) setRich($('over-gold'), t('over.gold', { gold: extra.gold, total: extra.total ?? 0 }));
     $('over-tip').hidden = !extra.tip;
     if (extra.tip) setRich($('over-tip'), `🎯 ${extra.tip}`);
-    setReward('btn-revive', reviveOffer, '이어하기 ♥+1');
+    setReward('btn-revive', reviveOffer, t('over.revive'));
     show('screen-over');
     replay($('screen-over'), 'drop');
     $('btn-over-retry').classList.add('pulse');
@@ -771,6 +786,7 @@ export function createUI(h) {
     meteorHint,
     layoutOverlays,
     closeSubscreen,
+    relocalize,
     setVibe,
     setPhotoCredit,
     floatAt,

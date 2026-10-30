@@ -132,8 +132,8 @@ export function tint(a, b, t) {
 // photoTint multiplies the background photo (white = as shot).
 const VARIANTS = [
   null,
-  { suffix: ' · 노을', sky: ['#ff8a5c', '#ffc27a'], toward: '#ff7a3c', t: 0.22, photoTint: '#ffb98f' },
-  { suffix: ' · 밤', sky: ['#1c2756', '#2e3c78'], toward: '#0b1238', t: 0.4, photoTint: '#6d7cc4' },
+  { id: 'sunset', suffix: ' · 노을', sky: ['#ff8a5c', '#ffc27a'], toward: '#ff7a3c', t: 0.22, photoTint: '#ffb98f' },
+  { id: 'night', suffix: ' · 밤', sky: ['#1c2756', '#2e3c78'], toward: '#0b1238', t: 0.4, photoTint: '#6d7cc4' },
 ];
 
 // 놀이 세계: numbers, alphabet, Hangul and animals (same shape as WONDERS). Glyphs play on the
@@ -174,6 +174,7 @@ export const PLAY = Object.freeze([
 export const LAP = Object.freeze([...LEVELS, ...WONDERS, ...PLAY]);
 // The map where each later chapter opens (it shows a banner).
 const CHAPTERS = new Map([[LEVELS.length, '경이의 세계'], [LEVELS.length + WONDERS.length, '놀이 세계']]);
+const CHAPTER_IDS = new Map([[LEVELS.length, 'wonders'], [LEVELS.length + WONDERS.length, 'play']]); // keys into the dictionaries (i18n)
 
 /**
  * The k-th regular map (bosses are placed separately, see sequence.js). Each
@@ -184,9 +185,10 @@ const CHAPTERS = new Map([[LEVELS.length, '경이의 세계'], [LEVELS.length + 
 export function landmarkAt(n) {
   const base = LAP[n % LAP.length];
   const chapterName = CHAPTERS.get(n % LAP.length) ?? null; // the first map of a chapter opens it
+  const chapterId = CHAPTER_IDS.get(n % LAP.length) ?? null;
   const chapterStart = chapterName !== null;
   const v = VARIANTS[Math.floor(n / LAP.length) % VARIANTS.length];
-  if (!v || base.theme) return { ...base, photoTint: '#ffffff', chapterStart, chapterName };
+  if (!v || base.theme) return { ...base, photoTint: '#ffffff', chapterStart, chapterName, chapterId, variant: null };
   const palette = base.palette.map((hex, k) => (k < 2 ? tint(hex, v.sky[k], 0.75) : tint(hex, v.toward, v.t)));
-  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint, chapterStart, chapterName };
+  return { ...base, name: base.name + v.suffix, palette, photoTint: v.photoTint, chapterStart, chapterName, chapterId, variant: v.id };
 }
