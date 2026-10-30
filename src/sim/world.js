@@ -1,6 +1,7 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, BALL_SPEED_INSIDE, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W, WALL_EVENTS_MAX,
   PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION, PRE_ENTRY_MAX,
+  REENTRY_ASSIST_AFTER,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
@@ -14,6 +15,7 @@ import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball by (min, max)
+const REENTRY_DRY = 0.5; // seconds without a ball inside before getting back in counts as a re-entry
 
 /**
  * @param {string[]} lines level text
@@ -38,6 +40,8 @@ export function createWorld(lines, opts = {}) {
     dropSpeed: opts.dropSpeed ?? DROP_SPEED, // how fast fruit falls
     aggression: opts.aggression ?? 1, // unit fire-rate and bomb-speed factor
     state: 'ready', // ready | play | clear | over
+    entered: false, // a ball of this serve has been inside the box
+    outsideFor: 0, // seconds the box has had no ball (the opening assist returns after a dry spell)
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
     coins: [], // falling gold coins { x, y }
@@ -95,6 +99,7 @@ export function launch(w, angle) {
   }
   w.state = 'play';
   w.entered = false; // a new serve: the opening assist is back on until a ball gets in
+  w.outsideFor = 0;
   w.events.push({ t: 'launch' });
   return true;
 }
@@ -153,14 +158,18 @@ function bouncePaddle(w, i) {
   const p = w.paddle;
   if (b.vy[i] >= 0 || b.y[i] - BALL_R > PADDLE_TOP || b.y[i] < PADDLE_Y - PADDLE_H) return;
   if (Math.abs(b.x[i] - p.x) > p.w / 2 + BALL_R) return;
-  // Not in yet this serve: each return off the paddle brings a friend (more tries, less dead time).
-  const assist = !w.entered && w.state === 'play' && b.n < PRE_ENTRY_MAX;
+  // Not in yet this serve, or the box has been empty a while: each return off the paddle brings a
+  // friend (more tries, less dead time; the lonely ball after a bounce-out gets the same help).
+  const assist = w.state === 'play' && b.n < PRE_ENTRY_MAX && (!w.entered || w.outsideFor >= REENTRY_ASSIST_AFTER);
   let off = Math.max(-1, Math.min(1, (b.x[i] - p.x) / (p.w / 2)));
   // Never return a ball perfectly vertical: that can loop forever in a cleared column.
   if (Math.abs(off) < 0.08) off = w.rng() < 0.5 ? -0.08 : 0.08;
   aimBall(b, i, off * PADDLE_MAX_ANGLE, Math.hypot(b.vx[i], b.vy[i]));
   b.y[i] = PADDLE_TOP + BALL_R;
-  if (assist && addBall(b, b.x[i], b.y[i], 0, 1)) aimBall(b, b.n - 1, -off * PADDLE_MAX_ANGLE * 0.8 + (w.rng() - 0.5) * 0.3, Math.hypot(b.vx[i], b.vy[i]));
+  if (assist && addBall(b, b.x[i], b.y[i], 0, 1)) {
+    aimBall(b, b.n - 1, -off * PADDLE_MAX_ANGLE * 0.8 + (w.rng() - 0.5) * 0.3, Math.hypot(b.vx[i], b.vy[i]));
+    if (w.events.length < 8000) w.events.push({ t: 'assist', x: b.x[i] });
+  }
   if (w.events.length < 8000) w.events.push({ t: 'paddle', x: b.x[i] });
 }
 
@@ -248,10 +257,11 @@ export function stepWorld(w, dt) {
     updateShells(w, dt);
     updateBoss(w, dt);
     updateGimmick(w, dt);
-    if (!w.entered && ballInside(w)) {
-      w.entered = true;
-      w.events.push({ t: 'enter' });
-    }
+    if (ballInside(w)) {
+      if (!w.entered) { w.entered = true; w.events.push({ t: 'enter' }); }
+      else if (w.outsideFor >= REENTRY_DRY) w.events.push({ t: 'reenter' }); // back in after a dry spell
+      w.outsideFor = 0;
+    } else w.outsideFor += dt;
     w.peakBalls = Math.max(w.peakBalls, w.balls.n);
   }
   const g = w.grid;

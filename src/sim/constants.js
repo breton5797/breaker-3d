@@ -10,6 +10,20 @@ export const MAX_BALLS = 4000;
 // Until the first ball of a serve gets into the box, each paddle bounce adds a
 // ball (up to this many): the opening has more tries instead of dead time.
 export const PRE_ENTRY_MAX = 8;
+// ...and after a ball has been in: once the box has had no ball for this long, the same help comes back.
+export const REENTRY_ASSIST_AFTER = 3;
+// Fruit placed within a few bricks of the holes (the first catch should come early): 3, or 2 on stages 1-5.
+export const NEAR_HOLE_FRUIT = 3;
+export const NEAR_HOLE_FRUIT_EARLY = 2;
+// Coins fall slower than fruit, so a coin and a fruit falling together can both be caught.
+export const COIN_FALL = 0.8;
+// A sweeping boss beam leaves a gap this wide (cells) at a spot named in the warning.
+export const SWEEP_GAP = 12;
+// Fruit beams (finale) drain into the boss at most this share of its health per second: a ramp, not a blink.
+export const BEAM_RATE = 0.2;
+// With this many balls or fewer inside the box, enemy units wait LONE_PACE times longer between volleys.
+export const LONE_BALLS = 2;
+export const LONE_PACE = 1.5;
 // After the boss's shield drops (finale), each caught fruit fires a beam at it:
 // this share of its max health per point of the fruit's ball gain (×7 apple = 10.5%).
 export const BEAM_SHARE = 0.015;

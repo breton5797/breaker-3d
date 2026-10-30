@@ -99,11 +99,16 @@ export function createAudio() {
       }
       burst(0.35, 5000, 0.25);
     },
-    /** Gold coin caught: a bright "ka-ching" (quick rising run plus a shimmer of noise). */
-    coin() {
-      [0, 4, 7, 12].forEach((s, k) => setTimeout(() => tone(note(14 + s), 0.12, 'triangle', 0.13), k * 35));
+    /** Gold coin caught: a bright "ka-ching" (quick rising run plus a shimmer of noise); a chain of coins climbs in pitch. */
+    coin(streak = 0) {
+      const up = Math.min(8, streak);
+      [0, 4, 7, 12].forEach((s, k) => setTimeout(() => tone(note(14 + up + s), 0.12, 'triangle', 0.13), k * 35));
       burst(0.18, 7000, 0.18);
     },
+    /** A coin brick broke and its coin is falling: a small blip (the catch is the loud part). */
+    coinDrop() { tone(1046, 0.07, 'triangle', 0.07, 1318); },
+    /** A ball slips back into the box after a dry spell: a short whoosh. */
+    whoosh() { burst(0.18, 2600, 0.1); tone(320, 0.22, 'sine', 0.1, 1000); },
     achievement() {
       [0, 4, 7, 12].forEach((s, k) => setTimeout(() => { voices = 0; tone(note(12 + s), 0.25, 'sine', 0.14); }, k * 80));
     },

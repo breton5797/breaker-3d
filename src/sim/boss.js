@@ -1,4 +1,4 @@
-import { CELL, COLS, BALL_R } from './constants.js';
+import { CELL, COLS, BALL_R, SWEEP_GAP, BEAM_RATE } from './constants.js';
 import { startFinale } from './cells.js';
 import { stunPaddle } from './units.js';
 
@@ -123,7 +123,8 @@ export function createBoss(spec, grid, rng) {
     plateR: PLATE_R,
     reach,
     attackTimer: spec.attackEvery ?? ATTACK_EVERY,
-    attack: null, // { kind, stage:'warn'|'sweep', t, x, w, dir, hit, beam }
+    beamBank: 0, // fruit-beam damage waiting to land (drained at BEAM_RATE)
+    attack: null, // { kind, stage:'warn'|'sweep', t, x, w, dir, hit, beam, safe }
     rng,
   };
 }
@@ -174,20 +175,39 @@ function move(b, dt) {
 
 /**
  * A caught fruit's beam once the shield is down (finale): it ignores the
- * per-second damage cap, so catching fruit makes the boss fall faster.
- * @returns {number} damage dealt (0 before the finale)
+ * per-second damage cap, so catching fruit makes the boss fall faster. The
+ * damage is banked and lands over the next moments (drainBeam), so a dozen
+ * fruit from the finale's last bricks make a fall the eye can follow, not a blink.
+ * @returns {number} damage banked (0 before the finale)
  */
 export function beamBoss(w, base) {
   const b = w.boss;
   if (!b || !b.alive || !w.finale) return 0;
-  const before = b.hp;
+  b.beamBank += base;
+  w.events.push({ t: 'boss-beam', x: b.x, y: b.y, dmg: base });
+  return base;
+}
+
+/** Lands banked beam damage, at most BEAM_RATE of the boss's health per second, past the damage cap. */
+function drainBeam(w, b, dt) {
+  if (!(b.beamBank > 0)) return;
+  const give = Math.min(b.beamBank, b.hpMax * BEAM_RATE * dt);
+  b.beamBank -= give;
   const budget = b.budget;
   b.budget = Infinity;
-  damageBoss(w, base);
+  damageBoss(w, give);
   b.budget = budget;
-  const dmg = before - b.hp;
-  w.events.push({ t: 'boss-beam', x: b.x, y: b.y, dmg });
-  return dmg;
+}
+
+/** Where a sweeping beam leaves its gap: a short dash from the paddle (never where it already stands), clear of the walls. */
+function sweepGap(w, b) {
+  const half = w.paddle.w / 2;
+  const lo = half + SWEEP_GAP / 2;
+  const hi = COLS - half - SWEEP_GAP / 2;
+  const px = w.paddle.x;
+  const dist = SWEEP_GAP / 2 + b.rng() * (RAIN_REACH - SWEEP_GAP / 2);
+  const right = px + dist <= hi && (px - dist < lo || b.rng() < 0.5);
+  return Math.max(lo, Math.min(hi, right ? px + dist : px - dist));
 }
 
 /**
@@ -323,8 +343,9 @@ function startAttack(w, b) {
   const x = kind === 'stomp' ? b.x : kind === 'sweep' ? (dir > 0 ? 0 : COLS) : w.paddle.x;
   const xs = kind === 'rain' ? rainSpots(w, b, RAIN_DROPS[b.phase - 1], width) : null;
   const from = { x: b.x, y: b.y };
-  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, xs, w: width, dir, hit: false, beam: x, from };
-  w.events.push({ t: 'boss-warn', kind, x, xs, w: width, dir, dur: WARN_TIME, from });
+  const safe = kind === 'sweep' ? sweepGap(w, b) : undefined; // the beam skips this spot: every attack can be dodged
+  b.attack = { kind, stage: 'warn', t: WARN_TIME, x, xs, w: width, dir, hit: false, beam: x, from, safe };
+  w.events.push({ t: 'boss-warn', kind, x, xs, w: width, dir, dur: WARN_TIME, from, safe });
 }
 
 function runAttack(w, b, dt) {
@@ -341,10 +362,10 @@ function runAttack(w, b, dt) {
     a.stage = 'sweep';
     a.t = SWEEP_TIME;
   }
-  // The beam crosses the paddle row from one side to the other.
+  // The beam crosses the paddle row from one side to the other, skipping the gap.
   const u = 1 - Math.max(0, a.t) / SWEEP_TIME;
   a.beam = a.dir > 0 ? u * COLS : COLS - u * COLS;
-  if (paddleIn(w, a.beam, 1)) hitPaddle(w, a);
+  if (paddleIn(w, a.beam, 1) && Math.abs(w.paddle.x - a.safe) > SWEEP_GAP / 2) hitPaddle(w, a);
   if (a.t <= 0) b.attack = null;
 }
 
@@ -352,6 +373,8 @@ function runAttack(w, b, dt) {
 export function updateBoss(w, dt) {
   const b = w.boss;
   if (!b || !b.alive) return;
+  if (w.state === 'play') drainBeam(w, b, dt); // banked fruit beams keep landing, stunned or not
+  if (!b.alive) return;
   if (b.stun > 0) {
     // Reeling: it stays where the blow caught it until it shakes it off.
     b.stun = Math.max(0, b.stun - dt);

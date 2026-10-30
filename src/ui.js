@@ -196,9 +196,10 @@ export function createUI(h) {
     no.textContent = `STAGE ${level.index + 1}`;
     $('stage-name').replaceChildren(no, document.createTextNode(level.name));
     lastBalls = 0;
+    // One card: the name with its subtitle right under it; the mission line only while the game is new.
     toast(level.name, 'mega');
-    later(() => toast(level.subtitle, 'small'), 250);
-    later(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1300);
+    toast(level.subtitle, 'small');
+    if (level.index < 10) later(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1500);
   }
 
   /** Achievement collection: unlocked first in list order, locked ones greyed out. */

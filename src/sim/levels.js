@@ -1,4 +1,4 @@
-import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
+import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS, NEAR_HOLE_FRUIT, NEAR_HOLE_FRUIT_EARLY } from './constants.js';
 
 import { LEVELS, landmarkAt, bossAt, toLines, BOSS_PREFIX } from './maps.js';
 import { MAP_BOSSES, mapBossSpec } from './mapBosses.js';
@@ -118,12 +118,33 @@ const pickItem = (rng, bigShare) => pickWeighted(rng, rng() < bigShare ? BIG_ITE
 
 /**
  * Turns pass-through gates into item bricks and scatters extra items, so balls
- * multiply only when the player catches what falls out.
+ * multiply only when the player catches what falls out. The first `near.count`
+ * go into the zones around the holes (one per hole in turn): the first catch must
+ * not be a long dig away (the audit found that dig decides the whole difficulty).
+ * @param {{ count:number, zones:{x0:number,x1:number,y0:number,y1:number}[][] }} [near] per hole, its zones from tight to wide
  */
-function seedItems(lines, count, bigShare, seed) {
+function seedItems(lines, count, bigShare, seed, near = { count: 0, zones: [] }) {
   const rng = mulberry32(seed);
   const g = lines.map((l) => [...l].map((ch) => GATE_TO_ITEM[ch] ?? ch));
   let placed = 0;
+  // The plain bricks around each hole: the tightest zone with a handful of them, else the widest
+  // (a corner hole next to bare floor reaches up to the mural's edge; a hole with no bricks anywhere near skips its turn).
+  const hosts = (ch) => isPlainBrick(ch) || ch === 'H'; // the thick outline next to a hole may be all there is
+  const bricksIn = (z) => {
+    const cells = [];
+    for (let y = z.y0; y <= z.y1; y++) for (let x = z.x0; x <= z.x1; x++) if (hosts(g[y]?.[x])) cells.push([x, y]);
+    return cells;
+  };
+  let pools = near.zones.map((zones) => zones.map(bricksIn).find((cells, i, all) => cells.length >= NEAR_MIN_BRICKS || i === all.length - 1) ?? []);
+  for (let k = 0; placed < Math.min(count, near.count) && pools.some((pool) => pool.length); k++) {
+    const pool = pools[k % pools.length];
+    if (!pool.length) continue;
+    const j = Math.floor(rng() * pool.length);
+    const [x, y] = pool[j];
+    g[y][x] = pickItem(rng, bigShare);
+    placed++;
+    pools = pools.map((cells, i) => (i === k % pools.length ? cells.filter((_, m) => m !== j) : cells));
+  }
   for (let tries = 0; placed < count && tries < 5000; tries++) {
     const x = Math.floor(rng() * g[0].length);
     const y = Math.floor(rng() * g.length);
@@ -207,6 +228,9 @@ export const SLOTS = [
   { slot: 'tr', side: 'tr', odds: [2.87, 0.37] },
 ];
 const CEILING_SIDES = new Set(['top', 'tl', 'tr']); // slots only a ball up a side lane can reach
+const LOW_SIDE = new Set(['left-lo', 'right-lo']); // the two hardest side spots: never for a lone hole (v38)
+const SIDES = new Set(['left', 'right']);
+const FLOOR_EVERY = 3; // lone-hole stages: every third one takes a floor/corner spot (never three side stages in a row)
 const FLOOR_UNTIL = 10; // before this stage one hole is always in the floor
 const HARDEST_AT = 199; // from this stage on the hardest hole spots are used
 const SPREAD = 0.04; // share of the ranking around the stage's spot to pick from (variety)
@@ -234,6 +258,10 @@ function pickSlots(n, count, size, noCeiling = false) {
     // The side lanes are only 1-2 cells, so the ceiling side is reached by a random bounce
     // at best (lane-odds.mjs: 6-9x harder, never aimable): no holes up there.
     .filter((set) => set.every((s) => !CEILING_SIDES.has(s.side)))
+    // A lone hole on the side is reached a third to a sixth as often as one in the floor even when aimed
+    // (lane-odds.mjs), so its two lowest spots are out, and every third such stage goes to the floor or a corner.
+    .filter((set) => count > 1 || set.every((s) => !LOW_SIDE.has(s.slot)))
+    .filter((set) => count > 1 || n % FLOOR_EVERY !== FLOOR_EVERY - 1 || set.every((s) => !SIDES.has(s.side)))
     .map((set) => ({ set, odds: odds(set) }))
     .sort((a, b) => b.odds - a.odds);
   const at = Math.round(Math.min(1, n / HARDEST_AT) * (sets.length - 1));
@@ -312,6 +340,27 @@ export function thicken(lines) {
   }).join(''));
 }
 
+// Coarse cells within reach of a hole, where the first fruit go: this many bricks sideways and
+// up or down from the hole's own cells (a side hole opens onto bricks both ways; below a floor hole is the lobby).
+const NEAR_X = 6;
+const NEAR_Y = 7;
+const NEAR_HOLE_STAGES = 5; // stages 1-5 get the smaller guarantee (NEAR_HOLE_FRUIT_EARLY)
+const NEAR_MIN_BRICKS = 8; // a zone with fewer plain bricks than this is widened
+
+/**
+ * @returns {{x0:number,x1:number,y0:number,y1:number}[]} the coarse zones around a hole, tight first and
+ *   then wider (seedItems takes the first with enough bricks: a corner hole may open onto bare floor)
+ */
+function holeZones(hole, box, width, height) {
+  const cs = hole.cells.map(([c]) => Math.floor((c - box.left - 1) / SCALE));
+  const rs = hole.cells.map(([, r]) => Math.floor((box.top - 1 - r) / SCALE));
+  const cx = (x) => Math.max(0, Math.min(width - 1, x));
+  const cy = (y) => Math.max(0, Math.min(height - 1, y));
+  return [1, 2, 3].map((k) => ({
+    x0: cx(Math.min(...cs) - NEAR_X * k), x1: cx(Math.max(...cs) + NEAR_X * k), y0: cy(Math.min(...rs) - NEAR_Y * k), y1: cy(Math.max(...rs) + NEAR_Y * k),
+  }));
+}
+
 /** Clears the bottom coarse rows (a lobby along the floor) and every hole pocket. */
 function carveOpenings(coarse, holes) {
   const lobby = Math.ceil((CAVITY + 1) / SCALE) + 1;
@@ -357,8 +406,9 @@ export const levelName = (i) => {
 /** Boss toughness and attack strength rise with the stage. */
 const bossSpec = (kind, n) => ({
   kind,
-  hp: 140 + Math.floor(n * 1.5),
-  dps: 6 + Math.floor(n / 30), // damage per second it can take: fights last ~25 s however big the swarm
+  // A climax, not the easiest stage of the ten (v38): tougher, and quicker to hurt so the fight lasts ~35 s.
+  hp: 200 + Math.floor(n * 2),
+  dps: 7 + Math.floor(n / 25), // damage per second it can take, however big the swarm
   tier: Math.min(10, 2 + Math.floor(n / 25)), // stun (and later lethal) strength of its attacks
 });
 
@@ -378,7 +428,8 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
   // Every other mural keeps the owner's fruit count as it is.
   const plain = coarse.join('').split('').filter(isPlainBrick).length;
   const items = map.mosaic ? Math.round(p.items * Math.max(1, plain / FRUIT_PER_BRICKS)) : p.items;
-  const fed = seedCoins(seedItems(coarse, items, p.bigItemShare, n + 101), p.coins, n + 401);
+  const near = { count: n < NEAR_HOLE_STAGES ? NEAR_HOLE_FRUIT_EARLY : NEAR_HOLE_FRUIT, zones: holes.map((h) => holeZones(h, box, coarse[0].length, coarse.length)) };
+  const fed = seedCoins(seedItems(coarse, items, p.bigItemShare, n + 101, near), p.coins, n + 401);
   // A boss does the shooting itself, so its stage has no enemy units.
   const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
   const lines = frame(upscale(seeded), box, holes);

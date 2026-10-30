@@ -30,7 +30,7 @@ export function stageParams(i) {
   return {
     holeCount: HOLE_STEPS.find(([upTo]) => n < upTo)?.[1] ?? 1,
     holeSize: 1, // fine cells: one ball fits
-    brickHp: Math.min(3, 1 + Math.floor(2.5 * Math.pow(d, 1.2))),
+    brickHp: Math.min(2, 1 + Math.floor(1.8 * d * d)), // 2 from about stage 150, never 3: hp 2 at 94 doubled the lonely ball's dig (v38)
     items: Math.round(lerp(16, 11, d)), // fruit per stage
     coins: Math.round(lerp(60, 40, d)), // gold coin bricks per stage
     bigItemShare: lerp(0.6, 0.3, d), // chance an item is x20 or more

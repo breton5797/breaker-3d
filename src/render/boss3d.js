@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PADDLE_Y, COLS } from '../sim/constants.js';
+import { PADDLE_Y, COLS, SWEEP_GAP } from '../sim/constants.js';
 import { toWorldX, toWorldY } from './stage.js';
 import { ART } from '../art.js';
 import { paintedTexture } from './art.js';
@@ -343,8 +343,7 @@ export function createBoss3d(scene) {
           d.rotation.set(u * 7 + k, u * 4, 0);
         });
       } else if (a.kind === 'sweep') {
-        zone.scale.set(COLS, 1, 1);
-        zone.position.set(0, py, 0.15);
+        sweepZones(a, py);
       } else {
         // A lane rising from the paddle row: where the blow will land.
         zone.scale.set(Math.max(2, a.w), LANE_ROWS / 1.6, 1);
@@ -358,12 +357,27 @@ export function createBoss3d(scene) {
         rockMesh.rotation.set(u * 9, u * 5, 0);
       }
     } else if (a.stage === 'sweep') {
-      // A beam from the saucer down to the paddle row, crossing it.
+      // A beam from the saucer down to the paddle row, crossing it; it skips the gap (the red row keeps showing it).
       const top = boss.y;
-      beam.visible = true;
+      zone.material.opacity = 0.3;
+      sweepZones(a, py);
+      beam.visible = Math.abs(a.beam - a.safe) > SWEEP_GAP / 2;
       beam.scale.set(1, top - PADDLE_Y, 1);
       beam.position.set(toWorldX(a.beam), toWorldY((top + PADDLE_Y) / 2), 1.2);
     }
+  }
+
+  /** The sweep's warning: the whole paddle row in red except the gap the player can stand in. */
+  function sweepZones(a, py) {
+    const gapL = a.safe - SWEEP_GAP / 2;
+    const gapR = a.safe + SWEEP_GAP / 2;
+    zone.visible = gapL > 0;
+    zone.scale.set(Math.max(0.01, gapL), 1, 1);
+    zone.position.set(toWorldX(gapL / 2), py, 0.15);
+    const z = rainZones[0]; // spare zone (rain is not running during a sweep); it shares zone's material
+    z.visible = gapR < COLS;
+    z.scale.set(Math.max(0.01, COLS - gapR), 1, 1);
+    z.position.set(toWorldX((gapR + COLS) / 2), py, 0.15);
   }
 
   /** The sim's strike landed: a tentacle slam or a dive is drawn here (rocks and stomps use fx). */

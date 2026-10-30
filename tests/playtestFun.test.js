@@ -4,6 +4,7 @@ import { stageSlot } from '../src/sim/sequence.js';
 import { createWorld, stepWorld, drainEvents, launch } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
 import { multiplyBalls, updateDrops } from '../src/sim/items.js';
+import { updateBoss } from '../src/sim/boss.js';
 import { mapBossSpec } from '../src/sim/mapBosses.js';
 import { STUN_SHRINK, PADDLE_Y, PADDLE_H, BALL_R, PRE_ENTRY_MAX, BEAM_SHARE, LAUNCH_BALLS } from '../src/sim/constants.js';
 
@@ -127,6 +128,7 @@ describe('fruit after the shield is down: a beam at the boss', () => {
     const { gain } = ev.find((e) => e.t === 'collect');
     expect(beam).toBeTruthy();
     expect(beam.dmg).toBeGreaterThan(0);
+    updateBoss(w, 1); // the beam's damage lands over the next moments (v38: a ramp, not a blink)
     expect(w.boss.hp).toBeCloseTo(Math.max(0, hp - beam.dmg));
     expect(beam.dmg).toBe(Math.max(1, Math.round(w.boss.hpMax * BEAM_SHARE * gain)));
   });
