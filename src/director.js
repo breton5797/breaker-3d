@@ -29,7 +29,7 @@ const STEEL_HEX = 0x6c7a96;
  * Turns sim events into visuals, sound and pacing (slow-mo). Holds only
  * presentation state; never touches the sim.
  */
-export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d }) {
+export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d, canAfford = () => true }) {
   const pacing = createPacing();
   const timers = createTimers(); // delayed effects of this stage, called off on reset
   let ballMark = 0;
@@ -396,8 +396,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     if (booms >= 8) stage.shake(1.2);
     if (!hinted && w.state === 'play' && !w.entered && w.time - serveAt > HINT_AFTER) {
       hinted = true; // once a stage is enough
-      ui.meteorHint(true);
-      ui.toast(`☄ 메테오(🪙${SKILL_PRICES.meteor})로 한 번에 넣어 보세요!`, 'small');
+      if (canAfford(SKILL_PRICES.meteor)) {
+        ui.meteorHint(true);
+        ui.toast(`☄ 메테오(🪙${SKILL_PRICES.meteor})로 한 번에 넣어 보세요!`, 'small');
+      } else ui.toast('🪙 코인 벽돌을 깨면 동전이 떨어져요 · 모아서 메테오를 사요', 'small'); // a button it cannot afford would just blink
     }
     const now = performance.now();
     if (dmgBank > 0 && w.boss && now - dmgAt > DMG_EVERY) {

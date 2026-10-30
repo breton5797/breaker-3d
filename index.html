@@ -123,6 +123,7 @@
         <button id="btn-full" class="ghost fs-btn" aria-pressed="false" hidden><span aria-hidden="true">⛶</span> 전체 화면</button>
         <div id="stage-grid" class="stage-grid"></div>
         <button id="btn-achv" class="ghost achv-btn"></button>
+        <button id="btn-collection" class="ghost achv-btn"></button>
         <button id="btn-remove-ads" class="ghost store-btn" hidden></button>
         <button id="btn-restore" class="link store-btn" hidden>구매 복원</button>
         <button id="btn-credits" class="link credits-link">📷 사진 출처</button>
@@ -143,6 +144,7 @@
       <div id="screen-clear" class="panel" hidden>
         <p class="eyebrow clear-title">STAGE CLEAR</p>
         <div id="stars" class="stars"></div>
+        <p id="clear-meta" class="clear-meta" hidden></p>
         <p id="clear-best" class="new-best" hidden>NEW BEST!</p>
         <h2 id="clear-score" class="big-score"></h2>
         <dl id="clear-stats" class="stats"></dl>
@@ -160,6 +162,8 @@
         <p class="eyebrow danger">GAME OVER</p>
         <h2 id="over-score" class="big-score"></h2>
         <p id="over-progress" class="over-progress"></p>
+        <p id="over-gold" class="over-gold" hidden></p>
+        <p id="over-tip" class="over-tip" hidden></p>
         <button id="btn-revive" class="primary reward-btn" hidden></button>
         <div class="row">
           <button id="btn-over-menu" class="ghost">메뉴</button>
@@ -181,6 +185,18 @@
         <p class="credits-note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.</p>
         <ul id="credits-list" class="credits-list"></ul>
         <button id="btn-credits-back" class="primary">돌아가기</button>
+      </div>
+
+      <div id="screen-collection" class="panel" hidden>
+        <button id="btn-collection-close" class="close-x" aria-label="닫기">✕</button>
+        <p class="eyebrow">COLLECTION</p>
+        <div class="tabs" role="tablist">
+          <button id="collection-tab-boss" class="tab on" role="tab"></button>
+          <button id="collection-tab-travel" class="tab" role="tab"></button>
+        </div>
+        <ul id="collection-chapters" class="chapter-bars"></ul>
+        <ul id="collection-list" class="dex-grid"></ul>
+        <button id="btn-collection-back" class="primary">돌아가기</button>
       </div>
 
       <div id="screen-pause" class="panel" hidden>

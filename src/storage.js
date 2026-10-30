@@ -1,11 +1,11 @@
-import { LOADOUT } from './meta.js';
+import { LOADOUT, dayNumber, today } from './meta.js';
 import { BOSS_KINDS } from './sim/boss.js';
 import { MAP_BOSSES } from './sim/mapBosses.js';
 
 const KEY = 'breaker3d.v1';
 const EMPTY = Object.freeze({
   unlocked: 1, best: {}, muted: false, vibrate: true, adsRemoved: false, achievements: [], gold: 0,
-  stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [],
+  stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [], beatenAt: {},
 });
 const ACHIEVEMENT_ID = /^[a-z0-9_]{1,40}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -19,19 +19,27 @@ function metaFields(raw) {
     for (const [k, v] of Object.entries(raw.stars)) if (/^\d+$/.test(k) && isInt(v, 1, 3)) stars[k] = v;
   }
   const d = raw.daily;
-  const daily = d && typeof d.last === 'string' && DATE.test(d.last) && isInt(d.streak, 1, 3650)
+  // A last date more than a day ahead of today came from a clock that was set wrong: kept, it would
+  // lock the daily bonus until that date comes round. A day ahead is a time zone, and stays.
+  const future = (iso) => dayNumber(iso) > dayNumber(today()) + 1;
+  const daily = d && typeof d.last === 'string' && DATE.test(d.last) && isInt(d.streak, 1, 3650) && !future(d.last)
     ? { last: d.last, streak: d.streak } : { last: '', streak: 0 };
   const charge = (kind) => {
     const v = raw.loadout?.[kind];
     return Number.isInteger(v) ? Math.max(0, Math.min(LOADOUT[kind].max, v)) : 0;
   };
   const beaten = Array.isArray(raw.beaten) ? [...new Set(raw.beaten.filter((k) => typeof k === 'string' && BOSS_IDS.has(k)))] : [];
+  const beatenAt = {};
+  if (raw.beatenAt && typeof raw.beatenAt === 'object') {
+    for (const [k, v] of Object.entries(raw.beatenAt)) if (BOSS_IDS.has(k) && isInt(v, 0, 1e6)) beatenAt[k] = v;
+  }
   return {
     stars,
     chests: isInt(raw.chests, 0, 1e6) ? raw.chests : 0,
     daily,
     loadout: { split: charge('split'), meteor: charge('meteor') },
     beaten,
+    beatenAt,
   };
 }
 
@@ -59,12 +67,16 @@ export function loadSave() {
   }
 }
 
-/** Persists progress; storage can be unavailable (private mode), which is fine. */
+/**
+ * Persists progress; storage can be unavailable (private mode, full), which is fine.
+ * @returns {boolean} whether it was saved (the game tells the player once when it was not)
+ */
 export function writeSave(save) {
   try {
     localStorage.setItem(KEY, JSON.stringify(save));
+    return true;
   } catch {
-    // ignore: progress just won't persist
+    return false; // progress just won't persist
   }
 }
 
