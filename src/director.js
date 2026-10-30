@@ -215,7 +215,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           stage.shake(0.6);
           stage.kick(0, 0, -1.5);
           haptics.play('skill');
-          ui.toast(e.name === 'split' ? '전체 ×3 분열!' : '메테오!', 'mega');
+          ui.toast(e.name === 'split' ? `전체 ×${e.mult ?? 3} 분열!` : '메테오!', 'mega');
           break;
         case 'lost':
           audio.lost();

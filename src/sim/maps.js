@@ -74,7 +74,9 @@ export const LEVELS = Object.freeze([
 
 // Bosses take turns on every 10th stage (sequence.js): a moving creature (boss.js) over
 // its arena (landmarks/bosses.js). No photo: they fight on the bare table.
-const boss = (id, name, subtitle, build, palette) => Object.freeze({ ...map(id, `BOSS · ${name}`, subtitle, build, palette), photo: null });
+/** Big-boss stage names and every stage's bossName start with this; the cards strip it (main.js). */
+export const BOSS_PREFIX = 'BOSS · ';
+const boss = (id, name, subtitle, build, palette) => Object.freeze({ ...map(id, `${BOSS_PREFIX}${name}`, subtitle, build, palette), photo: null });
 
 export const BOSSES = Object.freeze([
   boss('colossus', '석상 거인', '모래 속에서 깨어난 고대의 수호자', colossus,

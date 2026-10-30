@@ -76,6 +76,8 @@ export function createUI(h) {
   }
 
   const bind = (id, fn) => $(id).addEventListener('click', (e) => { e.stopPropagation(); fn(); });
+  // Delayed UI bits belong to the stage (main.js cancels them when it is left); plain setTimeout without a host.
+  const later = h.later ?? ((fn, ms) => setTimeout(fn, ms));
   bind('btn-next', h.onNext);
   bind('btn-retry', h.onRetry);
   bind('btn-over-retry', h.onRetry);
@@ -87,8 +89,10 @@ export function createUI(h) {
   [2, 3, 4, 5].forEach((m) => bind(`pick-split-${m}`, () => h.onPickSplit(m)));
   bind('pick-close', h.onClosePicker);
   bind('btn-achv-back', h.onMenu);
+  bind('btn-achv-close', h.onMenu);
   bind('btn-credits', h.onCredits);
   bind('btn-credits-back', h.onMenu);
+  bind('btn-credits-close', h.onMenu);
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('btn-vibe', h.onVibe);
@@ -149,9 +153,6 @@ export function createUI(h) {
       b.addEventListener('click', (e) => { e.stopPropagation(); h.onPlay(i); });
       grid.append(b);
     }
-    // Keep the newest unlocked stage in view inside the scrolling grid.
-    const current = grid.children[save.unlocked - 1];
-    if (current) grid.scrollTop = current.offsetTop - grid.offsetTop - grid.clientHeight / 2;
     const next = save.unlocked - 1;
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
@@ -162,6 +163,13 @@ export function createUI(h) {
     goals.textContent = toBoss === 0 ? '다음 판이 대형 보스!' : `다음 대형 보스까지 ${toBoss}판`;
     $('title-goals').replaceChildren(goals);
     show('screen-title');
+    // Back from a stage the panel may still be scrolled; and the grid can only be scrolled once it is
+    // visible (a hidden element has no size), so the newest unlocked stage is brought into view next frame.
+    $('screen-title').scrollTop = 0;
+    requestAnimationFrame(() => {
+      const current = grid.children[save.unlocked - 1];
+      if (current) grid.scrollTop = current.offsetTop - grid.offsetTop - grid.clientHeight / 2;
+    });
   }
 
   /**
@@ -189,8 +197,8 @@ export function createUI(h) {
     $('stage-name').replaceChildren(no, document.createTextNode(level.name));
     lastBalls = 0;
     toast(level.name, 'mega');
-    setTimeout(() => toast(level.subtitle, 'small'), 250);
-    setTimeout(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1300);
+    later(() => toast(level.subtitle, 'small'), 250);
+    later(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1300);
   }
 
   /** Achievement collection: unlocked first in list order, locked ones greyed out. */
@@ -311,30 +319,56 @@ export function createUI(h) {
     if (critical) el.classList.add('critical');
     $('toasts').append(el);
     setTimeout(() => el.remove(), critical ? 2000 : 1400);
-    // At most TOAST_MAX at once, so the board stays visible: the oldest ordinary one goes first.
-    while ($('toasts').children.length > TOAST_MAX) {
+    // At most TOAST_MAX at once (one in a short lane), so the board stays visible: the oldest ordinary one goes first.
+    const max = $('toasts').classList.contains('one') ? 1 : TOAST_MAX;
+    while ($('toasts').children.length > max) {
       const all = [...$('toasts').children];
       (all.find((t) => !t.classList.contains('critical')) ?? all[0]).remove();
     }
   }
 
   /**
-   * Puts the toasts in the empty band between the HUD (and boss bar) and the top
-   * of the board, and keeps the boss bar off the board on wide screens.
+   * Puts the toasts in the empty band between the HUD (and boss bar) and the top of the
+   * board. Where that band is too small (wide screens fill the height with the board) they
+   * go to the lane between the box floor and the paddle instead; when there is no room above
+   * the board at all (a phone on its side) the boss bar moves down to that lane too.
    * @param {number} boardTop screen y of the board's top edge (px)
-   * @param {number} lowY screen y of the open lane above the paddle (px): the fallback spot
+   * @param {number} boxBottom screen y of the box floor (px)
+   * @param {number} paddleTop screen y of the paddle's top (px)
    */
-  function layoutOverlays(boardTop, lowY) {
+  function layoutOverlays(boardTop, boxBottom, paddleTop) {
     const hud = $('hud').getBoundingClientRect().bottom;
     const bar = $('boss-bar');
-    const barH = bar.offsetHeight || 34;
+    const toasts = $('toasts');
+    const compact = boardTop - hud < (bar.offsetHeight || 34) + 12;
+    bar.classList.toggle('lane', compact);
+    toasts.classList.toggle('one', compact); // one toast at a time: the lane is short
+    const barH = bar.offsetHeight || 34; // measured after the class change (the lane bar is smaller)
+    const laneTop = boxBottom + 10;
+    if (compact) {
+      // The bar hugs the paddle; the toasts take the rest of the lane above it.
+      const barAt = Math.max(laneTop, paddleTop - barH - 6);
+      bar.style.top = `${barAt}px`;
+      toasts.style.top = `${laneTop}px`;
+      toasts.style.setProperty('--band', `${Math.max(36, barAt - laneTop)}px`);
+      return;
+    }
     // The bar sits just above the board when there is room, never under the HUD.
     const barTop = Math.max(hud + 4, Math.min(hud + 52, boardTop - barH - 6));
     bar.style.top = `${barTop}px`;
-    // Phones have a band above the board; wide screens fill the height with the board,
-    // so there the toasts go to the open lane above the paddle instead of over the boss.
     const band = boardTop - (barTop + barH + 6);
-    $('toasts').style.top = `${band >= TOAST_BAND * 0.7 ? Math.max(barTop + barH + 6, boardTop - TOAST_BAND) : lowY - TOAST_BAND}px`;
+    const above = band >= TOAST_BAND * 0.7;
+    const top = above ? Math.max(barTop + barH + 10, boardTop - TOAST_BAND) : laneTop; // +10: the exit drift (8px) stays clear of the bar
+    toasts.style.top = `${top}px`;
+    // The toasts shrink to the room they have (style.css reads --band).
+    toasts.style.setProperty('--band', `${Math.max(36, above ? boardTop - top : paddleTop - 6 - top)}px`);
+  }
+
+  /** Leaves the achievements or credits list for the title (Esc / back). @returns {boolean} whether one was open */
+  function closeSubscreen() {
+    if ($('screen-achv').hidden && $('screen-credits').hidden) return false;
+    h.onMenu();
+    return true;
   }
 
   /** Bounces the HUD gold counter (a coin was just banked). */
@@ -513,7 +547,11 @@ export function createUI(h) {
   function showClear({ score, stars, stats, hasNext, goldOffer = null, newBest = false, bonus = [], next = null }) {
     playing(false);
     $('clear-best').hidden = !newBest;
-    $('clear-bonus').replaceChildren(...bonus.map((line) => Object.assign(document.createElement('li'), { textContent: line })));
+    $('clear-bonus').replaceChildren(...bonus.map((line) => {
+      const li = document.createElement('li');
+      setRich(li, line); // the coin and calendar as the game's icons, not the OS emoji
+      return li;
+    }));
     const nextEl = $('clear-next');
     if (next) {
       const name = document.createElement('b');
@@ -534,7 +572,7 @@ export function createUI(h) {
       const dt = document.createElement('dt');
       dt.textContent = k;
       const dd = document.createElement('dd');
-      dd.textContent = v;
+      setRich(dd, v);
       return [dt, dd];
     });
     $('clear-stats').replaceChildren(...rows.flat());
@@ -665,6 +703,7 @@ export function createUI(h) {
     screenFlash,
     meteorHint,
     layoutOverlays,
+    closeSubscreen,
     setVibe,
     setPhotoCredit,
     floatAt,

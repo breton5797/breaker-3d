@@ -3,7 +3,7 @@ import { BALL_R, MAX_BALLS, COLS, ROWS } from '../sim/constants.js';
 
 const WHITE = new THREE.Color(1, 1, 1);
 const FIRE = new THREE.Color(1, 0.45, 0.08);
-const BALL_DRAW = 1.8 * 1.2; // drawn radius / hitbox radius: larger than the hitbox so it reads on phones, +20% (owner)
+export const BALL_DRAW = 1.8 * 1.2; // drawn radius / hitbox radius: larger than the hitbox so it reads on phones, +20% (owner)
 
 /** Instanced shaded balls fed straight from the sim's typed arrays. */
 export function createBalls3d(scene) {

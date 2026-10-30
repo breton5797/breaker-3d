@@ -139,7 +139,7 @@ export function useSkill(w, name, mult = 3) {
     w.state = 'play';
   }
   w.charges = { ...w.charges, [name]: w.charges[name] - 1 };
-  w.events.push({ t: 'skill', name });
+  w.events.push({ t: 'skill', name, mult: name === 'split' ? mult : undefined });
   return true;
 }
 

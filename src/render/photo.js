@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { toWorldX, toWorldY } from './stage.js';
+import { lruTouch } from './bossFit.js';
 
 const BASE = import.meta.env.BASE_URL;
 const DIM = 0.7; // keep the photo darker than the (vivid) bricks so they stand out
@@ -20,7 +21,9 @@ export function createPhoto(scene) {
   mesh.visible = false;
   scene.add(mesh);
   const loader = new THREE.TextureLoader();
-  const cache = new Map();
+  const cache = new Map(); // photo id -> texture, for the last KEEP stages only (each is 1-2 MB of GPU memory)
+  const KEEP = 3;
+  let recent = [];
   let want = null;
 
   /** Crops the texture to cover a w x h area without stretching. */
@@ -44,6 +47,9 @@ export function createPhoto(scene) {
     const tinted = level.photoTint && level.photoTint.toLowerCase() !== '#ffffff';
     mat.color.set(level.photoTint ?? '#ffffff').multiplyScalar(tinted ? DIM_TINTED : DIM);
     const id = want;
+    const touched = lruTouch(recent, id, KEEP);
+    recent = touched.list;
+    for (const old of touched.evicted) { cache.get(old)?.dispose(); cache.delete(old); }
     const show = (tex) => {
       if (want !== id) return; // the player already moved on to another stage
       cover(tex, w, h);
@@ -54,6 +60,7 @@ export function createPhoto(scene) {
     if (cache.has(id)) { show(cache.get(id)); return; }
     loader.load(`${BASE}landmarks/${id}.jpg`, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
+      if (!recent.includes(id)) { tex.dispose(); return; } // too slow: the player is stages ahead by now
       cache.set(id, tex);
       show(tex);
     });

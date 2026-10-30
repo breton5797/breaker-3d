@@ -25,6 +25,7 @@
     <meta property="og:locale" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
     <style>
+      html, body { background: #06080f; }
       /* Shown until the game's code has loaded and drawn its first frame. */
       #splash { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #06080f; color: #9fb4ff;
         font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 0.2em; transition: opacity 0.4s; }
@@ -38,7 +39,9 @@
     </style>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070f'/%3E%3Crect x='5' y='6' width='10' height='6' rx='1' fill='%23ff5c8a'/%3E%3Crect x='17' y='6' width='10' height='6' rx='1' fill='%236c8cff'/%3E%3Ccircle cx='16' cy='19' r='3' fill='%23fff'/%3E%3Crect x='9' y='25' width='14' height='3' rx='1.5' fill='%2339e6ff'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    <!-- The web font loads without blocking the first paint (system font until then); readers without JavaScript get the plain link. -->
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" /></noscript>
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/neon.css" />
   </head>
@@ -124,7 +127,8 @@
         <button id="btn-restore" class="link store-btn" hidden>구매 복원</button>
         <button id="btn-credits" class="link credits-link">📷 사진 출처</button>
         <ul class="legend">
-          <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>          <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 상자의 작은 구멍(아래·옆·위·모서리)으로 진입</li>
+          <li><b class="chip c-fruit">🍒🍓🍊🍎🍉🍍</b> 과일을 받으면 공이 불어나요 (오른쪽일수록 많이)</li>
+          <li><b class="chip c-gate">▮ 구멍 ▮</b> 강철 상자의 작은 구멍(아래·옆·모서리)으로 진입</li>
           <li><b class="chip c-unit">Lv.1~10</b> 벽 속 적 유닛: 폭탄 투하 (피하라!)</li>
           <li><b class="chip c-bomb">●</b> 연쇄 폭발</li>
           <li><b class="chip c-laser">⟷ ↕</b> 한 줄 레이저</li>
@@ -164,6 +168,7 @@
       </div>
 
       <div id="screen-achv" class="panel" hidden>
+        <button id="btn-achv-close" class="close-x" aria-label="닫기">✕</button>
         <p class="eyebrow">ACHIEVEMENTS</p>
         <h2 id="achv-count" class="achv-count"></h2>
         <ul id="achv-list" class="achv-list"></ul>
@@ -171,6 +176,7 @@
       </div>
 
       <div id="screen-credits" class="panel" hidden>
+        <button id="btn-credits-close" class="close-x" aria-label="닫기">✕</button>
         <p class="eyebrow">PHOTO CREDITS</p>
         <p class="credits-note">배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.</p>
         <ul id="credits-list" class="credits-list"></ul>

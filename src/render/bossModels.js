@@ -6,7 +6,8 @@ import { fitScale, lruTouch } from './bossFit.js';
 // copies: turned to face the camera, centred, sized to the boss, and repainted
 // matte (no metal shine, no lit maps) so they sit with the rest of the board.
 // The loader is fetched only when the first boss appears. A model that fails
-// to load is remembered as missing, so the simple-shape boss just stays.
+// to load leaves the simple-shape boss in place and is tried again the next
+// time that boss appears (a network blip must not last the whole session).
 
 // How each model is turned so it reads from the near-overhead camera (world
 // +Z), and how shiny it may be. Models come Y-up. The standing giants face
@@ -105,7 +106,7 @@ export function loadBossModel(kind) {
     cache.set(kind, !path ? Promise.resolve(null) : getLoader()
       .then((l) => l.loadAsync(artUrl(path)))
       .then((gltf) => prepare(gltf.scene, kind))
-      .catch(() => null));
+      .catch(() => { cache.delete(kind); return null; }));
   }
   return cache.get(kind);
 }

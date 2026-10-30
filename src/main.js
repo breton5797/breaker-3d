@@ -4,6 +4,7 @@ import { predictPath } from './sim/aim.js';
 import { aimStep, aimLabel } from './aimInput.js';
 import { GUARD_FLOOR } from './sim/boss.js';
 import { getLevel, levelName } from './sim/levels.js';
+import { BOSS_PREFIX } from './sim/maps.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
 import { ballInside } from './sim/units.js';
 import { createStage, toWorldX } from './render/stage.js';
@@ -17,7 +18,7 @@ import { createCoins3d } from './render/coins3d.js';
 import { createUnits3d } from './render/units3d.js';
 import { createTrails3d } from './render/trails3d.js';
 import { createGimmicks3d } from './render/gimmicks3d.js';
-import { createBoss3d } from './render/boss3d.js';
+import { createBoss3d, ENTRY_TIME } from './render/boss3d.js';
 import { createTimers } from './timers.js';
 import { createHaptics } from './haptics.js';
 import { createFullscreen } from './fullscreen.js';
@@ -39,7 +40,7 @@ import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
 import { PRODUCT_REMOVE_ADS } from './monetize/store.js';
 
-const BOSS_LANDING_MS = 800; // the boss's drop onto the board (boss3d ENTRY_TIME)
+const BOSS_LANDING_MS = ENTRY_TIME * 1000; // the boss's drop onto the board (boss3d)
 const KEY_SPEED = 45; // paddle cells per second with the keyboard
 const MAX_DT = 1 / 30;
 
@@ -123,6 +124,7 @@ const ui = createUI({
   onPickSplit: (mult) => pickSplit(mult),
   onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
+  later: (fn, ms) => stageTimers.later(fn, ms), // stage-bound delays (cancelled when the stage is left)
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
@@ -136,7 +138,11 @@ fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacito
 /** Toasts and the boss bar go in the band above the board; it moves with the screen shape. */
 function layoutOverlays() {
   if (!level?.box) return;
-  requestAnimationFrame(() => ui.layoutOverlays(stage.project(COLS / 2, level.box.top + 1, 0).y, stage.project(COLS / 2, PADDLE_Y + 16, 0).y));
+  requestAnimationFrame(() => ui.layoutOverlays(
+    stage.project(COLS / 2, level.box.top + 1, 0).y,
+    stage.project(COLS / 2, level.box.bottom, 0).y,
+    stage.project(COLS / 2, PADDLE_Y + PADDLE_H, 0).y,
+  ));
 }
 window.addEventListener('resize', layoutOverlays);
 
@@ -242,7 +248,7 @@ function startLevel(i) {
   if (level.bossStage) audio.bossWarn(); else audio.stageIntro();
   if (level.boss) {
     // The boss drops onto the board (boss3d) and its card slides in: a roar and a thud as it lands.
-    const name = level.bossName.replace('BOSS · ', '');
+    const name = level.bossName.replace(BOSS_PREFIX, '');
     stageTimers.later(() => {
       ui.bossCard({ kind: level.boss.kind, name, big: level.bossStage, mode: 'intro' });
       audio.roar();
@@ -351,7 +357,7 @@ function finishLevel(cleared) {
       newBest: prevBest > 0 && w.score > prevBest,
       bonus,
       // A big boss stage is named after its boss already; a map stage names its own boss.
-      next: { name: levelName(level.index + 1), boss: upcoming.bossStage ? null : upcoming.bossName.replace('BOSS · ', '') },
+      next: { name: levelName(level.index + 1), boss: upcoming.bossStage ? null : upcoming.bossName.replace(BOSS_PREFIX, '') },
       stats: [
         ['클리어 시간', `${elapsed.toFixed(1)}초`],
         ['최대 공 개수', ui.fmt(w.peakBalls)],
@@ -500,6 +506,7 @@ window.addEventListener('pointercancel', (e) => { if (e.pointerId === aim.id) ai
 window.addEventListener('keydown', (e) => {
   audio.unlock();
   keys.add(e.code);
+  if (e.code === 'Escape' && mode === 'title' && ui.closeSubscreen()) return; // achievements / credits -> title
   if (e.repeat || !world) return; // held keys must not burn every skill charge
   if (picking) {
     // The split picker is open: 2-5 choose the multiplier, 1 or Esc closes it.

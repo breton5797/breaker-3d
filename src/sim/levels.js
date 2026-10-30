@@ -1,6 +1,6 @@
 import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNIT_CHARS } from './constants.js';
 
-import { LEVELS, landmarkAt, bossAt, toLines } from './maps.js';
+import { LEVELS, landmarkAt, bossAt, toLines, BOSS_PREFIX } from './maps.js';
 import { MAP_BOSSES, mapBossSpec } from './mapBosses.js';
 import { stageSlot } from './sequence.js';
 
@@ -398,7 +398,7 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
     // Every stage has a boss: the big one on every 10th, the map's own otherwise.
     boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n, bricks),
     bricks,
-    bossName: slot.boss ? map.name : `BOSS · ${MAP_BOSSES[map.id]?.name ?? map.name}`,
+    bossName: slot.boss ? map.name : `${BOSS_PREFIX}${MAP_BOSSES[map.id]?.name ?? map.name}`,
     bossStage: slot.boss,
     theme: map.theme ?? null, // chapter theme; 'space' | 'sea' | 'nature' bring a gimmick (gimmicks.js)
     chapterStart: Boolean(map.chapterStart),
