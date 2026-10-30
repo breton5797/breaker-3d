@@ -341,6 +341,7 @@ export function createUI(h) {
     const hud = $('hud').getBoundingClientRect().bottom;
     const bar = $('boss-bar');
     const toasts = $('toasts');
+    bar.classList.remove('lane'); // judge with the bar's normal height, whatever form it had last time
     const compact = boardTop - hud < (bar.offsetHeight || 34) + 12;
     bar.classList.toggle('lane', compact);
     toasts.classList.toggle('one', compact); // one toast at a time: the lane is short

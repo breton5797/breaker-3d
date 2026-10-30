@@ -63,6 +63,17 @@ describe('toasts stay in their band', () => {
     expect(ui()).toMatch(/setProperty\('--band'/);
   });
 
+  it('the compact verdict is measured with the bar in its normal form, so it cannot flip between calls', () => {
+    expect(ui()).toMatch(/bar\.classList\.remove\('lane'\);[^\n]*\n\s*const compact = boardTop - hud < \(bar\.offsetHeight \|\| 34\) \+ 12;/);
+  });
+
+  it('the neon payoff toasts (stun, shield down) shrink to the band like the others and drift no further than the band gap', () => {
+    const neon = read('src/neon.css');
+    expect(neon).toMatch(/\.toast\.neon-burst \{\s*font-size: min\(clamp\([^)]*\), calc\(var\(--band, 112px\) \* 0\.42\)\)/);
+    const m = /@keyframes neonSlam \{[\s\S]*?100% \{[^}]*translateY\(-(\d+)px\)/.exec(neon);
+    expect(Number(m[1])).toBeLessThanOrEqual(8);
+  });
+
   it('layoutOverlays knows the lane between the box floor and the paddle (the fallback spot on wide and short screens)', () => {
     expect(ui()).toMatch(/function layoutOverlays\(boardTop, boxBottom, paddleTop\)/);
     expect(main()).toMatch(/ui\.layoutOverlays\(\s*stage\.project\(COLS \/ 2, level\.box\.top \+ 1, 0\)\.y,\s*stage\.project\(COLS \/ 2, level\.box\.bottom, 0\)\.y,\s*stage\.project\(COLS \/ 2, PADDLE_Y \+ PADDLE_H, 0\)\.y,?\s*\)/);
@@ -149,9 +160,10 @@ describe('loading and memory', () => {
     expect(src).toMatch(/\.dispose\(\)/);
   });
 
-  it('a boss model that failed to load is tried again next time (no permanent miss after a network blip)', () => {
+  it('a boss model that failed to load is tried again next time (no permanent miss after a network blip), without dropping a newer load', () => {
     const src = read('src/render/bossModels.js');
-    expect(src).toMatch(/\.catch\(\(\) => \{[^}]*cache\.delete\(kind\)/);
+    expect(src).toMatch(/\.catch\(\(\) => \{ if \(cache\.get\(kind\) === load\) cache\.delete\(kind\)/);
+    expect(read('src/render/photo.js')).toMatch(/if \(cache\.has\(id\)\) \{ tex\.dispose\(\); show\(cache\.get\(id\)\); return; \}/);
   });
 
   it('the stage-start toasts run on the stage timers, so leaving the stage calls them off', () => {
