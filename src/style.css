@@ -193,7 +193,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gold-count { font-size: 13px; font-weight: 800; color: var(--gold); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .title-gold { margin: -10px 0 14px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
 /* Meta game: goals under the gold, the pre-stage loadout, and the clear/over extras. */
-.title-goals { margin: -8px 0 12px; font-size: 13px; color: var(--muted); }
+.title-goals { margin: -8px 0 12px; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .title-goals b { color: var(--ink); }
 /* Split picker: four multipliers with their coin prices, over the paddle lane (the stage holds still). */
 .split-picker { position: fixed; left: 50%; bottom: max(120px, calc(env(safe-area-inset-bottom) + 120px)); z-index: 5; transform: translateX(-50%);
@@ -265,8 +265,30 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .achv-list .icon { grid-row: span 2; font-size: 24px; text-align: center; }
 .achv-list b { font-size: 14px; }
 .achv-list small { font-size: 12px; color: var(--muted); }
+.achv-list li { grid-template-columns: 34px 1fr auto; }
+.achv-list b, .achv-list small:not(.achv-gold) { grid-column: 2; }
+.achv-gold { grid-column: 3; grid-row: 1 / span 2; align-self: center; color: var(--gold); font-weight: 800; font-size: 12px; white-space: nowrap; }
 .achv-list li.locked { opacity: 0.4; }
 .achv-list li.locked .icon { filter: grayscale(1); }
+
+/* Collection: boss dex and travel album (two tabs, chapter bars above the grid). */
+.tabs { display: flex; gap: 8px; margin: 0 0 12px; }
+.tab { flex: 1; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.05); font-weight: 800; font-size: 13px; }
+.tab.on { background: var(--panel-strong); border-color: var(--accent-2); }
+.chapter-bars { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; text-align: left; font-size: 12px; color: var(--muted); }
+.chapter-bars li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.chapter-bars .bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.chapter-bars .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.dex-grid { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dex-card { display: grid; gap: 2px; justify-items: center; padding: 6px 4px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); text-align: center; }
+.dex-card img, .dex-card .tile { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: rgba(0, 0, 0, 0.3); }
+.dex-card.dim img, .dex-card.dim .tile { filter: grayscale(1) brightness(0.55); }
+.dex-card b { font-size: 11px; line-height: 1.2; word-break: keep-all; }
+.dex-card.dim b { color: var(--muted); }
+.dex-card small { color: var(--gold); font-size: 10px; line-height: 1.2; }
+.clear-meta { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.over-gold { margin: -8px 0 6px; font-size: 13px; font-weight: 800; color: var(--gold); }
+.over-tip { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
 
 /* Emoji keep their own colours; the gradient text fill would paint them flat. */
 .toast-emoji { display: inline-block; -webkit-text-fill-color: initial; color: initial; background: none; }

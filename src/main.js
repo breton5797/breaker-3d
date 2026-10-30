@@ -32,7 +32,7 @@ import { fruitFor } from './fruits.js';
 import { ACHIEVEMENTS, earned, achievementGold } from './achievements.js';
 import {
   recordStars, totalStars, claimChests, dailyBonus, today, recordBeaten, progressShare,
-  buyInPlay, SKILL_USES, SKILL_PRICES, LOADOUT, refundLoadout,
+  buyInPlay, SKILL_USES, SKILL_PRICES, LOADOUT, refundLoadout, firstClearBonus, chestProgress, achievementStage,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { Capacitor } from '@capacitor/core';
@@ -75,6 +75,13 @@ const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its to
 const STUN_HEX = 0xff3040;
 
 let save = refundLoadout(loadSave()); // the title's next-stage shop is gone: its charges come back as gold
+let saveWarned = false;
+/** Saves progress; the first time it cannot (private mode, full storage) the player is told once. */
+function persist() {
+  if (writeSave(save) || saveWarned) return;
+  saveWarned = true;
+  ui.toast('⚠ 진행이 저장되지 않는 환경이에요 (시크릿 모드·저장 공간)', 'small danger');
+}
 // Photo credits (author and licence per landmark), shown on the credits screen and under each stage.
 let credits = {};
 loadCredits().then((c) => { credits = c; if (level && (mode === 'play' || mode === 'paused')) ui.setPhotoCredit(credits[level.photo] ?? null); });
@@ -98,13 +105,13 @@ const ui = createUI({
     audio.unlock();
     audio.setMuted(!audio.isMuted());
     save = { ...save, muted: audio.isMuted() };
-    writeSave(save);
+    persist();
     if (!audio.isMuted()) audio.toggle(); // sound just came back: let it be heard
   },
   onVibe: () => {
     haptics.setEnabled(!haptics.enabled);
     save = { ...save, vibrate: haptics.enabled };
-    writeSave(save);
+    persist();
     ui.setVibe(haptics.supported, haptics.enabled);
     haptics.play('launch'); // a little buzz confirms it's on
   },
@@ -124,11 +131,15 @@ const ui = createUI({
   onPickSplit: (mult) => pickSplit(mult),
   onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
+  onCollection: () => ui.showCollection(save, 'boss'),
   later: (fn, ms) => stageTimers.later(fn, ms), // stage-bound delays (cancelled when the stage is left)
 });
 // Every button press clicks (the press itself unlocks audio on the first tap).
 bindUiSounds(document, (name) => { audio.unlock(); audio[name]?.(); });
-const director = createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d });
+const director = createDirector({
+  stage, bricks, fx, audio, ui, units3d, coins3d, haptics, gimmicks3d, boss3d,
+  canAfford: (price) => save.gold + (world?.gold ?? 0) >= price, // the meteor hint only points at a meteor the coins cover
+});
 ui.setVibe(haptics.supported, haptics.enabled);
 // An app is already full screen: no button there.
 ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
@@ -172,7 +183,7 @@ function buySkill(kind, mult) {
   }
   save = r.save;
   world.gold = r.live;
-  writeSave(save);
+  persist();
   world.charges = { ...world.charges, [kind]: world.charges[kind] + 1 };
   usedSkills = { ...usedSkills, [kind]: usedSkills[kind] + 1 };
   lastBuy = now;
@@ -285,7 +296,7 @@ function startLevel(i) {
 function checkAchievements(cleared) {
   const w = world;
   const stats = {
-    stage: level.index, cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
+    stage: achievementStage(level.index, save), cleared, peakBalls: w.peakBalls, bestCombo: w.bestCombo, bestStreak: w.bestStreak,
     bestFruit: w.bestFruit, topKill: w.topKill,
     livesLost: Math.max(0, level.params.lives - w.lives), elapsed,
     totalStars: totalStars(save), streak: save.daily.streak, beaten: save.beaten,
@@ -294,7 +305,7 @@ function checkAchievements(cleared) {
   if (!fresh.length) return;
   const reward = achievementGold(fresh);
   save = addGold(unlockAchievements(save, fresh), reward);
-  writeSave(save);
+  persist();
   stageAchievements = [...stageAchievements, ...fresh];
   audio.achievement();
   haptics.play('achievement');
@@ -326,7 +337,7 @@ function applyQuality(levelIndex) {
 function bankLiveGold() {
   if (!world || (mode !== 'play' && mode !== 'paused') || world.gold <= 0) return;
   save = addGold(save, world.gold);
-  writeSave(save);
+  persist();
   world.gold = 0;
 }
 
@@ -355,16 +366,18 @@ function finishLevel(cleared) {
     const prevBest = save.best[level.index] ?? 0;
     const full = level.params.lives; // stars are relative to this stage's starting lives
     const stars = w.lives >= full ? 3 : w.lives >= full - 1 ? 2 : 1;
-    save = recordStars(addGold(recordClear(save, level.index, w.score), w.gold), level.index, stars);
-    if (w.boss && !w.boss.alive) save = recordBeaten(save, w.boss.kind);
+    const firstClear = firstClearBonus(save, level.index); // a stage's first clear pays a little extra (owner, 2026-10-30)
+    save = recordStars(addGold(recordClear(save, level.index, w.score), w.gold + firstClear), level.index, stars);
+    if (w.boss && !w.boss.alive) save = recordBeaten(save, w.boss.kind, level.index);
     // Stars open chests; the day's first clear pays (and grows the streak).
     const chest = claimChests(save);
     const daily = dailyBonus(chest.save, today());
     save = daily.save;
-    writeSave(save);
+    persist();
     run.clearGold = w.gold + run.goldBanked; // all gold this attempt (before and after a revive)
     checkAchievements(true);
     const bonus = [
+      ...(firstClear ? [`🪙 스테이지 첫 클리어 +${ui.fmt(firstClear)} 골드`] : []),
       ...(daily.gold ? [`📅 오늘의 첫 클리어 +${ui.fmt(daily.gold)} 골드 · ${daily.streak}일 연속`] : []),
       ...(chest.gold ? [`🎁 별 상자 열림 +${ui.fmt(chest.gold)} 골드`] : []),
       ...stageAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean)
@@ -378,6 +391,7 @@ function finishLevel(cleared) {
       goldOffer: offers().doubleGold,
       newBest: prevBest > 0 && w.score > prevBest,
       bonus,
+      meta: `⭐ 총 ${ui.fmt(totalStars(save))} · 다음 별 상자까지 ★${chestProgress(save).toNext}`,
       // A big boss stage is named after its boss already; a map stage names its own boss.
       next: { name: levelName(level.index + 1), boss: upcoming.bossStage ? null : upcoming.bossName.replace(BOSS_PREFIX, '') },
       stats: [
@@ -391,13 +405,19 @@ function finishLevel(cleared) {
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
     save = addGold(save, w.gold); // gold caught is kept even when the run ends
-    writeSave(save);
+    persist();
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
-    announceAchievements(heldAchievements); // earned during the finale, held back then: the run is over, say it now
+    // What the run still earned, and one thing to try next time (a meteor only when the coins cover one).
+    // Achievements earned during the finale were held back then; the run is over, so they are listed here.
+    const canMeteor = save.gold + run.goldBanked >= SKILL_PRICES.meteor;
+    const tip = !w.entered ? (canMeteor ? `☄ 메테오(🪙${SKILL_PRICES.meteor})로 바로 넣을 수 있어요` : '🪙 코인 벽돌을 깨면 동전이 떨어져요 · 모아서 메테오를 사요')
+      : w.boss ? '빨간 영역은 공격 예고 · 미리 피하세요' : '과일을 받을수록 공이 늘어나요';
+    const bonus = heldAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean).map((a) => `🏆 ${a.name} +${ui.fmt(a.gold)} 골드`);
     heldAchievements = [];
-    setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid)), 900);
+    const over = { gold: run.goldBanked, total: save.gold, best: save.best[level.index] ?? 0, tip, bonus };
+    setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid), over), 900);
   }
 }
 
@@ -441,7 +461,7 @@ function doubleClearGold(buttonId) {
   if (run.goldDoubled || run.clearGold <= 0) return;
   run.goldDoubled = true;
   save = addGold(save, run.clearGold);
-  writeSave(save);
+  persist();
   audio.coin();
   haptics.play('coin');
   ui.rewardState(buttonId, 'done', `골드 2배 받음 (+${ui.fmt(run.clearGold)})`);
@@ -454,7 +474,7 @@ function showStore() {
 
 function grantRemoveAds() {
   save = { ...save, adsRemoved: true };
-  writeSave(save);
+  persist();
   showStore();
 }
 

@@ -3,7 +3,8 @@
 // the goals shown on the title. Pure functions over the save (storage.js keeps
 // and validates it); every change returns a new save.
 
-import { BOSS_EVERY } from './sim/sequence.js';
+import { BOSS_EVERY, stageSlot, stageOfContent } from './sim/sequence.js';
+import { LAP, bossAt, landmarkAt, BOSS_PREFIX } from './sim/maps.js';
 
 /** What the old title shop charged for a next-stage charge (only to refund saves that still hold some). */
 export const LOADOUT = Object.freeze({
@@ -20,6 +21,17 @@ export const STARS_PER_CHEST = 30;
 export const CHEST_GOLD = 150;
 /** Daily first-clear gold by streak day (day 1, 2, ...; the last value repeats). */
 export const DAILY_GOLD = Object.freeze([100, 125, 150, 175, 200, 250, 300]);
+/** A stage's first clear pays this (owner, 2026-10-30): play income for players who buy skills every stage. */
+export const FIRST_CLEAR_GOLD = 20;
+
+/**
+ * The stage the stage-count achievements judge a run by: this stage, or the furthest already cleared if that is
+ * higher (a player who had passed stage 26 before those achievements existed earns them on their next clear).
+ */
+export const achievementStage = (levelIndex, save) => Math.max(levelIndex, (save.unlocked ?? 1) - 2);
+
+/** @returns {number} gold for clearing stage `levelIndex` for the first time (0 on a replay) */
+export const firstClearBonus = (save, levelIndex) => ((save.best?.[levelIndex] ?? 0) > 0 ? 0 : FIRST_CLEAR_GOLD);
 
 /** @returns {object|null} the save with `n` gold spent, or null if there isn't enough */
 export function spendGold(save, n) {
@@ -80,7 +92,7 @@ export function claimChests(save) {
 }
 
 /** Days since the epoch for a 'YYYY-MM-DD' (local calendar day, no time zone shifts). */
-const dayNumber = (iso) => {
+export const dayNumber = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
   return Math.round(Date.UTC(y, m - 1, d) / 86_400_000);
 };
@@ -105,16 +117,53 @@ export function dailyBonus(save, date) {
   return { save: { ...save, daily: { last: date, streak }, gold: save.gold + gold }, gold, streak };
 }
 
-/** @returns {object} the save with this boss kind remembered (once) */
-export function recordBeaten(save, kind) {
-  const beaten = save.beaten ?? [];
-  return beaten.includes(kind) ? save : { ...save, beaten: [...beaten, kind] };
+/**
+ * What the title can say about the daily bonus: whether today's is claimed, the streak it continues
+ * (0 when a missed day would start it over) and what the next clear pays.
+ * @param {object} save @param {string} date 'YYYY-MM-DD'
+ */
+export function dailyStatus(save, date) {
+  const daily = save.daily ?? { last: '', streak: 0 };
+  if (!daily.last) return { claimed: false, streak: 0, nextGold: DAILY_GOLD[0] };
+  const gap = dayNumber(date) - dayNumber(daily.last);
+  const nextStreak = gap <= 1 ? daily.streak + 1 : 1;
+  return { claimed: gap <= 0, streak: gap <= 1 ? daily.streak : 0, nextGold: DAILY_GOLD[Math.min(nextStreak, DAILY_GOLD.length) - 1] };
 }
 
-/** @param {number} next index of the next stage to play @returns {{ toBoss:number }} stages before the next big boss */
+/** @returns {{ stars:number, toNext:number }} stars so far and how many more open the next chest */
+export function chestProgress(save) {
+  const stars = totalStars(save);
+  return { stars, toNext: STARS_PER_CHEST - (stars % STARS_PER_CHEST) };
+}
+
+/**
+ * @param {number} [stage] stage index it was beaten on (kept for the dex, first time only)
+ * @returns {object} the save with this boss kind remembered (once)
+ */
+export function recordBeaten(save, kind, stage) {
+  const beaten = save.beaten ?? [];
+  if (beaten.includes(kind)) return save;
+  const beatenAt = Number.isInteger(stage) && stage >= 0 ? { ...(save.beatenAt ?? {}), [kind]: stage } : save.beatenAt ?? {};
+  return { ...save, beaten: [...beaten, kind], beatenAt };
+}
+
+/**
+ * @param {number} next index of the next stage to play
+ * @returns {{ toBoss:number, bossKind:string, bossName:string, toChapter:number|null, chapterName:string|null }}
+ *   stages before the next big boss (and which), and before the next chapter opens (null when none is ahead)
+ */
 export function nextGoals(next) {
   const toBoss = (BOSS_EVERY - 1 - (next % BOSS_EVERY) + BOSS_EVERY) % BOSS_EVERY;
-  return { toBoss };
+  const boss = bossAt(stageSlot(next + toBoss).bossIndex);
+  const goals = { toBoss, bossKind: boss.id, bossName: boss.name.replace(BOSS_PREFIX, '') };
+  // The next chapter opener at or after `next`: in this lap, else the first one of the next lap.
+  const slot = stageSlot(next);
+  const k0 = slot.boss ? slot.content + 1 : slot.content;
+  for (let k = k0; k < k0 + LAP.length; k++) {
+    const m = landmarkAt(k);
+    if (m.chapterStart) return { ...goals, toChapter: stageOfContent(k) - next, chapterName: m.chapterName };
+  }
+  return { ...goals, toChapter: null, chapterName: null };
 }
 
 /** @returns {number} percent of the mural broken (0-100) */

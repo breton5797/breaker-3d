@@ -15,8 +15,9 @@ describe('mid-game achievements', () => {
     expect(earned(stats({ beaten: ['mummy', 'fireDragon', 'mossStag', 'coconutCrab', 'copperGolem', 'ironSpider', 'armoredCrane', 'marblePeacock', 'bronzeHorse', 'clockGolem'] }), [])).toContain('boss_map_10');
   });
 
-  it('one lap of the world (stage 36), stars and a week-long streak count', () => {
-    expect(earned(stats({ cleared: true, stage: 35 }), [])).toContain('lap_one');
+  it('one lap of the world (stage 66, the 60 maps), stars and a week-long streak count', () => {
+    expect(earned(stats({ cleared: true, stage: 35 }), [])).not.toContain('lap_one');
+    expect(earned(stats({ cleared: true, stage: 65 }), [])).toContain('lap_one');
     expect(earned(stats({ totalStars: 30 }), [])).toContain('stars_30');
     expect(earned(stats({ totalStars: 90 }), [])).toEqual(expect.arrayContaining(['stars_30', 'stars_90']));
     expect(earned(stats({ streak: 7 }), [])).toContain('streak_7');

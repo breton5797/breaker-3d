@@ -5,7 +5,9 @@ import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl, bossArt, fruitArt } from './art.js';
 import { FRUITS } from './fruits.js';
 import { iconArt, splitIcons } from './icons.js';
-import { totalStars, nextGoals } from './meta.js';
+import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
+import { bossDex, travelAlbum, collectionCounts } from './collection.js';
+import { renderBossDex, renderTravel, renderChapters } from './collectionView.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
@@ -47,7 +49,8 @@ function iconifyStatic(root) {
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
 const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;
 
-const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv', 'screen-credits'];
+const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv', 'screen-credits', 'screen-collection'];
+const SUBSCREENS = ['screen-achv', 'screen-credits', 'screen-collection']; // lists opened from the title (Esc / back closes them)
 
 /**
  * DOM layer. All dynamic text goes through textContent.
@@ -68,6 +71,8 @@ export function createUI(h) {
   const shownCounts = { split: null, meteor: null };
   let sequence = []; // timers of the clear-screen choreography still pending
   let finishSequence = null; // jumps the choreography to its end (tap to skip)
+  let lastSave = null; // the save the title was last drawn with (the collection tabs redraw from it)
+  let collectionTab = 'boss';
 
   function stopSequence() {
     sequence.forEach(clearTimeout);
@@ -93,6 +98,11 @@ export function createUI(h) {
   bind('btn-credits', h.onCredits);
   bind('btn-credits-back', h.onMenu);
   bind('btn-credits-close', h.onMenu);
+  bind('btn-collection', h.onCollection);
+  bind('btn-collection-back', h.onMenu);
+  bind('btn-collection-close', h.onMenu);
+  bind('collection-tab-boss', () => showCollection(lastSave, 'boss'));
+  bind('collection-tab-travel', () => showCollection(lastSave, 'travel'));
   bind('btn-mute', h.onMute);
   bind('btn-pause', h.onPause);
   bind('btn-vibe', h.onVibe);
@@ -156,12 +166,25 @@ export function createUI(h) {
     const next = save.unlocked - 1;
     $('btn-start').textContent = next > 0 ? `STAGE ${next + 1} 이어하기` : '시작하기';
     $('btn-start').onclick = (e) => { e.stopPropagation(); h.onPlay(Math.max(0, next)); };
+    lastSave = save;
     setRich($('btn-achv'), `🏆 업적 ${ownedCount(save)} / ${ACHIEVEMENTS.length}`);
+    const counts = collectionCounts(save);
+    setRich($('btn-collection'), `👾 도감 ${counts.bosses.have}/${counts.bosses.total} · 🌍 여행 ${counts.maps.have}/${counts.maps.total}`);
     setRich($('title-gold'), `🪙 ${fmt(save.gold)} 골드 · ⭐ ${fmt(totalStars(save))}`);
-    const { toBoss } = nextGoals(Math.max(0, next));
-    const goals = document.createElement('b');
-    goals.textContent = toBoss === 0 ? '다음 판이 대형 보스!' : `다음 대형 보스까지 ${toBoss}판`;
-    $('title-goals').replaceChildren(goals);
+    // What is ahead and what coming back pays, in plain words (no "lose it" pressure).
+    const g = nextGoals(Math.max(0, next));
+    const chapterLine = g.toChapter === null ? '' : ` · ✨ ${g.chapterName}까지 ${g.toChapter === 0 ? '다음 판' : `${g.toChapter}판`}`;
+    const d = dailyStatus(save, today());
+    const dailyLine = d.claimed
+      ? `📅 오늘의 첫 클리어 보너스 받음 · ${d.streak}일 연속`
+      : `📅 오늘 첫 클리어 +${fmt(d.nextGold)} 골드${d.streak ? ` · ${d.streak}일 연속 이어가기` : ''}`;
+    const chest = chestProgress(save);
+    const lines = [[emojiSpan({ emoji: '👾', art: bossArt(g.bossKind) }), ...richParts(toBossLine(g) + chapterLine)], richParts(dailyLine), richParts(`🎁 다음 별 상자까지 ★${chest.toNext}`)];
+    $('title-goals').replaceChildren(...lines.map((parts) => {
+      const b = document.createElement('b');
+      b.replaceChildren(...parts);
+      return b;
+    }));
     show('screen-title');
     // Back from a stage the panel may still be scrolled; and the grid can only be scrolled once it is
     // visible (a hidden element has no size), so the newest unlocked stage is brought into view next frame.
@@ -170,6 +193,30 @@ export function createUI(h) {
       const current = grid.children[save.unlocked - 1];
       if (current) grid.scrollTop = current.offsetTop - grid.offsetTop - grid.clientHeight / 2;
     });
+  }
+
+  /** "석상 거인까지 3판" / "다음 판이 대형 보스 석상 거인!" (drawn after the boss's portrait) */
+  const toBossLine = (g) => (g.toBoss === 0 ? ` 다음 판이 대형 보스 ${g.bossName}!` : ` ${g.bossName}까지 ${g.toBoss}판`);
+
+  /**
+   * The collection: the boss dex (portraits, grey until beaten, the stage each was first beaten on)
+   * or the travel album (every map of the lap with its best stars and sunset/night stamps), with
+   * the chapter progress bars above either.
+   * @param {object} save @param {'boss'|'travel'} [tab]
+   */
+  function showCollection(save, tab = collectionTab) {
+    collectionTab = tab;
+    lastSave = save;
+    const counts = collectionCounts(save);
+    $('collection-tab-boss').classList.toggle('on', tab === 'boss');
+    $('collection-tab-travel').classList.toggle('on', tab === 'travel');
+    setRich($('collection-tab-boss'), `👾 보스 도감 ${counts.bosses.have}/${counts.bosses.total}`);
+    setRich($('collection-tab-travel'), `🌍 여행 앨범 ${counts.maps.have}/${counts.maps.total}`);
+    renderChapters($('collection-chapters'), counts.chapters);
+    if (tab === 'boss') renderBossDex($('collection-list'), bossDex(save));
+    else renderTravel($('collection-list'), travelAlbum(save));
+    $('screen-collection').scrollTop = 0;
+    show('screen-collection');
   }
 
   /**
@@ -202,21 +249,29 @@ export function createUI(h) {
     if (level.index < 10) later(() => toast('미션: 빛나는 구멍으로 공을 넣어라!', 'small'), 1500);
   }
 
-  /** Achievement collection: unlocked first in list order, locked ones greyed out. */
+  /** Achievement list: each with its gold, the countable ones with their progress, and the gold still to earn. */
   function showAchievements(save) {
     const owned = new Set(save.achievements);
-    $('achv-count').textContent = `${ownedCount(save)} / ${ACHIEVEMENTS.length}`;
+    // The save as a run's stats, for the progress counters (stages cleared, stars, streak, bosses).
+    const stats = { stage: Math.max(0, save.unlocked - 2), cleared: save.unlocked > 1, totalStars: totalStars(save), streak: save.daily?.streak ?? 0, beaten: save.beaten ?? [] };
+    const left = ACHIEVEMENTS.filter((a) => !owned.has(a.id)).reduce((sum, a) => sum + a.gold, 0);
+    setRich($('achv-count'), `${ownedCount(save)} / ${ACHIEVEMENTS.length} · 남은 보상 🪙 ${fmt(left)}`);
     $('achv-list').replaceChildren(...ACHIEVEMENTS.map((a) => {
       const li = document.createElement('li');
-      li.className = owned.has(a.id) ? '' : 'locked';
+      const has = owned.has(a.id);
+      li.className = has ? '' : 'locked';
       const icon = document.createElement('span');
       icon.className = 'icon';
       icon.replaceChildren(emojiSpan({ emoji: a.icon }));
       const name = document.createElement('b');
       name.textContent = a.name;
       const desc = document.createElement('small');
-      desc.textContent = a.desc;
-      li.append(icon, name, desc);
+      const prog = !has && a.progress ? a.progress(stats) : null;
+      desc.textContent = prog ? `${a.desc} · ${fmt(prog[0])}/${fmt(prog[1])}` : a.desc;
+      const gold = document.createElement('small');
+      gold.className = 'achv-gold';
+      setRich(gold, `${has ? '✓' : '+'}${fmt(a.gold)}🪙`);
+      li.append(icon, name, desc, gold);
       return li;
     }));
     show('screen-achv');
@@ -366,9 +421,9 @@ export function createUI(h) {
     toasts.style.setProperty('--band', `${Math.max(36, above ? boardTop - top : paddleTop - 6 - top)}px`);
   }
 
-  /** Leaves the achievements or credits list for the title (Esc / back). @returns {boolean} whether one was open */
+  /** Leaves the achievements, credits or collection list for the title (Esc / back). @returns {boolean} whether one was open */
   function closeSubscreen() {
-    if ($('screen-achv').hidden && $('screen-credits').hidden) return false;
+    if (SUBSCREENS.every((id) => $(id).hidden)) return false;
     h.onMenu();
     return true;
   }
@@ -546,9 +601,11 @@ export function createUI(h) {
    * stat rows tick in, then the buttons arrive and "next" starts to pulse.
    * A tap on the panel skips to the end.
    */
-  function showClear({ score, stars, stats, hasNext, goldOffer = null, newBest = false, bonus = [], next = null }) {
+  function showClear({ score, stars, stats, hasNext, goldOffer = null, newBest = false, bonus = [], next = null, meta = '' }) {
     playing(false);
     $('clear-best').hidden = !newBest;
+    $('clear-meta').hidden = !meta;
+    setRich($('clear-meta'), meta);
     $('clear-bonus').replaceChildren(...bonus.map((line) => {
       const li = document.createElement('li');
       setRich(li, line); // the coin and calendar as the game's icons, not the OS emoji
@@ -664,14 +721,27 @@ export function createUI(h) {
     playing(true);
   }
 
-  function showOver(score, reviveOffer = null, progress = null) {
+  /**
+   * @param {{ gold?:number, total?:number, best?:number, tip?:string }} [extra] what the run kept (coins banked,
+   *   the total), the stage's best score so far, and one thing to try next time
+   */
+  function showOver(score, reviveOffer = null, progress = null, extra = {}) {
     playing(false);
     $('over-score').textContent = fmt(score);
     // How close it was: a reason to try again.
     const share = document.createElement('b');
     share.textContent = `${progress ?? 0}%`;
-    $('over-progress').replaceChildren('벽돌 ', share, ' 깼어요');
+    $('over-progress').replaceChildren('벽돌 ', share, ' 깼어요', ...(extra.best > 0 ? [` · 이 판 최고 ${fmt(extra.best)}점`] : []));
     $('over-progress').hidden = progress === null;
+    $('over-gold').hidden = !(extra.gold > 0);
+    if (extra.gold > 0) setRich($('over-gold'), `🪙 +${fmt(extra.gold)} 저장됨 · 보유 ${fmt(extra.total ?? 0)}`);
+    $('over-bonus').replaceChildren(...(extra.bonus ?? []).map((line) => {
+      const li = document.createElement('li');
+      setRich(li, line);
+      return li;
+    }));
+    $('over-tip').hidden = !extra.tip;
+    if (extra.tip) setRich($('over-tip'), `🎯 ${extra.tip}`);
     setReward('btn-revive', reviveOffer, '이어하기 ♥+1');
     show('screen-over');
     replay($('screen-over'), 'drop');
@@ -692,6 +762,7 @@ export function createUI(h) {
     showOver,
     showPause: (on) => show(on ? 'screen-pause' : null),
     showAchievements,
+    showCollection,
     showCredits,
     pumpGold,
     damageFlash,
