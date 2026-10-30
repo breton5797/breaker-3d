@@ -61,7 +61,7 @@ describe('endless difficulty curve', () => {
     const hard = stageParams(199);
     expect(hard.holeCount).toBe(1);
     expect(hard.holeSize).toBe(1);
-    expect(hard.brickHp).toBe(3);
+    expect(hard.brickHp).toBe(2); // hp 3 never comes (v38: the hp cliff doubled the lonely-ball dig)
     expect(hard.unitTop).toBe(10);
     expect(hard.lives).toBe(3);
     // ...and the continuous knobs keep climbing past it, within playable limits.

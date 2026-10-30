@@ -18,6 +18,9 @@ const COIN_BURSTS = 3; // gold ring + chip bursts per frame at most
 const BOOM_FULL = 6; // bombs per frame that get scorch + dust; the rest just ring
 const KNOCK_GAP = 0.07; // seconds between wall tinks at most
 const PADDLE_TAP_BALLS = 8; // paddle bounces buzz only while the swarm is this small (else it would hum)
+const MILESTONE_GAP = 1.2; // seconds between milestone toasts at least (a big fruit crosses several at once)
+const COIN_CHAIN = 1.5; // seconds between coins that still count as one climbing chain
+const COIN_DROPS = 2; // coin-drop blips per frame at most
 
 const specialHex = Object.fromEntries(Object.entries(SPECIALS).map(([t, s]) => [t, new THREE.Color(...s.tint).multiplyScalar(0.45).getHex()]));
 const STEEL_HEX = 0x6c7a96;
@@ -41,6 +44,12 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
   let hinted = false;
   const HINT_AFTER = 8; // seconds of play without a ball inside
   const DMG_EVERY = 120; // ms between damage numbers
+  let milestoneAt = -Infinity; // world time of the last milestone toast
+  let coinStreak = 0; // coins caught in a chain (pitch climbs)
+  let coinAt = -Infinity;
+  // The finale with a boss still up is the climax: its toasts are held back and summed up after the KO.
+  let tally = { fruit: 0, balls: 0, score: 0 };
+  let entryTips = []; // stage tips (gimmick, units) shown once a ball is in, not during the opening
 
   /** Finale send-off: staggered firework bursts across the board. */
   function fireworks() {
@@ -65,6 +74,21 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     pacing.reset();
     ballMark = 0;
     comboMark = 0;
+    milestoneAt = -Infinity;
+    coinStreak = 0;
+    coinAt = -Infinity;
+    tally = { fruit: 0, balls: 0, score: 0 };
+    entryTips = [];
+  }
+
+  /** @param {{ text:string, cls?:string }[]} tips shown one after another once the first ball gets into the box */
+  function setEntryTips(tips) { entryTips = tips; }
+
+  /** The climax summed up in one line (fruit caught during the finale, what they became). */
+  function showTally() {
+    if (!tally.fruit) return;
+    ui.toast(`🍉 과일 ${tally.fruit}개 → 공 ${ui.fmt(tally.balls)}${tally.score ? ` · +${ui.fmt(tally.score)}점` : ''}`, 'small');
+    tally = { fruit: 0, balls: 0, score: 0 };
   }
 
   const slowMo = pacing.slowMo;
@@ -74,6 +98,8 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
    * @param {object} w the world (read-only here)
    */
   function handle(events, w) {
+    const quiet = Boolean(w.finale && w.boss?.alive); // the climax: hold the chatter, keep the sights and sounds
+    let coinDrops = 0;
     let shards = 0;
     let booms = 0;
     let coinGold = 0;
@@ -134,12 +160,18 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           audio.collect(e.mult);
           haptics.play(fruitHaptic(e.gain));
           if (e.gain >= 9) pacing.hitStop(0.06);
-          {
+          if (quiet) {
+            // Finale: a dozen fruit at once would be a dozen toasts; one line after the KO instead.
+            tally = { fruit: tally.fruit + 1, balls: Math.max(tally.balls, e.n), score: tally.score + e.overflow * OVERFLOW_SCORE };
+          } else {
             const f = fruitFor(e.mult);
             const badge = { small: `×${e.gain}` };
+            // The stage's first fruit is its own small event: this is where "more fruit = more balls" clicks.
+            const first = Boolean(e.first);
+            if (first) { slowMo(0.4, 0.4); stage.kick(0, 0, -0.8); haptics.play('milestone'); }
             // At the ball cap the extra balls became score: say so instead of a number that didn't move.
             const tail = e.overflow > 0 ? `!  MAX +${ui.fmt(e.overflow * OVERFLOW_SCORE)}점` : `!  →  ${ui.fmt(e.n)} BALLS`;
-            ui.toast([{ emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, tail], e.mult >= 20 ? 'mega' : '');
+            ui.toast([...(first ? ['첫 과일! '] : []), { emoji: f.emoji, art: fruitArt(f.id) }, ` ${f.name} `, badge, tail], first || e.mult >= 20 ? 'mega' : '');
             // Combo number right where the fruit landed on the paddle.
             const at = stage.project(e.x, PADDLE_Y, 1.5);
             ui.floatAt(at.x, at.y, [[{ big: `${e.streak} COMBO` }], [{ emoji: f.emoji, art: fruitArt(f.id) }, badge]], e.streak >= 5 ? 'hot' : '');
@@ -151,6 +183,20 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           coinGold += e.gold;
           coinX = e.x;
           if (coinBursts < COIN_BURSTS) { fx.coinBurst(e.x); coinBursts++; }
+          break;
+        case 'coin-drop':
+          // The coin is on its way down: a glint and a blip, so the eye knows to catch it.
+          if (coinDrops++ < COIN_DROPS) { fx.chip(e.c, e.r); audio.coinDrop(); }
+          break;
+        case 'assist':
+          // The opening help added a ball off the paddle: a small ring says so (it used to be silent).
+          fx.split(e.x, PADDLE_Y + 1, 2);
+          audio.split(2);
+          break;
+        case 'reenter':
+          // Back into the box after a dry spell: a whoosh (the "들어갔다!" toast is for the first time only).
+          audio.whoosh();
+          if (w.balls.n <= PADDLE_TAP_BALLS) haptics.play('paddle');
           break;
         case 'fire-shell': audio.shoot(); break;
         case 'over': haptics.play('over'); break;
@@ -174,7 +220,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           ui.damageFlash(e.lethal);
           ui.toast(e.lethal ? '치명탄! −1 ♥' : '기절!', 'danger');
           break;
-        case 'miss': ui.toast([{ emoji: fruitFor(e.mult).emoji, art: fruitArt(fruitFor(e.mult).id) }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger'); break;
+        case 'miss':
+          if (e.finale) break; // the finale drops everything at once: no blame for what could not be caught
+          ui.toast([{ emoji: fruitFor(e.mult).emoji, art: fruitArt(fruitFor(e.mult).id) }, ` ${fruitFor(e.mult).name} 놓침`], 'small danger');
+          break;
         case 'paddle':
           audio.paddle();
           if (paddleHits++ === 0) {
@@ -202,6 +251,9 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           stage.shake(0.4);
           ui.meteorHint(false);
           ui.toast('🎯 들어갔다!', '');
+          // Now that the ball is in, the stage's tips (gimmick, units) have a reader.
+          entryTips.forEach((tip, k) => timers.later(() => ui.toast(tip.text, tip.cls ?? 'small'), 900 + k * 1400));
+          entryTips = [];
           break;
         case 'boss-beam':
           fx.bossBeam(e.x, e.y);
@@ -292,6 +344,7 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           ui.screenFlash();
           ui.bossCard({ kind: e.kind, mode: 'down' });
           ui.shower();
+          timers.later(showTally, 1200);
           break;
         case 'storm-warn':
           gimmicks3d.warnColumn(e.c, e.bottom, e.top);
@@ -328,8 +381,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
       }
     }
     if (coinGold) {
-      // One jingle, shake, buzz and "+N" per frame, however many coins landed together.
-      audio.coin();
+      // One jingle, shake, buzz and "+N" per frame, however many coins landed together; a chain climbs in pitch.
+      coinStreak = w.time - coinAt < COIN_CHAIN ? coinStreak + 1 : 0;
+      coinAt = w.time;
+      audio.coin(coinStreak);
       stage.shake(Math.min(0.7, 0.4 + coinGold * 0.05));
       stage.paddle.punch(0.25);
       haptics.play('coin');
@@ -352,25 +407,37 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
       dmgBank = 0;
       dmgAt = now;
     }
-    milestones(w);
+    if (!quiet) milestones(w);
+    else {
+      // The finale holds the toasts: the marks still advance (never back: a combo that ran out must not re-announce "COMBO 100" after the KO).
+      ballMark = Math.max(ballMark, BALL_MILESTONES.filter((m) => w.balls.n >= m).length);
+      comboMark = Math.max(comboMark, COMBO_MILESTONES.filter((m) => w.combo >= m).length);
+    }
     // Under the paddle, so it hides neither the boss nor what is falling; gone once nothing is left to count.
     const counting = w.finale && w.state === 'play' && w.grid.remaining > 0;
     ui.setFinale(counting ? w.grid.remaining : null, counting ? stage.project(COLS / 2, PADDLE_Y - FINALE_BELOW, 1) : null);
   }
 
+  /** Ball and combo milestones, one toast at a time (MILESTONE_GAP apart): a big fruit crossing four at once shows the top one. */
   function milestones(w) {
+    if (w.time - milestoneAt < MILESTONE_GAP) return;
     const n = w.balls.n;
-    while (ballMark < BALL_MILESTONES.length && n >= BALL_MILESTONES[ballMark]) {
-      ui.toast(`${ui.fmt(BALL_MILESTONES[ballMark])} BALLS!`, ballMark >= 4 ? 'mega' : '');
+    let top = -1;
+    while (ballMark < BALL_MILESTONES.length && n >= BALL_MILESTONES[ballMark]) top = ballMark++;
+    if (top >= 0) {
+      ui.toast(`${ui.fmt(BALL_MILESTONES[top])} BALLS!`, top >= 4 ? 'mega' : '');
       audio.milestone();
       haptics.play('milestone');
-      ballMark++;
+      milestoneAt = w.time;
+      return;
     }
-    while (comboMark < COMBO_MILESTONES.length && w.combo >= COMBO_MILESTONES[comboMark]) {
-      ui.toast(`COMBO ${ui.fmt(COMBO_MILESTONES[comboMark])}`, comboMark >= 2 ? 'mega' : '');
+    let combo = -1;
+    while (comboMark < COMBO_MILESTONES.length && w.combo >= COMBO_MILESTONES[comboMark]) combo = comboMark++;
+    if (combo >= 0) {
+      ui.toast(`COMBO ${ui.fmt(COMBO_MILESTONES[combo])}`, combo >= 2 ? 'mega' : '');
       audio.milestone();
       haptics.play('milestone');
-      comboMark++;
+      milestoneAt = w.time;
     }
   }
 
@@ -379,5 +446,5 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
     return pacing.tick(dt);
   }
 
-  return { handle, tick, reset, slowMo };
+  return { handle, tick, reset, slowMo, setEntryTips };
 }

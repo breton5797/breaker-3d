@@ -1,4 +1,4 @@
-import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS, COIN_VALUE, BEAM_SHARE, OVERFLOW_SCORE } from './constants.js';
+import { PADDLE_Y, PADDLE_H, DROP_CATCH, BALL_SPEED, BALL_R, RELEASE_DRAIN, FRUIT_GAINS, COIN_VALUE, BEAM_SHARE, OVERFLOW_SCORE, COIN_FALL } from './constants.js';
 import { beamBoss } from './boss.js';
 import { addBall } from './balls.js';
 import { aimBall } from './cells.js';
@@ -64,7 +64,7 @@ function updateCoins(w, dt) {
   const p = w.paddle;
   const kept = [];
   for (const coin of w.coins) {
-    const y = coin.y - w.dropSpeed * dt;
+    const y = coin.y - w.dropSpeed * COIN_FALL * dt; // slower than the fruit, so both can be caught
     if (y <= PADDLE_TOP + 0.6 && y >= PADDLE_Y - PADDLE_H && Math.abs(coin.x - p.x) <= p.w / 2 + DROP_CATCH) {
       w.gold += COIN_VALUE;
       w.events.push({ t: 'coin', x: coin.x, gold: COIN_VALUE, total: w.gold });
@@ -92,11 +92,11 @@ export function updateDrops(w, dt) {
       w.catchStreak++;
       w.bestStreak = Math.max(w.bestStreak, w.catchStreak);
       w.bestFruit = Math.max(w.bestFruit, d.mult);
-      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak, overflow: w.overflow });
+      w.events.push({ t: 'collect', x: d.x, mult: d.mult, gain, n, streak: w.catchStreak, overflow: w.overflow, first: w.collected === 1 });
       if (w.boss?.alive && w.finale) beamBoss(w, Math.max(1, Math.round(w.boss.hpMax * BEAM_SHARE * gain)));
     } else if (y < -1) {
-      w.catchStreak = 0; // a dropped fruit breaks the catch combo
-      w.events.push({ t: 'miss', x: d.x, mult: d.mult });
+      if (!w.finale) w.catchStreak = 0; // a dropped fruit breaks the catch combo (not in the finale: they all fall at once)
+      w.events.push({ t: 'miss', x: d.x, mult: d.mult, finale: w.finale });
     } else {
       kept.push({ ...d, y });
     }

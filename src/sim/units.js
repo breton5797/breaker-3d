@@ -1,4 +1,4 @@
-import { COLS, CELL, PADDLE_Y, PADDLE_H, UNIT_TIERS, UNIT_GRACE, MAX_SHELLS } from './constants.js';
+import { COLS, CELL, PADDLE_Y, PADDLE_H, UNIT_TIERS, UNIT_GRACE, MAX_SHELLS, LONE_BALLS, LONE_PACE } from './constants.js';
 import { refreshPaddle } from './paddle.js';
 import { isInside } from './box.js';
 
@@ -38,16 +38,27 @@ export function ballInside(w) {
   return false;
 }
 
+/** How many balls are inside the box, counting up to `max` (enough to tell a lonely ball from a swarm). */
+export function insideCount(w, max = Infinity) {
+  let n = 0;
+  for (let i = 0; i < w.balls.n && n < max; i++) if (isInside(w.grid, w.balls.x[i], w.balls.y[i])) n++;
+  return n;
+}
+
 /** Counts down each living unit and fires when ready. Dead units drop out. */
 export function updateUnits(w, dt) {
   // Units only fight intruders: they fire while some ball is inside the wall.
-  if (!w.units.length || !ballInside(w)) return;
+  if (!w.units.length) return;
+  const inside = insideCount(w, LONE_BALLS + 1);
+  if (inside === 0) return;
+  // A lonely ball digging gets more room between volleys (the stun -> ball lost loop of the audit).
+  const pace = inside <= LONE_BALLS ? LONE_PACE : 1;
   const alive = w.units.filter((u) => w.grid.cells[u.r * COLS + u.c] === CELL.UNIT);
   w.units = alive.map((u) => {
     const cd = u.cd - dt;
     if (cd > 0) return { ...u, cd };
     volley(w, u);
-    return { ...u, cd: (UNIT_TIERS[u.tier - 1].interval / w.aggression) * (0.75 + w.rng() * 0.5) };
+    return { ...u, cd: (UNIT_TIERS[u.tier - 1].interval / w.aggression) * pace * (0.75 + w.rng() * 0.5) };
   });
 }
 

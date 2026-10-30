@@ -4,10 +4,11 @@
 import { decorate } from '../mapkit.js';
 import { PLAY_ART } from './playData.js';
 
-// Glyphs: bombs and lasers in the colour bands, fire in the outline.
-const GLYPH_SPECIALS = [['B', 5, 'ef'], ['-', 6, 'g'], ['|', 3, 'f'], ['F', 2, 'h']];
+// Glyphs: bombs and lasers in the colour bands, fire in the outline; two bombs in the background
+// (c, d) as well, so a lonely ball's tunnel through the packed mosaic opens up (v38).
+const GLYPH_SPECIALS = [['B', 5, 'ef'], ['B', 2, 'cd'], ['-', 6, 'g'], ['|', 3, 'f'], ['F', 2, 'h']];
 // Animals: the same, spread over the body colours.
-const ANIMAL_SPECIALS = [['B', 5, 'ef'], ['-', 6, 'g'], ['|', 3, 'fg'], ['F', 2, 'e']];
+const ANIMAL_SPECIALS = [['B', 5, 'ef'], ['B', 2, 'cd'], ['-', 6, 'g'], ['|', 3, 'fg'], ['F', 2, 'e']];
 
 /**
  * @param {string} id a key of PLAY_ART

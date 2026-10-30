@@ -203,8 +203,18 @@ describe('entrance difficulty', () => {
     };
     expect(band(30, 60)).toBeGreaterThan(band(100, 130));
     expect(band(100, 130)).toBeGreaterThan(band(200, 230));
-    // By stage 200 only the hardest spots (the side walls) are left.
-    for (let i = 199; i < 230; i++) for (const h of getLevel(i).holes) expect(['left', 'right']).toContain(h.side);
+    // By stage 200 the side walls (the hardest spots) carry most stages, but never three in a row:
+    // every third lone-hole stage takes a floor or corner spot instead (v38, owner: a lone side hole
+    // is reached a third to a sixth as often even when aimed).
+    let sides = 0;
+    let run = 0;
+    for (let i = 199; i < 230; i++) {
+      const side = ['left', 'right'].includes(getLevel(i).holes[0].side);
+      sides += side ? 1 : 0;
+      run = side ? run + 1 : 0;
+      expect(run).toBeLessThanOrEqual(2);
+    }
+    expect(sides).toBeGreaterThanOrEqual(20);
   });
 
   it('built stages have exactly the planned holes, all on different spots', () => {

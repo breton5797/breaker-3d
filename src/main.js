@@ -150,6 +150,8 @@ window.addEventListener('resize', layoutOverlays);
 const stageTimers = createTimers();
 
 let usedSkills = { split: 0, meteor: 0 }; // skills bought and fired this stage (SKILL_USES each)
+let stageAchievements = []; // ids unlocked during this stage, listed on the clear screen
+let heldAchievements = []; // ...whose toasts were held during the finale (announced if the run is lost instead)
 let picking = false; // the split picker is open: the stage holds still while you choose
 
 /** Can this skill fire right now? (A split needs balls in flight; a meteor works before the serve too.) */
@@ -218,6 +220,8 @@ function skillPrices() {
 function startLevel(i) {
   stageTimers.cancelAll();
   usedSkills = { split: 0, meteor: 0 };
+  stageAchievements = [];
+  heldAchievements = [];
   picking = false;
   ui.showSplitPicker(null);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
@@ -256,19 +260,25 @@ function startLevel(i) {
       stage.kick(0, 0, -1.5);
       haptics.play(level.bossStage ? 'stun' : 'boom');
     }, BOSS_LANDING_MS);
-    stageTimers.later(() => ui.toast(level.bossStage ? '빨간 영역 = 공격 예고, 피하세요!' : '쓰러뜨리면 클리어!', 'small'), BOSS_LANDING_MS + 2000);
+    // The how-to line only while it is news: the first stages, and the first big bosses.
+    if (level.index < 3 || (level.bossStage && level.index < 20)) {
+      stageTimers.later(() => ui.toast(level.bossStage ? '빨간 영역 = 공격 예고, 피하세요!' : '쓰러뜨리면 클리어!', 'small'), BOSS_LANDING_MS + 2000);
+    }
   }
   const CHAPTER_TIPS = { '경이의 세계': '우주·심해·자연 — 맵마다 새로운 기믹!', '놀이 세계': '숫자·알파벳·한글·동물을 깨 보세요!' };
   if (level.chapterStart && level.chapterName) {
     stageTimers.later(() => ui.toast(`✨ 새 챕터: ${level.chapterName}`, 'mega'), 400);
     if (CHAPTER_TIPS[level.chapterName]) stageTimers.later(() => ui.toast(CHAPTER_TIPS[level.chapterName], 'small'), 1600);
   }
+  // Gimmick and unit tips wait for the first ball to get in (the opening has enough going on).
   const GIMMICK_TIPS = { space: '🌀 블랙홀이 공을 끌어당겨요', sea: '🌊 해류가 공을 옆으로 밀어요', nature: '⚡ 번개가 벽돌 한 줄을 부숴요 (빨간 줄 = 예고)' };
-  if (GIMMICK_TIPS[level.theme]) stageTimers.later(() => ui.toast(GIMMICK_TIPS[level.theme], 'small'), 2600);
+  const tips = [];
+  if (GIMMICK_TIPS[level.theme]) tips.push({ text: GIMMICK_TIPS[level.theme] });
   if (world.units.length) {
     const top = Math.max(...world.units.map((u) => u.tier));
-    stageTimers.later(() => ui.toast(`적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, 'small danger'), 2300);
+    tips.push({ text: `적 유닛 최고 Lv.${top} · ${world.units.length}기 매복`, cls: 'small danger' });
   }
+  director.setEntryTips(tips);
 }
 
 /** Unlocks any achievement this run has earned so far and announces it. */
@@ -285,11 +295,21 @@ function checkAchievements(cleared) {
   const reward = achievementGold(fresh);
   save = addGold(unlockAchievements(save, fresh), reward);
   writeSave(save);
+  stageAchievements = [...stageAchievements, ...fresh];
   audio.achievement();
   haptics.play('achievement');
-  fresh.forEach((id, k) => {
+  // Toasts only in the thick of play: during the finale and the clear they would be lost (or cover the
+  // boss), and the clear screen lists everything the stage earned anyway. Held ones come out if the run is lost.
+  if (cleared) return;
+  if (w.finale && w.boss?.alive) { heldAchievements = [...heldAchievements, ...fresh]; return; }
+  announceAchievements(fresh);
+}
+
+/** Achievement toasts, one after another. */
+function announceAchievements(ids) {
+  ids.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
+    if (a) stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
   });
 }
 
@@ -347,6 +367,8 @@ function finishLevel(cleared) {
     const bonus = [
       ...(daily.gold ? [`📅 오늘의 첫 클리어 +${ui.fmt(daily.gold)} 골드 · ${daily.streak}일 연속`] : []),
       ...(chest.gold ? [`🎁 별 상자 열림 +${ui.fmt(chest.gold)} 골드`] : []),
+      ...stageAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean)
+        .map((a) => `🏆 ${a.name} +${ui.fmt(a.gold)} 골드`),
     ];
     const upcoming = getLevel(level.index + 1);
     setTimeout(() => ui.showClear({
@@ -373,6 +395,8 @@ function finishLevel(cleared) {
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
+    announceAchievements(heldAchievements); // earned during the finale, held back then: the run is over, say it now
+    heldAchievements = [];
     setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid)), 900);
   }
 }
