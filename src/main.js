@@ -151,6 +151,7 @@ const stageTimers = createTimers();
 
 let usedSkills = { split: 0, meteor: 0 }; // skills bought and fired this stage (SKILL_USES each)
 let stageAchievements = []; // ids unlocked during this stage, listed on the clear screen
+let heldAchievements = []; // ...whose toasts were held during the finale (announced if the run is lost instead)
 let picking = false; // the split picker is open: the stage holds still while you choose
 
 /** Can this skill fire right now? (A split needs balls in flight; a meteor works before the serve too.) */
@@ -220,6 +221,7 @@ function startLevel(i) {
   stageTimers.cancelAll();
   usedSkills = { split: 0, meteor: 0 };
   stageAchievements = [];
+  heldAchievements = [];
   picking = false;
   ui.showSplitPicker(null);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
@@ -297,11 +299,17 @@ function checkAchievements(cleared) {
   audio.achievement();
   haptics.play('achievement');
   // Toasts only in the thick of play: during the finale and the clear they would be lost (or cover the
-  // boss), and the clear screen lists everything the stage earned anyway.
-  if (cleared || (w.finale && w.boss?.alive)) return;
-  fresh.forEach((id, k) => {
+  // boss), and the clear screen lists everything the stage earned anyway. Held ones come out if the run is lost.
+  if (cleared) return;
+  if (w.finale && w.boss?.alive) { heldAchievements = [...heldAchievements, ...fresh]; return; }
+  announceAchievements(fresh);
+}
+
+/** Achievement toasts, one after another. */
+function announceAchievements(ids) {
+  ids.forEach((id, k) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
+    if (a) stageTimers.later(() => ui.toast([{ emoji: '🏆' }, ' 업적 달성: ', { emoji: a.icon }, ` ${a.name} +${a.gold}🪙`], 'small'), 400 + k * 700);
   });
 }
 
@@ -387,6 +395,8 @@ function finishLevel(cleared) {
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
     checkAchievements(false);
+    announceAchievements(heldAchievements); // earned during the finale, held back then: the run is over, say it now
+    heldAchievements = [];
     setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid)), 900);
   }
 }
