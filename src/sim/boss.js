@@ -367,7 +367,10 @@ function runAttack(w, b, dt) {
   // The beam crosses the paddle row from one side to the other, skipping the gap.
   const u = 1 - Math.max(0, a.t) / SWEEP_TIME;
   a.beam = a.dir > 0 ? u * COLS : COLS - u * COLS;
-  if (paddleIn(w, a.beam, 1) && Math.abs(a.beam - a.safe) > a.gap / 2) hitPaddle(w, a); // judged where the beam is drawn
+  // Judged where the beam is drawn; a paddle wholly inside the gap is safe even right at its edge
+  // (the beam's 1-cell reach used to clip a paddle standing exactly on the gap's edge).
+  const inGap = Math.abs(w.paddle.x - a.safe) + w.paddle.w / 2 <= a.gap / 2 + 1e-9;
+  if (!inGap && paddleIn(w, a.beam, 1) && Math.abs(a.beam - a.safe) > a.gap / 2) hitPaddle(w, a);
   if (a.t <= 0) b.attack = null;
 }
 

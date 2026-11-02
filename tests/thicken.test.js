@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { thicken, getLevel } from '../src/sim/levels.js';
 import { createWorld } from '../src/sim/world.js';
 import { stageSlot } from '../src/sim/sequence.js';
+import { COLS, ROWS } from '../src/sim/constants.js';
 
 describe('murals are drawn with thicker outlines (more bricks)', () => {
   it('grows a brick into the open cells beside it, in its own colour', () => {
@@ -31,7 +32,9 @@ describe('murals are drawn with thicker outlines (more bricks)', () => {
       n++;
     }
     const avg = sum / n;
-    expect(avg).toBeGreaterThan(2904 * 1.15);
-    expect(avg).toBeLessThan(2904 * 1.45); // "a bit more", not a wall
+    // 2,904 was measured on the 96 x 128 field; the 88 x 118 field (bigger cells) holds fewer bricks in proportion.
+    const area = (COLS * ROWS) / (96 * 128);
+    expect(avg).toBeGreaterThan(2904 * 1.15 * area);
+    expect(avg).toBeLessThan(2904 * 1.45 * area); // "a bit more", not a wall
   });
 });
