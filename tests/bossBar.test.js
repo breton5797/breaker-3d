@@ -51,11 +51,11 @@ describe('boss health bar', () => {
     expect(src).toMatch(/case 'boss-hit':\s*\/\/[^\n]*\n\s*if \(\(e\.dmg \?\? 1\) <= 0\) \{ ui\.bossShield\(\); break; \}/);
   });
 
-  it('the protected part is the last (red) bar: ui gets the guard share and stacks the bars (bossLayers.js)', () => {
+  it('the protected part is the red end of the bar: ui gets the guard share (bossLayers.js)', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-    expect(html).toContain('id="boss-fill" data-color="green"');
+    expect(html).toContain('id="boss-fill"');
     const ui = readFileSync(new URL('../src/ui.js', import.meta.url), 'utf8');
-    expect(ui).toMatch(/bossBarLayer\(share, guard\)/);
+    expect(ui).toMatch(/bossBarFill\(share, guard\)/);
     expect(ui).toMatch(/function setBoss\(name, share = 1, guard = 0\)/);
     const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
     expect(main).toMatch(/ui\.setBoss\([^)]*GUARD_FLOOR/);
