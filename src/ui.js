@@ -3,6 +3,7 @@ import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl, bossArt, fruitArt } from './art.js';
 import { FRUITS } from './fruits.js';
+import { bossBarLayer } from './bossLayers.js';
 import { iconArt, splitIcons } from './icons.js';
 import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
 import { bossDex, travelAlbum, collectionCounts } from './collection.js';
@@ -407,7 +408,7 @@ export function createUI(h) {
    * Puts the toasts in the empty band between the HUD (and boss bar) and the top of the
    * board. Where that band is too small (wide screens fill the height with the board) they
    * go to the lane between the box floor and the paddle instead; when there is no room above
-   * the board at all (a phone on its side) the boss bar moves down to that lane too.
+   * the board at all (a phone on its side) the boss bar stays up top, smaller, over the board's edge.
    * @param {number} boardTop screen y of the board's top edge (px)
    * @param {number} boxBottom screen y of the box floor (px)
    * @param {number} paddleTop screen y of the paddle's top (px)
@@ -416,18 +417,18 @@ export function createUI(h) {
     const hud = $('hud').getBoundingClientRect().bottom;
     const bar = $('boss-bar');
     const toasts = $('toasts');
-    bar.classList.remove('lane'); // judge with the bar's normal height, whatever form it had last time
+    bar.classList.remove('tight'); // judge with the bar's normal height, whatever form it had last time
     const compact = boardTop - hud < (bar.offsetHeight || 34) + 12;
-    bar.classList.toggle('lane', compact);
+    // Always at the top, never down by the paddle where it was mistaken for play (owner, 2026-11-02):
+    // with no band above the board it shrinks and sits just under the HUD, over the board's top edge.
+    bar.classList.toggle('tight', compact);
     toasts.classList.toggle('one', compact); // one toast at a time: the lane is short
-    const barH = bar.offsetHeight || 34; // measured after the class change (the lane bar is smaller)
+    const barH = bar.offsetHeight || 34; // measured after the class change (the tight bar is smaller)
     const laneTop = boxBottom + 10;
     if (compact) {
-      // The bar hugs the paddle; the toasts take the rest of the lane above it.
-      const barAt = Math.max(laneTop, paddleTop - barH - 6);
-      bar.style.top = `${barAt}px`;
+      bar.style.top = `${hud + 4}px`;
       toasts.style.top = `${laneTop}px`;
-      toasts.style.setProperty('--band', `${Math.max(36, barAt - laneTop)}px`);
+      toasts.style.setProperty('--band', `${Math.max(36, paddleTop - 6 - laneTop)}px`);
       return;
     }
     // The bar sits just above the board when there is room, never under the HUD.
@@ -573,15 +574,18 @@ export function createUI(h) {
   /**
    * @param {string|null} name null hides the bar
    * @param {number} share health left (0..1)
-   * @param {number} guard the protected share, drawn blue-green on the right (it drains last)
+   * @param {number} guard the protected share: the last (red) bar, it drains once the bricks are broken
    */
   function setBoss(name, share = 1, guard = 0) {
     $('boss-bar').hidden = name === null;
     if (name === null) { bossShare = 1; return; }
     $('boss-name').textContent = name;
-    const left = Math.max(0, Math.min(1, share));
-    $('boss-fill').style.width = `${Math.max(0, left - guard) * 100}%`;
-    $('boss-guard').style.width = `${Math.min(left, guard) * 100}%`;
+    // Green drains first, then blue, then red (bossLayers.js).
+    const layer = bossBarLayer(share, guard);
+    const fill = $('boss-fill');
+    fill.dataset.color = layer.color;
+    fill.style.width = `${layer.width * 100}%`;
+    fill.parentElement.dataset.under = layer.under ?? '';
     // The bar jolts as it drops (at most a few times a second; it updates every frame).
     const now = performance.now();
     if (share < bossShare && now - joltAt > 180) { replay($('boss-bar'), 'jolt'); joltAt = now; }

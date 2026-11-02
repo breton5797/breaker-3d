@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Straight up · release to serve',
   'aim.angle': '{angle} · release to serve',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': 'The teal part only drains once every brick is broken',
+  'boss.guardTitle': 'The red part only drains once every brick is broken',
   'boss.tag': 'BOSS',
   'boss.tagWarning': 'WARNING',
   'boss.tagDefeated': 'DEFEATED',

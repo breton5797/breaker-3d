@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Dimdik · bırakınca fırlar',
   'aim.angle': '{angle} · bırakınca fırlar',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': 'Turkuaz kısım ancak tüm tuğlalar kırılınca azalır',
+  'boss.guardTitle': 'Kırmızı kısım ancak tüm tuğlalar kırılınca azalır',
   'boss.tag': 'BOSS',
   'boss.tagWarning': 'UYARI',
   'boss.tagDefeated': 'YENİLDİ',

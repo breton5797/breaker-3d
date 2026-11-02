@@ -69,7 +69,6 @@ export const MAP_BOSSES = Object.freeze({
   ...Object.fromEntries(Object.entries(PLAY_REUSE).map(([id, from]) => [id, BASE[from]])),
 });
 
-const BRICK_HP = 0.012; // health per brick on the stage (~40 for an average mural)
 const GENTLE_STAGES = 5; // stages 1-5: the boss only roams, it never strikes
 
 /**
@@ -77,10 +76,8 @@ const GENTLE_STAGES = 5; // stages 1-5: the boss only roams, it never strikes
  * in a band under the box ceiling, tougher as stages rise.
  * @param {string} mapId
  * @param {number} n
- * @param {number} [bricks] bricks on the stage: a bigger mural takes longer to
- *   break, so its boss gets more health to last about as long
  */
-export function mapBossSpec(mapId, n, bricks = 3000) {
+export function mapBossSpec(mapId, n) {
   const m = MAP_BOSSES[mapId];
   if (!m) return null;
   return {
@@ -94,7 +91,9 @@ export function mapBossSpec(mapId, n, bricks = 3000) {
     zone: ATTACK_ZONE[m.attack],
     attacks: n >= GENTLE_STAGES,
     attackEvery: 7, // a big boss strikes every 4.5 s
-    hp: 50 + Math.floor(n * 0.8) + Math.floor(bricks * BRICK_HP),
+    // Health rises every stage (owner, 2026-11-02); it no longer follows the mural size,
+    // which made a later boss weaker than an earlier one on a smaller map. 90 = the old average start.
+    hp: 90 + n,
     dps: 6 + Math.floor(n / 40), // damage it can take per second: once the bricks are gone it falls within ~15 s
     tier: Math.min(10, 1 + Math.floor(n / 30)),
   };

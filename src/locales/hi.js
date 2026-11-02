@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'सीधा ऊपर · छोड़ने पर गेंद चलेगी',
   'aim.angle': '{angle} · छोड़ने पर गेंद चलेगी',
   'boss.prefix': 'बॉस · ',
-  'boss.guardTitle': 'फ़िरोज़ी हिस्सा तभी घटेगा जब सारी ईंटें टूट जाएँ',
+  'boss.guardTitle': 'लाल हिस्सा तभी घटेगा जब सारी ईंटें टूट जाएँ',
   'boss.tag': 'बॉस',
   'boss.tagWarning': 'चेतावनी',
   'boss.tagDefeated': 'पराजित',

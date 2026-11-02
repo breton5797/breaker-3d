@@ -54,7 +54,7 @@
   box-shadow: 0 0 8px var(--neon-cyan), inset 0 0 6px rgba(25, 245, 225, 0.35);
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
-#boss-fill { background: linear-gradient(90deg, var(--neon-violet), #ff3b8d 60%, #ff9a3c); transition: width 0.12s; }
+#boss-fill { transition: width 0.12s; }
 /* A hit makes the bar jolt. */
 #boss-bar.jolt .boss-hp { animation: jolt 0.18s; }
 @keyframes jolt { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }

@@ -31,7 +31,7 @@ export default {
   'aim.vertical': '真上 · 離すと発射',
   'aim.angle': '{angle} · 離すと発射',
   'boss.prefix': 'ボス · ',
-  'boss.guardTitle': '青緑の部分はブロックを全部壊すまで減りません',
+  'boss.guardTitle': '赤い部分はブロックを全部壊すまで減りません',
   'boss.tag': 'ボス',
   'boss.tagWarning': '警告',
   'boss.tagDefeated': '撃破済み',

@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'ตรงขึ้น · ปล่อยเพื่อยิง',
   'aim.angle': '{angle} · ปล่อยเพื่อยิง',
   'boss.prefix': 'บอส · ',
-  'boss.guardTitle': 'ส่วนสีเขียวอมฟ้าจะลดลงเมื่อทำลายอิฐหมดเท่านั้น',
+  'boss.guardTitle': 'ส่วนสีแดงจะลดลงเมื่อทำลายอิฐหมดเท่านั้น',
   'boss.tag': 'บอส',
   'boss.tagWarning': 'ระวัง',
   'boss.tagDefeated': 'พ่ายแพ้',

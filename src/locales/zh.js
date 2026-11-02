@@ -31,7 +31,7 @@ export default {
   'aim.vertical': '垂直 · 松开发射',
   'aim.angle': '{angle} · 松开发射',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': '青色部分要打碎全部砖块后才会减少',
+  'boss.guardTitle': '红色部分要打碎全部砖块后才会减少',
   'boss.tag': 'BOSS',
   'boss.tagWarning': '警告',
   'boss.tagDefeated': '已击败',

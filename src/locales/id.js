@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Lurus ke atas · lepas untuk meluncurkan',
   'aim.angle': '{angle} · lepas untuk meluncurkan',
   'boss.prefix': 'BOS · ',
-  'boss.guardTitle': 'Bagian biru kehijauan baru berkurang setelah semua bata pecah',
+  'boss.guardTitle': 'Bagian merah baru berkurang setelah semua bata pecah',
   'boss.tag': 'BOS',
   'boss.tagWarning': 'AWAS',
   'boss.tagDefeated': 'TUMBANG',
