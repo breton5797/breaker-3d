@@ -3,7 +3,7 @@ import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNI
 import { LEVELS, landmarkAt, bossAt, toLines, BOSS_PREFIX } from './maps.js';
 import { MAP_BOSSES, mapBossSpec } from './mapBosses.js';
 import { stageSlot } from './sequence.js';
-import { carvePipe, pipeStage } from './pipes.js';
+import { pipeFor } from './pipes.js';
 
 // Stages are designed on a coarse grid (maps.js), narrowed to fit the box, then
 // upscaled SCALE times to the fine game grid.
@@ -453,9 +453,8 @@ export function getLevel(i, { slots, lane: forcedLane, pipe: withPipe = true } =
   // A boss does the shooting itself, so its stage has no enemy units.
   const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
   const framed = frame(upscale(seeded), box, holes);
-  // Stages 10-34: an L pipe over the floor hole (pipes.js), when the bend has room.
-  const floorHole = withPipe && pipeStage(n) ? holes.find((h) => h.side === 'bottom') : null;
-  const piped = floorHole ? carvePipe(framed, box, floorHole) : null;
+  // From stage 10 (not big-boss stages): a winding pipe over the floor hole (pipes.js), when one fits.
+  const piped = withPipe ? pipeFor(n, framed, box, holes) : null;
   const lines = piped ? piped.lines : framed;
   const bricks =lines.reduce((sum, line) => sum + [...line].filter((ch) => ch !== '.' && ch !== 'S').length, 0);
   return {
