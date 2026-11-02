@@ -29,16 +29,18 @@ describe('first fruit near the holes', () => {
     const g = parseLevel(lvl.lines, { box: lvl.box, holes: lvl.holes });
     const b = lvl.box;
     const nearHole = (h, c, r, d) => h.cells.some(([hc, hr]) => Math.abs(hc - c) <= d && Math.abs(hr - r) <= d);
+    // On a pipe stage (pipes.js) a ball arrives at the pipe's far end, where its fruit were moved (the vault).
+    const entries = lvl.pipe ? [...lvl.holes, { cells: [[lvl.pipe.endX, lvl.pipe.top - 1]] }] : lvl.holes;
     let total = 0;
     let close = 0;
-    const bricksAt = lvl.holes.map(() => 0);
+    const bricksAt = entries.map(() => 0);
     for (let r = b.bottom + 1; r < b.top; r++) {
       for (let c = b.left + 1; c < b.right; c++) {
         const t = g.cells[r * COLS + c];
-        if (t === CELL.BRICK) lvl.holes.forEach((h, k) => { if (nearHole(h, c, r, 16)) bricksAt[k]++; });
+        if (t === CELL.BRICK) entries.forEach((h, k) => { if (nearHole(h, c, r, 16)) bricksAt[k]++; });
         if (!ITEM_MULT[t]) continue;
         total++;
-        if (lvl.holes.some((h) => nearHole(h, c, r, reach))) close++;
+        if (entries.some((h) => nearHole(h, c, r, reach))) close++;
       }
     }
     return { total, close, dense: bricksAt.every((k) => k >= 40) };

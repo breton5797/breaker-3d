@@ -1,58 +1,20 @@
 // Pipe test, last gate (docs/plans/2026-11-02-size-fullscreen-pipes): an L pipe on each stage's floor
 // hole, then the autoplay bot's time to the first fruit, with and without the pipe, on the same seeds.
 // Gate: the median with the pipe is at most 1.5x the median without. Measurement only, not the game.
-// Usage: node scripts/pipe-stages.mjs [from=10] [to=34] [seeds=30]
+// Usage: node scripts/pipe-stages.mjs [from=10] [to=34] [seeds=30] [W] [UP] [RUN]
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, launch, setPaddleX } from '../src/sim/world.js';
 import { mulberry32 } from '../src/sim/rng.js';
-import { ROWS } from '../src/sim/constants.js';
+import { carvePipe, pipeStage, PIPE } from '../src/sim/pipes.js';
 
-const [from = 10, to = 34, seeds = 30] = process.argv.slice(2).map(Number);
-const W = 3; // open cells across the pipe
-const UP = 14; // rows the pipe climbs before it bends
-const RUN = 16; // cells it then runs sideways
+const [from = 10, to = 34, seeds = 30, W = PIPE.W, UP = PIPE.UP, RUN = PIPE.RUN] = process.argv.slice(2).map(Number);
+const SHAPE = { W, UP, RUN }; // the game's PIPE unless given (tuning)
 const CAP = 180; // sim seconds before a run counts as "no fruit"
-const FRUIT = /[ACDEIM]/; // fruit cells (one fine cell each)
-const isBrick = (ch) => ch === '#' || (ch >= 'a' && ch <= 'h');
 
-/** The stage's lines with an L pipe over its floor hole; fruit the pipe cuts away move to its far end. */
+/** The stage's lines with the game's pipe (src/sim/pipes.js) over its floor hole, or null. */
 function withPipe(level) {
   const hole = level.holes.find((h) => h.side === 'bottom');
-  if (!hole) return null;
-  const [hx, floor] = hole.cells[0];
-  const rows = level.lines.map((l) => [...l]);
-  const at = (x, y) => rows[ROWS - 1 - y][x];
-  const lost = [];
-  const put = (x, y, ch) => { if (FRUIT.test(at(x, y))) lost.push(at(x, y)); rows[ROWS - 1 - y][x] = ch; };
-  const { left, right } = level.box;
-  const dir = hx - left > right - hx ? -1 : 1; // bend toward the roomier side
-  const x0 = hx - 1; // shaft columns x0..x0+W-1
-  const y0 = floor + 1;
-  const top = y0 + UP;
-  const side = dir > 0 ? x0 + W : x0 - 1; // the wall the bend opens through
-  const far = dir > 0 ? x0 - 1 : x0 + W;
-  const endX = side + dir * (RUN - 1);
-  if (endX <= left + 1 || endX >= right - 1) return null;
-  for (let x = x0; x < x0 + W; x++) put(x, floor, '.'); // the mouth as wide as the pipe (no traps)
-  for (let y = y0; y < top; y++) {
-    for (let x = x0; x < x0 + W; x++) put(x, y, '.');
-    put(far, y, 'S');
-    if (y < top - W) put(side, y, 'S');
-  }
-  for (let k = -1; k <= W + RUN; k++) put(x0 + (dir > 0 ? k : W - 1 - k), top, 'S'); // cap and roof
-  for (let k = 0; k < RUN; k++) {
-    const x = side + dir * k;
-    for (let y = top - W; y < top; y++) put(x, y, '.');
-    put(x, top - W - 1, 'S'); // floor of the sideways part
-  }
-  // The fruit the pipe cut away go to the nearest plain bricks past its far end (the "vault").
-  const spots = [];
-  for (let y = top - W - 2; y <= top + 2; y++) for (let k = 1; k <= 8; k++) {
-    const x = endX + dir * k;
-    if (x > left && x < right && isBrick(at(x, y))) spots.push([x, y]);
-  }
-  lost.forEach((ch, i) => { if (spots[i]) rows[ROWS - 1 - spots[i][1]][spots[i][0]] = ch; });
-  return rows.map((r) => r.join(''));
+  return hole ? carvePipe(level.lines, level.box, hole, SHAPE)?.lines ?? null : null;
 }
 
 /** The autoplay bot (first-fruit.mjs) on these lines: seconds to the first fruit, or null. */
@@ -78,9 +40,11 @@ function firstFruit(level, lines, seed) {
 const median = (xs) => { const s = xs.filter((x) => x !== null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
 const fmt = (x) => (x === null ? '   -' : x.toFixed(1).padStart(5));
 const all = { plain: [], pipe: [] };
+console.log(`pipe W=${W} UP=${UP} RUN=${RUN}`);
 console.log(`stage  plain(med s, no-fruit)  pipe(med s, no-fruit)  ratio   [${seeds} paired seeds]`);
 for (let stage = from; stage <= to; stage++) {
-  const level = getLevel(stage - 1);
+  if (!pipeStage(stage - 1)) { console.log(`${String(stage).padStart(5)}  (no pipe on this stage: big boss)`); continue; }
+  const level = getLevel(stage - 1, { pipe: false }); // the plain stage; withPipe() adds the pipe
   const lines = withPipe(level);
   if (!lines) { console.log(`${String(stage).padStart(5)}  (no floor hole with room for a pipe: skipped)`); continue; }
   const a = Array.from({ length: seeds }, (_, s) => firstFruit(level, level.lines, s));

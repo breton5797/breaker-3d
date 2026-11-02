@@ -256,7 +256,7 @@ function startLevel(i) {
   coins3d.reset();
   const p = level.params;
   world = createWorld(level.lines, {
-    box: level.box, holes: level.holes,
+    box: level.box, holes: level.holes, pipe: level.pipe,
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
     dropSpeed: p.dropSpeed, aggression: p.aggression,
     boss: level.boss, theme: level.theme ?? null,

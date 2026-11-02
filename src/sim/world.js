@@ -11,6 +11,21 @@ import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
 import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
+import { inPipe } from './pipes.js';
+
+const anyInPipe = (w) => {
+  for (let i = 0; i < w.balls.n; i++) if (inPipe(w.pipe, w.balls.x[i], w.balls.y[i])) return true;
+  return false;
+};
+/** A ball inside the box and out of the pipe (the pipe's own cells don't count as "in"). */
+const ballInsideBeyondPipe = (w) => {
+  for (let i = 0; i < w.balls.n; i++) {
+    const x = w.balls.x[i];
+    const y = w.balls.y[i];
+    if (isInside(w.grid, x, y) && !inPipe(w.pipe, x, y)) return true;
+  }
+  return false;
+};
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2;
 const CEILING_KICK = [0.2, 0.6]; // radians a ceiling bounce always tilts a ball by (min, max)
@@ -39,7 +54,9 @@ export function createWorld(lines, opts = {}) {
     dropSpeed: opts.dropSpeed ?? DROP_SPEED, // how fast fruit falls
     aggression: opts.aggression ?? 1, // unit fire-rate and bomb-speed factor
     state: 'ready', // ready | play | clear | over
-    entered: false, // a ball of this serve has been inside the box
+    entered: false, // a ball of this serve has been inside the box (out of the pipe, if the stage has one)
+    pipe: opts.pipe ?? null, // the stage's pipe (pipes.js), or null
+    piped: false, // a ball of this serve has been in the pipe (its click plays once)
     outsideFor: 0, // seconds the box has had no ball (a ball back in after a dry spell is announced)
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
@@ -101,6 +118,7 @@ export function launch(w, angle) {
   }
   w.state = 'play';
   w.entered = false; // a new serve: no ball in the box yet
+  w.piped = false;
   w.outsideFor = 0;
   w.events.push({ t: 'launch' });
   return true;
@@ -138,7 +156,7 @@ export function useSkill(w, name, mult = 3) {
     const cap = n0 + SPLIT_SKILL_MAX;
     for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(mult, 1 + cap - b.n));
   } else {
-    if (w.state === 'ready') { b.n = 0; w.entered = false; w.outsideFor = 0; } // a serve like launch()
+    if (w.state === 'ready') { b.n = 0; w.entered = false; w.piped = false; w.outsideFor = 0; } // a serve like launch()
     for (let k = 0; k < METEOR_COUNT; k++) {
       if (!addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, 0, METEOR_FIRE)) break;
       aimBall(b, b.n - 1, ((k / (METEOR_COUNT - 1)) - 0.5) * 2 * 1.1);
@@ -253,7 +271,10 @@ export function stepWorld(w, dt) {
     updateShells(w, dt);
     updateBoss(w, dt);
     updateGimmick(w, dt);
-    if (ballInside(w)) {
+    // In the pipe a ball is not in yet: "들어갔다!" waits until it gets out of the far end (owner,
+    // 2026-11-02); going in only clicks. A ball can still come back out of the pipe.
+    if (w.pipe && !w.piped && anyInPipe(w)) { w.piped = true; w.events.push({ t: 'pipe' }); }
+    if (w.pipe ? ballInsideBeyondPipe(w) : ballInside(w)) {
       if (!w.entered) { w.entered = true; w.events.push({ t: 'enter' }); }
       else if (w.outsideFor >= REENTRY_DRY) w.events.push({ t: 'reenter' }); // back in after a dry spell
       w.outsideFor = 0;
