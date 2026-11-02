@@ -3,7 +3,7 @@ import { ACHIEVEMENTS } from './achievements.js';
 import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl, bossArt, fruitArt } from './art.js';
 import { FRUITS } from './fruits.js';
-import { bossBarLayer } from './bossLayers.js';
+import { bossBarFill } from './bossLayers.js';
 import { iconArt, splitIcons } from './icons.js';
 import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
 import { bossDex, travelAlbum, collectionCounts } from './collection.js';
@@ -574,18 +574,19 @@ export function createUI(h) {
   /**
    * @param {string|null} name null hides the bar
    * @param {number} share health left (0..1)
-   * @param {number} guard the protected share: the last (red) bar, it drains once the bricks are broken
+   * @param {number} guard the protected share: the red end of the bar, it drains once the bricks are broken
    */
   function setBoss(name, share = 1, guard = 0) {
     $('boss-bar').hidden = name === null;
     if (name === null) { bossShare = 1; return; }
     $('boss-name').textContent = name;
-    // Green drains first, then blue, then red (bossLayers.js).
-    const layer = bossBarLayer(share, guard);
+    // One green-blue-red gradient that shrinks from the green end (bossLayers.js).
+    const bar = bossBarFill(share, guard);
     const fill = $('boss-fill');
-    fill.dataset.color = layer.color;
-    fill.style.width = `${layer.width * 100}%`;
-    fill.parentElement.dataset.under = layer.under ?? '';
+    fill.style.width = `${bar.width * 100}%`;
+    fill.style.backgroundSize = `${bar.size * 100}% 100%`;
+    fill.style.setProperty('--green-end', `${bar.greenEnd * 100}%`);
+    fill.style.setProperty('--red-start', `${bar.redStart * 100}%`);
     // The bar jolts as it drops (at most a few times a second; it updates every frame).
     const now = performance.now();
     if (share < bossShare && now - joltAt > 180) { replay($('boss-bar'), 'jolt'); joltAt = now; }

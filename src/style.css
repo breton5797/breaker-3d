@@ -162,14 +162,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
   animation: bannerIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 .boss-hp { display: flex; justify-content: flex-end; margin-top: 4px; height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 90, 110, 0.6); overflow: hidden; }
-#boss-bar .boss-hp[data-under="blue"] { background: #163d86; }
-#boss-bar .boss-hp[data-under="red"] { background: #6e0f22; }
 #boss-bar.shield .boss-hp { border-color: #fff; background: rgba(255, 255, 255, 0.25); }
-/* Three bars stacked (bossLayers.js): green drains to show blue, blue drains to show red (the protected share). */
-#boss-fill { height: 100%; width: 100%; transition: width 0.15s; }
-#boss-fill[data-color="green"] { background: linear-gradient(90deg, #1f9d45, #4ee07a); }
-#boss-fill[data-color="blue"] { background: linear-gradient(90deg, #1d5fd0, #4aa3ff); }
-#boss-fill[data-color="red"] { background: linear-gradient(90deg, #a3122f, #ff4d6a); }
+/* One gradient, green (left) - blue - red (right), drawn full-bar wide and anchored right (ui.setBoss
+   sets background-size), so the bar shrinks from the green end: green goes first, then blue, then
+   red (the protected share). --green-end / --red-start: where blue and red begin (bossLayers.js). */
+#boss-fill {
+  height: 100%; width: 100%; transition: width 0.15s, background-size 0.15s;
+  --green-end: 35%; --red-start: 70%;
+  background: linear-gradient(90deg, #1f9d45 0%, #4ee07a calc(var(--green-end) - 6%), #3a8dff calc(var(--green-end) + 6%),
+    #1d5fd0 calc(var(--red-start) - 6%), #ff4d6a calc(var(--red-start) + 6%), #a3122f 100%) right / 100% 100% no-repeat;
+}
 /* No band above the board (a phone on its side): the bar stays up top, smaller (ui.layoutOverlays). */
 #boss-bar.tight { width: min(260px, 60vw); font-size: 11px; letter-spacing: 0.08em; }
 #boss-bar.tight .boss-hp { height: 7px; margin-top: 2px; }

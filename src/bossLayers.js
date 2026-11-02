@@ -1,18 +1,20 @@
-// The boss energy bar is three bars stacked: it starts full green, the green drains to
-// show a full blue one, and that drains to the red one (owner, 2026-11-02). The red one
-// is the protected share (boss.js GUARD_FLOOR): it only drains once the bricks are broken.
+// The boss energy bar is one green-blue-red gradient (owner, 2026-11-02). Full, it shows all
+// three colours; as the boss loses health it shrinks from the green end, so the green goes
+// first, then the blue, then the red. Each colour spans its share of health: green down to
+// BLUE_FROM, blue down to the protected share (boss.js GUARD_FLOOR), red the rest, which only
+// drains once the bricks are broken.
 
-export const BLUE_FROM = 0.65; // health share where the green bar is gone and the blue one shows
+export const BLUE_FROM = 0.65; // health share where the green is gone and the blue starts going
 
 /**
  * @param {number} share health left (0..1)
- * @param {number} guard the protected share, shown as the red bar
- * @returns {{ color: 'green'|'blue'|'red', width: number, under: 'blue'|'red'|null }}
- *   the bar on top, how full it is (0..1), and the colour showing behind it
+ * @param {number} guard the protected share, drawn red
+ * @returns {{ width: number, size: number, greenEnd: number, redStart: number }}
+ *   width: how much of the bar is filled (0..1); size: how wide the gradient is drawn
+ *   compared with the fill (so the colours stay put while the fill shrinks);
+ *   greenEnd / redStart: where blue begins and red begins along the full bar (0..1, left to right)
  */
-export function bossBarLayer(share, guard) {
-  const s = Math.max(0, Math.min(1, share));
-  if (s > BLUE_FROM) return { color: 'green', width: (s - BLUE_FROM) / (1 - BLUE_FROM), under: 'blue' };
-  if (s > guard) return { color: 'blue', width: (s - guard) / (BLUE_FROM - guard), under: 'red' };
-  return { color: 'red', width: guard > 0 ? s / guard : 0, under: null };
+export function bossBarFill(share, guard) {
+  const width = Math.max(0, Math.min(1, share));
+  return { width, size: 1 / Math.max(width, 0.001), greenEnd: 1 - BLUE_FROM, redStart: 1 - guard };
 }

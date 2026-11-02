@@ -1,38 +1,40 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { bossBarLayer, BLUE_FROM } from '../src/bossLayers.js';
+import { bossBarFill, BLUE_FROM } from '../src/bossLayers.js';
 import { GUARD_FLOOR } from '../src/sim/boss.js';
 import { getLevel } from '../src/sim/levels.js';
 import { stageSlot } from '../src/sim/sequence.js';
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-describe('boss energy bar: green, then blue, then red (owner, 2026-11-02)', () => {
-  it('starts full green with blue waiting underneath', () => {
-    expect(bossBarLayer(1, GUARD_FLOOR)).toEqual({ color: 'green', width: 1, under: 'blue' });
+describe('boss energy bar: one green-blue-red gradient that drains from the green end (owner, 2026-11-02)', () => {
+  it('starts full, showing all three colours', () => {
+    const f = bossBarFill(1, GUARD_FLOOR);
+    expect(f.width).toBe(1);
+    expect(f.size).toBe(1);
   });
 
-  it('green drains first, then a full blue bar, then red (the protected last part)', () => {
-    const g = bossBarLayer((1 + BLUE_FROM) / 2, GUARD_FLOOR);
-    expect(g.color).toBe('green');
-    expect(g.width).toBeCloseTo(0.5, 5);
-    expect(bossBarLayer(BLUE_FROM, GUARD_FLOOR)).toEqual({ color: 'blue', width: 1, under: 'red' });
-    const b = bossBarLayer((BLUE_FROM + GUARD_FLOOR) / 2, GUARD_FLOOR);
-    expect(b.color).toBe('blue');
-    expect(b.width).toBeCloseTo(0.5, 5);
-    expect(bossBarLayer(GUARD_FLOOR, GUARD_FLOOR)).toEqual({ color: 'red', width: 1, under: null });
-    expect(bossBarLayer(GUARD_FLOOR / 2, GUARD_FLOOR).width).toBeCloseTo(0.5, 5);
-    expect(bossBarLayer(0, GUARD_FLOOR)).toEqual({ color: 'red', width: 0, under: null });
+  it('the colours keep their place on the bar as it shrinks (green goes first, red last)', () => {
+    const f = bossBarFill(0.5, GUARD_FLOOR);
+    expect(f.width).toBeCloseTo(0.5, 5);
+    expect(f.size).toBeCloseTo(2, 5); // the gradient stays full-bar wide, so only its green end is cut off
+    expect(bossBarFill(0, GUARD_FLOOR).width).toBe(0);
+    expect(Number.isFinite(bossBarFill(0, GUARD_FLOOR).size)).toBe(true);
   });
 
-  it('the blue part sits between the green and the red one', () => {
+  it('each colour covers its share of health: green down to BLUE_FROM, blue down to the protected red part', () => {
+    const f = bossBarFill(1, GUARD_FLOOR);
+    expect(f.greenEnd).toBeCloseTo(1 - BLUE_FROM, 5);
+    expect(f.redStart).toBeCloseTo(1 - GUARD_FLOOR, 5);
     expect(BLUE_FROM).toBeGreaterThan(GUARD_FLOOR);
     expect(BLUE_FROM).toBeLessThan(1);
   });
 
-  it('the bar paints the three colours and says the red part is the protected one', () => {
+  it('the bar is drawn as one gradient (green, blue, red) and says the red part is the protected one', () => {
     const css = read('../src/style.css');
-    for (const c of ['green', 'blue', 'red']) expect(css).toMatch(new RegExp(`#boss-bar \\.boss-hp\\[data-under="${c}"\\]|#boss-fill\\[data-color="${c}"\\]`));
+    expect(css).toMatch(/#boss-fill \{[^}]*linear-gradient\(90deg,[^}]*var\(--green-end\)[^}]*var\(--red-start\)/);
+    expect(css).not.toMatch(/data-under|data-color/);
+    expect(read('../src/ui.js')).toMatch(/bossBarFill\(share, guard\)/);
     expect(read('../src/locales/ko.js')).toMatch(/'boss\.guardTitle': '빨간/);
   });
 });
