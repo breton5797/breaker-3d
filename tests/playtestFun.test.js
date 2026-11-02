@@ -47,7 +47,7 @@ describe('level fixes', () => {
   });
 
   it('map bosses can take more damage per second (shorter boss-only tail)', () => {
-    expect(mapBossSpec('giza', 0, 3000).dps).toBeGreaterThanOrEqual(6);
+    expect(mapBossSpec('giza', 0).dps).toBeGreaterThanOrEqual(6);
   });
 });
 

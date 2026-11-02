@@ -33,7 +33,7 @@ export default {
   'aim.vertical': 'Tout droit · relâche pour lancer',
   'aim.angle': '{angle} · relâche pour lancer',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': 'La partie turquoise ne baisse que lorsque toutes les briques sont cassées',
+  'boss.guardTitle': 'La partie rouge ne baisse que lorsque toutes les briques sont cassées',
   'boss.tag': 'BOSS',
   'boss.tagWarning': 'ALERTE',
   'boss.tagDefeated': 'VAINCU',

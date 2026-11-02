@@ -33,7 +33,7 @@ export default {
   'aim.vertical': 'Recto hacia arriba · suelta para lanzar',
   'aim.angle': '{angle} · suelta para lanzar',
   'boss.prefix': 'JEFE · ',
-  'boss.guardTitle': 'La parte turquesa solo baja cuando rompes todos los ladrillos',
+  'boss.guardTitle': 'La parte roja solo baja cuando rompes todos los ladrillos',
   'boss.tag': 'JEFE',
   'boss.tagWarning': 'ALERTA',
   'boss.tagDefeated': 'DERROTADO',

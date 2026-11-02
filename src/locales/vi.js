@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Thẳng đứng · thả ra để bắn',
   'aim.angle': '{angle} · thả ra để bắn',
   'boss.prefix': 'TRÙM · ',
-  'boss.guardTitle': 'Phần xanh ngọc chỉ giảm khi đã phá hết gạch',
+  'boss.guardTitle': 'Phần màu đỏ chỉ giảm khi đã phá hết gạch',
   'boss.tag': 'TRÙM',
   'boss.tagWarning': 'CẢNH BÁO',
   'boss.tagDefeated': 'ĐÃ HẠ',

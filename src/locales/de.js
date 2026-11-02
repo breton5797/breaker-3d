@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Senkrecht · loslassen zum Abschuss',
   'aim.angle': '{angle} · loslassen zum Abschuss',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': 'Der türkise Teil sinkt erst, wenn alle Steine zerstört sind',
+  'boss.guardTitle': 'Der rote Teil sinkt erst, wenn alle Steine zerstört sind',
   'boss.tag': 'BOSS',
   'boss.tagWarning': 'ACHTUNG',
   'boss.tagDefeated': 'BESIEGT',

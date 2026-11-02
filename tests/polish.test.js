@@ -64,7 +64,7 @@ describe('toasts stay in their band', () => {
   });
 
   it('the compact verdict is measured with the bar in its normal form, so it cannot flip between calls', () => {
-    expect(ui()).toMatch(/bar\.classList\.remove\('lane'\);[^\n]*\n\s*const compact = boardTop - hud < \(bar\.offsetHeight \|\| 34\) \+ 12;/);
+    expect(ui()).toMatch(/bar\.classList\.remove\('tight'\);[^\n]*\n\s*const compact = boardTop - hud < \(bar\.offsetHeight \|\| 34\) \+ 12;/);
   });
 
   it('the neon payoff toasts (stun, shield down) shrink to the band like the others and drift no further than the band gap', () => {
@@ -77,9 +77,9 @@ describe('toasts stay in their band', () => {
   it('layoutOverlays knows the lane between the box floor and the paddle (the fallback spot on wide and short screens)', () => {
     expect(ui()).toMatch(/function layoutOverlays\(boardTop, boxBottom, paddleTop\)/);
     expect(main()).toMatch(/ui\.layoutOverlays\(\s*stage\.project\(COLS \/ 2, level\.box\.top \+ 1, 0\)\.y,\s*stage\.project\(COLS \/ 2, level\.box\.bottom, 0\)\.y,\s*stage\.project\(COLS \/ 2, PADDLE_Y \+ PADDLE_H, 0\)\.y,?\s*\)/);
-    // No room above the board (short landscape): the bar goes to the lane too, in its compact form.
-    expect(ui()).toMatch(/classList\.toggle\('lane', compact\)/);
-    expect(css()).toMatch(/#boss-bar\.lane \{/);
+    // No room above the board (short landscape): the bar stays up top in its compact form (owner, 2026-11-02).
+    expect(ui()).toMatch(/classList\.toggle\('tight', compact\)/);
+    expect(css()).toMatch(/#boss-bar\.tight \{/);
   });
 });
 

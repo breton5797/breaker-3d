@@ -33,7 +33,7 @@ export default {
   'aim.vertical': 'Reto para cima · solte para lançar',
   'aim.angle': '{angle} · solte para lançar',
   'boss.prefix': 'CHEFE · ',
-  'boss.guardTitle': 'A parte turquesa só diminui depois que todos os tijolos forem quebrados',
+  'boss.guardTitle': 'A parte vermelha só diminui depois que todos os tijolos forem quebrados',
   'boss.tag': 'CHEFE',
   'boss.tagWarning': 'ALERTA',
   'boss.tagDefeated': 'DERROTADO',

@@ -35,7 +35,7 @@ export default {
   'aim.vertical': '수직 · 손을 떼면 발사',
   'aim.angle': '{angle} · 손을 떼면 발사',
   'boss.prefix': 'BOSS · ',
-  'boss.guardTitle': '청록 구간은 벽돌을 다 깨야 줄어들어요',
+  'boss.guardTitle': '빨간 구간은 벽돌을 다 깨야 줄어들어요',
   'boss.tag': 'BOSS',
   'boss.tagWarning': 'WARNING',
   'boss.tagDefeated': 'DEFEATED',

@@ -78,16 +78,9 @@ describe('bricks come first: the boss cannot fall while the mural stands', () =>
   });
 });
 
-describe('map boss health follows the size of the mural', () => {
-  it('more bricks, more health', () => {
-    expect(mapBossSpec('giza', 0, 4000).hp).toBeGreaterThan(mapBossSpec('giza', 0, 1500).hp);
-  });
-
-  it('is above the old formula (50 + 0.8 per stage) for a normal mural', () => {
-    expect(mapBossSpec('giza', 0, 3000).hp).toBeGreaterThanOrEqual(80);
-  });
-
-  it('getLevel passes the stage brick count through', () => {
-    expect(getLevel(0).boss.hp).toBe(mapBossSpec('giza', 0, getLevel(0).bricks).hp);
+describe('map boss health follows the stage, not the size of the mural (owner, 2026-11-02)', () => {
+  it('the same on a small or a big mural, and still about the old start', () => {
+    expect(mapBossSpec('giza', 0).hp).toBeGreaterThanOrEqual(80);
+    expect(getLevel(0).boss.hp).toBe(mapBossSpec('giza', 0).hp);
   });
 });

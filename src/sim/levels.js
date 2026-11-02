@@ -449,7 +449,7 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
     box,
     holes: holes.map(({ pocket, ...h }) => h),
     // Every stage has a boss: the big one on every 10th, the map's own otherwise.
-    boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n, bricks),
+    boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n),
     bricks,
     bossName: slot.boss ? map.name : `${BOSS_PREFIX}${MAP_BOSSES[map.id]?.name ?? map.name}`,
     bossStage: slot.boss,

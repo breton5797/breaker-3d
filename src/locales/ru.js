@@ -31,7 +31,7 @@ export default {
   'aim.vertical': 'Прямо вверх · отпусти для запуска',
   'aim.angle': '{angle} · отпусти для запуска',
   'boss.prefix': 'БОСС · ',
-  'boss.guardTitle': 'Бирюзовая часть убывает, только когда разбиты все кирпичи',
+  'boss.guardTitle': 'Красная часть убывает, только когда разбиты все кирпичи',
   'boss.tag': 'БОСС',
   'boss.tagWarning': 'ВНИМАНИЕ',
   'boss.tagDefeated': 'ПОВЕРЖЕН',
