@@ -16,10 +16,10 @@ function withPipe(level) {
 }
 
 /** The autoplay bot (first-fruit.mjs) on these lines: seconds to the first fruit, or null. */
-function firstFruit(level, lines, seed, pipe = null) {
+function firstFruit(level, lines, seed, pipe = null, holes = level.holes) {
   const p = level.params;
   const li = level.index;
-  const w = createWorld(lines, { box: level.box, holes: level.holes, pipe, brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate, dropSpeed: p.dropSpeed, aggression: p.aggression, boss: level.boss, rng: mulberry32(li + 1 + seed * 1000) });
+  const w = createWorld(lines, { box: level.box, holes, pipe, brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate, dropSpeed: p.dropSpeed, aggression: p.aggression, boss: level.boss, rng: mulberry32(li + 1 + seed * 1000) });
   const dt = 1 / 60;
   for (let t = 0; t < CAP && w.state !== 'clear' && w.state !== 'over'; t += dt) {
     if (w.state === 'ready') launch(w);
@@ -45,7 +45,7 @@ for (let stage = from; stage <= to; stage++) {
   const made = withPipe(level);
   if (!made) { console.log(`${String(stage).padStart(5)}  (no floor hole with room for a pipe: skipped)`); continue; }
   const a = Array.from({ length: seeds }, (_, s) => firstFruit(level, level.lines, s));
-  const b = Array.from({ length: seeds }, (_, s) => firstFruit(level, made.lines, s, made.pipe));
+  const b = Array.from({ length: seeds }, (_, s) => firstFruit(level, made.lines, s, made.pipe, [...level.holes, made.hole]));
   all.plain.push(...a.map((x) => x ?? CAP));
   all.pipe.push(...b.map((x) => x ?? CAP));
   const [ma, mb] = [median(a), median(b)];

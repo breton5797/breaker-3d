@@ -470,7 +470,7 @@ export function getLevel(i, { slots, lane: forcedLane, pipe: withPipe = true } =
     params: p,
     lines,
     box,
-    holes: holes.map(({ pocket, ...h }) => h),
+    holes: [...holes.map(({ pocket, ...h }) => h), ...(piped ? [piped.hole] : [])], // the pipe's own mouth is an entrance too
     pipe: piped ? piped.pipe : null,
     // Every stage has a boss: the big one on every 10th, the map's own otherwise.
     boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n),

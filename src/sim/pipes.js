@@ -33,8 +33,9 @@ export const TIERS = Object.freeze([
 export const PIPE_W = 2; // open cells across
 export const PIPE_PATIENCE = 2; // seconds a ball rattles in the pipe before it turns (world.js pipePatience)
 export const PIPE_TURN = (23 * Math.PI) / 180; // how far it turns: an angle no wall pattern repeats on
-const FRUIT = /[ACDEIM]/; // fruit cells (one fine cell each)
 const isBrick = (ch) => ch === '#' || (ch >= 'a' && ch <= 'h');
+// A special block the pipe cuts through (fruit, coin, enemy unit, bomb...) is kept: it moves to the vault.
+const special = (ch) => ch !== '.' && ch !== 'S' && !isBrick(ch);
 const STEP = { U: [0, 1], D: [0, -1], L: [-1, 0], R: [1, 0] };
 const FLIP = { U: 'U', D: 'D', L: 'R', R: 'L' };
 const key = (x, y) => y * 1024 + x;
@@ -49,6 +50,19 @@ export function shapesFor(n) {
   const list = [...tier.shapes];
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return list;
+}
+
+/** Puts fruit `chars` on the plain bricks nearest `point` (outside the pipe), in place. */
+function placeNear(rows, box, floor, openSet, [px, py], chars) {
+  if (!chars.length) return;
+  const spots = [];
+  for (let y = floor + 1; y < box.top; y++) {
+    for (let x = box.left + 1; x < box.right; x++) {
+      if (isBrick(rows[ROWS - 1 - y][x]) && !openSet?.has(key(x, y))) spots.push([Math.hypot(x - px, y - py), x, y]);
+    }
+  }
+  spots.sort((a, b) => a[0] - b[0]);
+  chars.forEach((ch, i) => { if (spots[i]) rows[ROWS - 1 - spots[i][2]][spots[i][1]] = ch; });
 }
 
 /**
@@ -74,10 +88,11 @@ function trace(moves, hx, floor, w) {
  * @param {{left:number,right:number,top:number}} box
  * @param {{ cells: number[][] }} hole the floor hole
  * @param {Array<[string, number]>} moves the path (SHAPES entries)
- * @param {{ others?: Array<{cells:number[][]}>, w?: number, name?: string }} [opts]
- * @returns {{ lines: string[], pipe: object }|null}
+ * @param {{ others?: Array<{cells:number[][]}>, w?: number, name?: string, vault?: boolean }} [opts] vault: false
+ *   leaves the cut-away fruit to the caller (`lost`, with the pipe's `exit` point)
+ * @returns {{ lines: string[], pipe: object, lost: string[] }|null}
  */
-export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, name = '' } = {}) {
+export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, name = '', vault = true } = {}) {
   const [hx, floor] = hole.cells[0];
   const { open, head, dir } = trace(moves, hx, floor, w);
   const inside = (x, y) => x > box.left && x < box.right && y > floor && y < box.top;
@@ -93,7 +108,7 @@ export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, na
   const rows = lines.map((l) => [...l]);
   const at = (x, y) => rows[ROWS - 1 - y][x];
   const lost = [];
-  const put = (x, y, ch) => { if (FRUIT.test(at(x, y))) lost.push(at(x, y)); rows[ROWS - 1 - y][x] = ch; };
+  const put = (x, y, ch) => { if (special(at(x, y))) lost.push(at(x, y)); rows[ROWS - 1 - y][x] = ch; };
   for (const [x, y] of open) put(x, y, '.');
   for (const [x, y] of open) {
     for (let i = -1; i <= 1; i++) {
@@ -105,38 +120,45 @@ export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, na
       }
     }
   }
-  // The vault: the fruit the pipe cut away go to the plain bricks nearest past its far end (however far,
-  // so the stage keeps every fruit).
-  if (lost.length) {
-    const spots = [];
-    for (let y = floor + 1; y < box.top; y++) {
-      for (let x = box.left + 1; x < box.right; x++) {
-        if (isBrick(at(x, y)) && !openSet.has(key(x, y))) spots.push([Math.hypot(x - ex, y - ey), x, y]);
-      }
-    }
-    spots.sort((a, b) => a[0] - b[0]);
-    lost.forEach((ch, i) => { if (spots[i]) rows[ROWS - 1 - spots[i][2]][spots[i][1]] = ch; });
-  }
+  // The vault: the fruit the pipe cut away go to the plain bricks nearest past its far end (pipeFor may
+  // send some to a bypass hole first).
+  if (vault) placeNear(rows, box, floor, openSet, [ex, ey], lost);
   const end = new Set();
   for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) end.add(key(head[0] + i, head[1] + j));
-  return { lines: rows.map((r) => r.join('')), pipe: Object.freeze({ name, w, floor, mouth: hx, cells: openSet, end, length: open.length / (w * w) }) };
+  return {
+    lines: rows.map((r) => r.join('')),
+    pipe: Object.freeze({ name, w, floor, mouth: hx, cells: openSet, end, exit: [ex, ey], length: open.length / (w * w) }),
+    lost: vault ? [] : lost,
+  };
 }
 
+const HOLE_GAP = 10; // the pipe's own mouth keeps at least this far (cells) from the stage's holes
+
 /**
- * The pipe for stage n: its shapes in turn, each also mirrored, the first that fits; else null.
- * @returns {{ lines: string[], pipe: object }|null}
+ * The pipe for stage n, or null. It gets its own new mouth in the box floor, clear of the stage's holes:
+ * every hole and the fruit near it stay as they were (the stage keeps its measured difficulty) and the
+ * pipe is an extra, risky road to a vault. It takes the stage's shapes in turn, each also mirrored, at
+ * the floor spots farthest from the holes first; the first that fits wins. (2026-11-02: a pipe on the
+ * floor hole itself, even with a bypass hole beside it, cost the bot its first fruit on most runs.)
+ * @returns {{ lines: string[], pipe: object, hole: object }|null} hole: the pipe's mouth (an entrance too)
  */
 export function pipeFor(n, lines, box, holes) {
-  const hole = holes.find((h) => h.side === 'bottom');
-  if (!hole || !pipeStage(n)) return null;
-  const others = holes.filter((h) => h !== hole);
+  if (!pipeStage(n) || !holes.some((h) => h.side === 'bottom')) return null;
+  const floor = holes.find((h) => h.side === 'bottom').cells[0][1];
+  const gap = (x) => Math.min(...holes.flatMap((h) => h.cells.map(([c]) => Math.abs(c - x))));
+  const spots = [];
+  for (let x = box.left + 4; x < box.right - 3; x++) if (gap(x) >= HOLE_GAP) spots.push(x);
+  spots.sort((a, b) => gap(b) - gap(a) || a - b);
   const flipFirst = mulberry32(n * 53 + 11)() < 0.5;
   for (const name of shapesFor(n)) {
     const base = SHAPES[name];
     const mirrored = base.map(([d, k]) => [FLIP[d], k]);
     for (const moves of flipFirst ? [mirrored, base] : [base, mirrored]) {
-      const made = carvePipe(lines, box, hole, moves, { others, name });
-      if (made) return made;
+      for (const x of spots) {
+        const hole = { slot: 'pipe', side: 'bottom', size: 1, cells: [[x, floor]], inward: [0, 1] };
+        const made = carvePipe(lines, box, hole, moves, { others: holes, name });
+        if (made) return { lines: made.lines, pipe: made.pipe, hole };
+      }
     }
   }
   return null;
