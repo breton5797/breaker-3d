@@ -94,6 +94,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 14px; color: var(--muted); animation: blink 1.4s ease-in-out infinite; pointer-events: none; white-space: nowrap;
 }
 @keyframes blink { 50% { opacity: 0.45; } }
+/* First touch serve: a fingertip sweeping side to side above the hint (ui.placeHint places it). */
+.serve-tip { position: fixed; width: 120px; height: 40px; transform: translate(-50%, -100%); pointer-events: none; }
+.serve-tip-finger {
+  position: absolute; top: 6px; left: 0; width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  animation: tipSweep 1.6s ease-in-out infinite;
+}
+@keyframes tipSweep { 0%, 100% { transform: translateX(0) scale(0.9); } 50% { transform: translateX(92px) scale(1); } }
+/* Back to placing the paddle: bottom right, clear of the skill buttons on the left. */
+.serve-again {
+  position: fixed; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); min-width: 48px; min-height: 48px;
+  padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(12, 16, 36, 0.8);
+  color: #fff; font-weight: 800; font-size: 14px;
+}
+@media (prefers-reduced-motion: reduce) { .serve-tip-finger { animation-duration: 3s; } }
 #toasts { position: fixed; left: 0; right: 0; top: 26%; display: grid; justify-items: center; gap: 6px; pointer-events: none; }
 .toast {
   font-weight: 800; font-size: min(clamp(20px, 4.6vw, 32px), calc(var(--band, 112px) * 0.3)); letter-spacing: 0.02em; white-space: nowrap;

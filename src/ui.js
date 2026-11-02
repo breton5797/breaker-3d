@@ -123,8 +123,9 @@ export function createUI(h) {
   bind('btn-full-pause', h.onFullscreen);
   bind('skill-split', () => h.onSkill('split'));
   bind('skill-meteor', () => h.onSkill('meteor'));
+  bind('serve-again', h.onServeAgain);
   // Taps on HUD controls must not also launch the ball.
-  ['hud', 'skills', 'overlay', 'split-picker'].forEach((id) => $(id).addEventListener('pointerdown', (e) => e.stopPropagation()));
+  ['hud', 'skills', 'overlay', 'split-picker', 'serve-again'].forEach((id) => $(id).addEventListener('pointerdown', (e) => e.stopPropagation()));
 
   function show(screen) {
     stopSequence();
@@ -139,7 +140,7 @@ export function createUI(h) {
     if (!on) setFinale(null);
     $('skills').hidden = !on;
     if (!on) { clearTimeout(cardTimer); $('boss-card').hidden = true; }
-    if (!on) { $('hint').hidden = true; $('photo-credit').hidden = true; }
+    if (!on) { $('hint').hidden = true; $('photo-credit').hidden = true; setServe(false, false); }
   }
 
   function showTitle(save) {
@@ -544,6 +545,19 @@ export function createUI(h) {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
     if (text && el.textContent !== text) el.textContent = text;
+    const tip = $('serve-tip');
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y - 44}px`;
+  }
+
+  /**
+   * The two-step touch serve extras (serveInput.js).
+   * @param {boolean} chip show the "move paddle" button (aim step, finger up)
+   * @param {boolean} tip show the fingertip sweeping (the first serve on a touch device)
+   */
+  function setServe(chip, tip) {
+    $('serve-again').hidden = !chip;
+    $('serve-tip').hidden = !tip;
   }
 
   /** Red edges pulse in when the player is hurt (a darkening vignette, not a glow). */
@@ -785,6 +799,7 @@ export function createUI(h) {
     setStore,
     resumePlay,
     placeHint,
+    setServe,
     setFullscreen,
     setBoss,
     bossShield,

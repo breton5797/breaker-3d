@@ -33,6 +33,7 @@ export const UI_SOUNDS = Object.freeze({
   'btn-double-gold': 'confirm',
   'btn-remove-ads': 'open',
   'btn-restore': 'tap',
+  'serve-again': 'tap',
   'btn-credits': 'open',
   'btn-mute': 'toggle',
   'btn-vibe': 'toggle',

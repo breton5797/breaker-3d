@@ -49,9 +49,14 @@ export function createAimGuide(scene) {
   let lastKey = '';
 
   return {
-    /** @param {{ points: number[][], entered: boolean }|null} path null hides the guide */
-    show(path) {
+    /**
+     * @param {{ points: number[][], entered: boolean }|null} path null hides the guide
+     * @param {boolean} [dim] grey and faint: lifting the finger now cancels the serve (serveInput.js)
+     */
+    show(path, dim = false) {
       if (!path) { dots.count = 0; ring.visible = false; lastKey = ''; return; }
+      dots.material.opacity = dim ? 0.35 : 1;
+      ring.material.opacity = dim ? 0.3 : 0.9;
       const key = `${path.entered}:${path.points.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(';')}`;
       if (key === lastKey) return; // same aim as last frame: nothing to redraw
       lastKey = key;
