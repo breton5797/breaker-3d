@@ -67,6 +67,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: fixed; left: 16px; bottom: max(16px, env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 10px;
 }
+/* Portrait: side by side, so they fit the 96px band under the table (stage.js SKILLS_PX). */
+@media (orientation: portrait) { #skills { flex-direction: row; } }
 .skill {
   position: relative; width: 68px; height: 68px; border-radius: 20px;
   border: 1px solid var(--line); background: linear-gradient(180deg, rgba(40, 52, 110, 0.9), var(--panel-strong));

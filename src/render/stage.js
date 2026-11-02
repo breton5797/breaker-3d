@@ -10,7 +10,9 @@ import { paintedTexture } from './art.js';
 // Camera style (field of view, tilt, paddle follow, crop) depends on the screen shape: see viewFor.
 export const TILT = viewFor(2, 1).tilt; // wide-screen tilt; upright fruit cut-outs are turned to face it
 const HUD_TOP_PX = 84; // screen kept clear for the top HUD bar
-const SKILLS_PX = 140; // ...and for the skill buttons under the table on portrait screens
+// ...and for the skill buttons under the table on portrait screens: one row of 68px buttons
+// (style.css) plus their 16px gap from the edge; was 140 for a stacked pair (owner, 2026-11-02).
+const SKILLS_PX = 96;
 
 // No glow, bloom or light bleed: matte surfaces lit by a cool sky, a warm
 // angled key light and a soft overhead spot that falls off into the room.
@@ -228,6 +230,7 @@ export function createStage(canvas) {
       align: view.align,
     });
     room.setDistance(framing.dist);
+    room.setTall(w < h);
     camera.updateProjectionMatrix();
   }
   resize();
