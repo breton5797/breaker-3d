@@ -56,7 +56,14 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 광고는 이어하기·골드 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
 
 **이번 버전의 새로운 기능**
-BREAKER 3D 첫 출시!
+1.0.1 (500자 이내)
+- 10스테이지부터 길고 구불구불한 강철 관이 등장! 관 끝까지 가면 과일 금고가 열려요
+- 공·블록이 더 커지고 화면을 꽉 채워 보기 편해졌어요
+- 첫 발사: 끌어서 바 위치를 정하고, 다시 눌러 좌우로 끌어 조준
+- 보스 에너지바를 화면 위로 옮기고 녹색→파랑→빨강으로 줄어들게 바꿨어요
+- 보스 빔이 안전 구역의 패들을 맞히던 문제를 고쳤어요
+
+1.0.0: BREAKER 3D 첫 출시!
 
 ---
 
@@ -98,7 +105,14 @@ One-handed portrait play, no sign-up, plays offline, 14 languages.
 The only ads are optional rewarded ads you choose to watch for a revive or double gold. Buy "Remove Ads" to get the same rewards without ads.
 
 **What's new**
-First release of BREAKER 3D!
+1.0.1 (500 chars max)
+- From stage 10, long winding steel pipes: make it to the end and the fruit vault opens
+- Bigger balls and bricks, and the board fills the screen
+- First shot: drag to place the paddle, then press and drag sideways to aim
+- The boss health bar moved to the top and drains green, blue, then red
+- Fixed the boss beam hitting a paddle standing in the safe gap
+
+1.0.0: First release of BREAKER 3D!
 
 ---
 
