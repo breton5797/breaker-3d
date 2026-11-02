@@ -45,7 +45,7 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 맵의 분위기에 맞는 보스 40종이 움직이며 공격해 옵니다. 갑옷을 깨고 기절시킨 뒤 마지막 일격을 날리세요. 10판마다 거대 보스가 등장합니다.
 
 ● 조준하고, 터뜨리고
-첫 발은 손가락으로 끌어 조준하고 떼면 발사. 모은 골드로 공 분열(2~5배)과 메테오 스킬을 사서 위기를 넘기세요.
+첫 발은 끌어서 바 위치를 정하고, 다시 눌러 좌우로 끌어 조준한 뒤 떼면 발사. 모은 골드로 공 분열(2~5배)과 메테오 스킬을 사서 위기를 넘기세요.
 
 ● 모으는 재미
 업적, 별 상자, 연속 출석 보너스, 보스 도감과 여행 앨범까지.
@@ -94,7 +94,7 @@ Brick murals of Himeji Castle, Gyeongbokgung, the Brandenburg Gate, the Grand Ca
 40 bosses that match their maps move around and attack. Break their armour, stun them, then land the final blow. A giant boss arrives every 10 stages.
 
 ● Aim, launch, explode
-Drag to aim your first shot and release to fire. Spend the gold you collect on Split (x2–x5) and Meteor skills when things get tight.
+For your first shot, drag to place the paddle, then press and drag sideways to aim and release to fire. Spend the gold you collect on Split (x2–x5) and Meteor skills when things get tight.
 
 ● Lots to collect
 Achievements, star chests, daily streak bonuses, a boss dex and a travel album.
