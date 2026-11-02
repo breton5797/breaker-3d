@@ -12,12 +12,13 @@ const world = (n = 0) => {
 };
 
 describe('ball feel', () => {
+  // 54 and 72 cells/s on the 96-wide field; scaled to the 88-wide field (bigger cells) for the same on-screen pace.
   it('serves at 1.5x the old pace (54); inside the box a ball flies at 72, and slows again outside', () => {
-    expect(BALL_SPEED).toBe(54);
-    expect(BALL_SPEED_INSIDE).toBe(72);
+    expect(BALL_SPEED).toBeCloseTo((54 * COLS) / 96, 9);
+    expect(BALL_SPEED_INSIDE).toBeCloseTo((72 * COLS) / 96, 9);
     const w = world();
     launch(w, 0);
-    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(54, 6);
+    expect(Math.hypot(w.balls.vx[1], w.balls.vy[1])).toBeCloseTo(BALL_SPEED, 6);
     // Drop a ball inside the box and one outside: after a step each flies at its zone's pace.
     const box = w.grid.box;
     const inX = (box.left + box.right) / 2;
@@ -27,8 +28,8 @@ describe('ball feel', () => {
     addBall(w.balls, inX, 12, 0, 72, 0);
     const [a, b] = [w.balls.n - 2, w.balls.n - 1];
     stepWorld(w, 1 / 120);
-    expect(Math.hypot(w.balls.vx[a], w.balls.vy[a])).toBeCloseTo(72, 4);
-    expect(Math.hypot(w.balls.vx[b], w.balls.vy[b])).toBeCloseTo(54, 4);
+    expect(Math.hypot(w.balls.vx[a], w.balls.vy[a])).toBeCloseTo(BALL_SPEED_INSIDE, 4);
+    expect(Math.hypot(w.balls.vx[b], w.balls.vy[b])).toBeCloseTo(BALL_SPEED, 4);
   });
 
   it('a ball bouncing off the steel box or the field wall makes a wall knock (with where it hit)', () => {

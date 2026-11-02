@@ -198,7 +198,12 @@ const CAVITY = 8; // empty fine rows kept above the box floor so an entering bal
 const LANES = [1, 2]; // open fine columns between each side wall of the field and the box (owner: 1-2, random per stage)
 const TOP_LANE = 6; // open fine rows between the ceiling and the box
 const POCKET = 6; // fine cells kept clear behind every hole
-const FRUIT_PER_BRICKS = 1100; // coarse plain bricks of an average mural: denser ones get more fruit
+// Coarse rows a 44-row mural is squeezed to on the 88 x 118 field (owner, 2026-11-02): the picture keeps
+// its shape (it is narrowed to 41-42 columns too) and 24 rows stay open between the paddle and the box.
+const MURAL_ROWS = 40;
+// Coarse plain bricks of an average mural: denser ones get more fruit. 1,100 on the 46 x 44 murals of the
+// 96-wide field, scaled to the 42 x 40 ones of the 88-wide field so a mosaic keeps its extra fruit.
+const FRUIT_PER_BRICKS = Math.round(1100 * (42 * 40) / (46 * 44));
 
 /** @param {number} n stage index @returns {number} its side lane width (1 or 2), the same every time */
 export const laneFor = (n) => LANES[Math.floor(mulberry32(n * 97 + 13)() * LANES.length)];
@@ -325,6 +330,20 @@ function narrow(lines, width) {
   }).join(''));
 }
 
+/** Squeezes a mural to `height` rows the same way (each target row keeps each column's strongest source cell). */
+function shorten(lines, height) {
+  if (lines.length <= height) return lines;
+  return Array.from({ length: height }, (_, i) => {
+    const a = Math.floor((i * lines.length) / height);
+    const b = Math.max(a + 1, Math.floor(((i + 1) * lines.length) / height));
+    return [...lines[a]].map((ch, x) => {
+      let best = ch;
+      for (let k = a + 1; k < b; k++) if (rank(lines[k][x]) > rank(best)) best = lines[k][x];
+      return best;
+    }).join('');
+  });
+}
+
 /**
  * Draws the mural with thicker outlines: every open cell right beside a plain
  * brick (left, right, above or below) takes that brick's colour. More bricks, same picture;
@@ -418,7 +437,7 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
   const slot = stageSlot(n);
   const map = slot.boss ? bossAt(slot.bossIndex) : landmarkAt(slot.content);
   const lane = forcedLane ?? laneFor(n);
-  const mural = thicken(narrow(map.build(), innerCols(lane) / SCALE));
+  const mural = thicken(shorten(narrow(map.build(), innerCols(lane) / SCALE), MURAL_ROWS));
   const innerRows = mural.length * SCALE;
   const box = BOX(TOP_LANE + innerRows + 2, lane);
   const chosen = slots ? slots.map((name) => SLOTS.find((s) => s.slot === name)) : pickSlots(n, p.holeCount, p.holeSize, slot.boss);

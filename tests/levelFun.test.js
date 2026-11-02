@@ -277,7 +277,8 @@ describe('coins and the stage start', () => {
     const g = parseLevel(lvl.lines, { box: lvl.box, holes: lvl.holes });
     let bombs = 0;
     for (let i = 0; i < g.cells.length; i++) if (g.cells[i] === CELL.BOMB) bombs++;
-    expect(bombs).toBeGreaterThanOrEqual(7);
+    // 7 on the 96 x 128 field; squeezing the mural to 40 rows (bigger cells) merges two of them.
+    expect(bombs).toBeGreaterThanOrEqual(6);
   });
 });
 

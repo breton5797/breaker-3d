@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { frameTable, placeCamera, viewFor, framingBox } from '../src/render/framing.js';
+import { COLS, ROWS, PADDLE_Y } from '../src/sim/constants.js';
+import { getLevel } from '../src/sim/levels.js';
 
 const BOX = { halfW: 49.4, near: -64, far: 65.4, nearZ: 0, farZ: 2.2 };
 
@@ -71,20 +73,23 @@ describe('table framing', () => {
 });
 
 describe('per-screen view (tall phones zoom onto the play field)', () => {
-  const STEEL = { left: -41, right: 42, bottom: -14, top: 58 }; // the box (world units), rows 50..122
+  // The steel box of stage 1 in world units (field centred on the origin), whatever the grid size.
+  const b = getLevel(0).box;
+  const STEEL = { left: b.left - COLS / 2, right: b.right + 1 - COLS / 2, bottom: b.bottom - ROWS / 2, top: b.top + 1 - ROWS / 2 };
   const HUD = 84;
-  const SKILLS = 140;
-  const ROWS_HALF = 64;
+  const SKILLS = 96; // stage.js SKILLS_PX
+  const ROWS_HALF = ROWS / 2;
+  const MID = COLS / 2;
 
   /** Camera for a screen, with the paddle (centre px, sim x) pushing the sway. */
-  function shoot(w, h, paddleSimX = 48) {
+  function shoot(w, h, paddleSimX = MID) {
     const v = viewFor(w, h);
     const f = frameTable({
       fov: v.fov, aspect: w / h, tilt: v.tilt, box: framingBox(v), margin: v.margin,
       insetTop: HUD / h, insetBottom: (w < h ? SKILLS : 12) / h, align: v.align,
     });
     const cam = new THREE.PerspectiveCamera(v.fov, w / h, 2, 1500);
-    placeCamera(cam, f, v.tilt, (paddleSimX - 48) * v.sway);
+    placeCamera(cam, f, v.tilt, (paddleSimX - MID) * v.sway);
     cam.updateMatrixWorld();
     const px = (x, y, z = 1) => { const p = new THREE.Vector3(x, y, z).project(cam); return { x: ((p.x + 1) / 2) * w, y: ((1 - p.y) / 2) * h }; };
     return { v, px };
@@ -112,10 +117,10 @@ describe('per-screen view (tall phones zoom onto the play field)', () => {
 
     for (const half of [4, 8]) {
       it(`${w}x${h}: a paddle (half width ${half}) pushed to either wall stays fully visible`, () => {
-        const right = shoot(w, h, 96 - half);
-        expect(right.px(48, 6 - 64 + 0.5, 0.5).x).toBeLessThanOrEqual(w);
+        const right = shoot(w, h, COLS - half);
+        expect(right.px(MID, PADDLE_Y - ROWS_HALF + 0.5, 0.5).x).toBeLessThanOrEqual(w);
         const left = shoot(w, h, half);
-        expect(left.px(-48, 6 - 64 + 0.5, 0.5).x).toBeGreaterThanOrEqual(0);
+        expect(left.px(-MID, PADDLE_Y - ROWS_HALF + 0.5, 0.5).x).toBeGreaterThanOrEqual(0);
       });
     }
   }
@@ -133,12 +138,12 @@ describe('per-screen view (tall phones zoom onto the play field)', () => {
         cam.updateMatrixWorld();
         // Ray through the screen edge (1px in) at the paddle's screen height, onto the paddle plane.
         const ray = new THREE.Raycaster();
-        const paddleY = new THREE.Vector3(0, 6 - 64, 0.5).project(cam).y;
+        const paddleY = new THREE.Vector3(0, PADDLE_Y - ROWS_HALF, 0.5).project(cam).y;
         ray.setFromCamera(new THREE.Vector2(side * (1 - 2 / w), paddleY), cam);
         const hit = new THREE.Vector3();
         ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.5), hit);
-        const simX = 48 + hit.x * v.reach;
-        if (side > 0) expect(simX).toBeGreaterThanOrEqual(96 - 9);
+        const simX = MID + hit.x * v.reach;
+        if (side > 0) expect(simX).toBeGreaterThanOrEqual(COLS - 9);
         else expect(simX).toBeLessThanOrEqual(9);
       }
     });
@@ -154,7 +159,7 @@ describe('per-screen view (tall phones zoom onto the play field)', () => {
 
   it('wide screens keep the full board and the stronger perspective', () => {
     const v = viewFor(1440, 900);
-    expect(framingBox(v).halfW).toBeGreaterThan(49);
+    expect(framingBox(v).halfW).toBeGreaterThan(COLS / 2); // the rails too
     expect(v.tilt).toBeGreaterThan(viewFor(390, 844).tilt);
   });
 });
