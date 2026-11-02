@@ -3,6 +3,7 @@ import { COLS as GRID_COLS, ROWS, CELL, SPLIT_COUNT, SPLIT_USES, UNIT_TIERS, UNI
 import { LEVELS, landmarkAt, bossAt, toLines, BOSS_PREFIX } from './maps.js';
 import { MAP_BOSSES, mapBossSpec } from './mapBosses.js';
 import { stageSlot } from './sequence.js';
+import { carvePipe, pipeStage } from './pipes.js';
 
 // Stages are designed on a coarse grid (maps.js), narrowed to fit the box, then
 // upscaled SCALE times to the fine game grid.
@@ -431,7 +432,7 @@ const bossSpec = (kind, n) => ({
   tier: Math.min(10, 2 + Math.floor(n / 25)), // stun (and later lethal) strength of its attacks
 });
 
-export function getLevel(i, { slots, lane: forcedLane } = {}) {
+export function getLevel(i, { slots, lane: forcedLane, pipe: withPipe = true } = {}) {
   const n = stageIndex(i);
   const p = stageParams(n);
   const slot = stageSlot(n);
@@ -451,8 +452,12 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
   const fed = seedCoins(seedItems(coarse, items, p.bigItemShare, n + 101, near), p.coins, n + 401);
   // A boss does the shooting itself, so its stage has no enemy units.
   const seeded = slot.boss ? fed : seedUnits(fed, p.unitTop, p.unitCount, n + 701);
-  const lines = frame(upscale(seeded), box, holes);
-  const bricks = lines.reduce((sum, line) => sum + [...line].filter((ch) => ch !== '.' && ch !== 'S').length, 0);
+  const framed = frame(upscale(seeded), box, holes);
+  // Stages 10-34: an L pipe over the floor hole (pipes.js), when the bend has room.
+  const floorHole = withPipe && pipeStage(n) ? holes.find((h) => h.side === 'bottom') : null;
+  const piped = floorHole ? carvePipe(framed, box, floorHole) : null;
+  const lines = piped ? piped.lines : framed;
+  const bricks =lines.reduce((sum, line) => sum + [...line].filter((ch) => ch !== '.' && ch !== 'S').length, 0);
   return {
     index: n,
     id: map.id, // names.js shows it in the player's language
@@ -467,6 +472,7 @@ export function getLevel(i, { slots, lane: forcedLane } = {}) {
     lines,
     box,
     holes: holes.map(({ pocket, ...h }) => h),
+    pipe: piped ? piped.pipe : null,
     // Every stage has a boss: the big one on every 10th, the map's own otherwise.
     boss: slot.boss ? bossSpec(map.id, n) : mapBossSpec(map.id, n),
     bricks,

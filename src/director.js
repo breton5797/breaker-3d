@@ -190,6 +190,10 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           // The coin is on its way down: a glint and a blip, so the eye knows to catch it.
           if (coinDrops++ < COIN_DROPS) { fx.chip(e.c, e.r); audio.coinDrop(); }
           break;
+        case 'pipe':
+          // A ball went into the pipe: only a small click. "들어갔다!" waits for the far end ('enter').
+          audio.tap();
+          break;
         case 'reenter':
           // Back into the box after a dry spell: a whoosh (the "들어갔다!" toast is for the first time only).
           audio.whoosh();
