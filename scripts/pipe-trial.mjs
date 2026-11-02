@@ -22,13 +22,16 @@ function put(rows, x, y, ch) { rows[ROWS - 1 - y][x] = ch; }
  * Carves a pipe above the floor hole at (hx, floor): straight up (I), or up then right (L).
  * @returns {{ lines: string[], end: (x:number, y:number) => boolean, inPipe: (x:number, y:number) => boolean }}
  */
-function carve(lines, hx, floor, shape) {
+export function carve(lines, hx, floor, shape) {
   const rows = lines.map((l) => [...l]);
   const x0 = hx - 1; // open columns x0..x0+W-1, walls at x0-1 and x0+W
   const y0 = floor + 1;
   const UP = shape === 'I' ? 26 : 14; // rows the vertical part climbs
   const RUN = 16; // cells the L's sideways part runs
   const open = [];
+  // The mouth is as wide as the pipe: with only the 1-cell floor hole open, a ball coming back down
+  // mostly hit the steel beside it and could loop forever between the floor, the cap and the walls.
+  for (let x = x0; x < x0 + W; x++) put(rows, x, floor, '.');
   for (let y = y0; y < y0 + UP; y++) {
     for (let x = x0; x < x0 + W; x++) { put(rows, x, y, '.'); open.push([x, y]); }
     put(rows, x0 - 1, y, 'S');
@@ -51,7 +54,7 @@ function carve(lines, hx, floor, shape) {
 }
 
 /** One ball off the paddle at hit offset `off` (-1..1), stepped at `dt` until it settles. */
-function shoot(level, pipe, off, x, dt) {
+export function shoot(level, pipe, off, x, dt) {
   const w = createWorld(pipe.lines, { box: level.box, holes: level.holes, boss: null, rng: mulberry32(1) });
   w.state = 'play';
   w.balls.n = 0;
