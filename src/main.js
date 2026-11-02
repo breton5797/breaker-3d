@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { predictPath } from './sim/aim.js';
 import { aimStep } from './aimInput.js';
+import { SERVE_START, serveDown, serveMove, serveUp } from './serveInput.js';
 import { GUARD_FLOOR } from './sim/boss.js';
 import { getLevel } from './sim/levels.js';
 import { t, detectLanguage, setLanguage } from './i18n.js';
@@ -129,6 +130,7 @@ const ui = createUI({
   onRevive: () => rewardThen('btn-revive', 'revive', reviveRun),
   onDoubleGold: () => rewardThen('btn-double-gold', 'doubleGold', doubleClearGold),
   onRemoveAds: () => buyRemoveAds(),
+  onServeAgain: () => { serve = { ...serve, phase: 'place', id: null, cancel: false }; }, // back to placing, the angle kept
   onRestore: () => restorePurchases(),
   onPause: () => togglePause(),
   onResume: () => togglePause(),
@@ -247,6 +249,7 @@ function startLevel(i) {
   stageAchievements = [];
   heldAchievements = [];
   picking = false;
+  serve = SERVE_START;
   ui.showSplitPicker(null);
   run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
   level = getLevel(i);
@@ -354,7 +357,7 @@ function bankLiveGold() {
 
 function togglePause() {
   // Sounds here (not on the buttons) so P / Esc / window blur get them too.
-  if (mode === 'play') { mode = 'paused'; aim = NO_AIM; closePicker(); haptics.stop(); audio.pause(); ui.showPause(true); }
+  if (mode === 'play') { mode = 'paused'; aim = NO_AIM; serve = { ...serve, id: null, cancel: false }; closePicker(); haptics.stop(); audio.pause(); ui.showPause(true); }
   else if (mode === 'paused') { mode = 'play'; audio.resume(); ui.showPause(false); }
 }
 
@@ -533,8 +536,28 @@ function aimAt(e) {
   aim = { ...aim, angle: step.angle };
 }
 
+// Fingers (and pens) serve in two steps instead (serveInput.js): drag to place the paddle and lift
+// (no shot), then press and drag sideways to aim and lift to fire. The mouse keeps the way above.
+let serve = SERVE_START;
+let touchServe = window.matchMedia?.('(pointer: coarse)').matches ?? false; // last input was a finger or pen
+const servePoint = (e) => ({ id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() });
+
+/** Serves at `angle`; the first touch serve also retires the how-to fingertip. */
+function serveAt(angle) {
+  if (mode !== 'play' || !launch(world, angle)) return;
+  if (touchServe && !save.serveTip) { save = { ...save, serveTip: true }; persist(); }
+}
+
 window.addEventListener('pointermove', (e) => {
   if (mode !== 'play') return;
+  if (touchServe && world.state === 'ready') {
+    if (e.pointerId !== serve.id) return; // a finger that started on a button, or a second finger
+    const step = serveMove(serve, servePoint(e), window.innerWidth);
+    serve = step.state;
+    const x = step.movePaddle ? pointerToField(e) : null;
+    if (x !== null) setPaddleX(world, x);
+    return;
+  }
   if (aim.held) { if (e.pointerId === aim.id && world.state === 'ready') aimAt(e); return; }
   const x = pointerToField(e);
   if (x !== null) setPaddleX(world, x);
@@ -543,7 +566,9 @@ window.addEventListener('pointerdown', (e) => {
   audio.unlock();
   if (mode !== 'play') return;
   if (world.state === 'ready') {
-    if (aim.held) return; // a second finger never takes over (or resets) the aim
+    if (aim.held || serve.id !== null) return; // a second finger never takes over (or resets) the aim
+    touchServe = e.pointerType !== 'mouse';
+    if (touchServe) { serve = serveDown(serve, servePoint(e)); return; }
     aim = { angle: 0, held: true, id: e.pointerId };
     aimAt(e);
     return;
@@ -552,12 +577,21 @@ window.addEventListener('pointerdown', (e) => {
   if (x !== null) setPaddleX(world, x);
 });
 window.addEventListener('pointerup', (e) => {
+  if (e.pointerId === serve.id) {
+    const step = serveUp(serve, servePoint(e));
+    serve = step.state;
+    if (step.fire !== null) serveAt(step.fire);
+    return;
+  }
   if (!aim.held || e.pointerId !== aim.id) return; // another finger (e.g. one that tapped a button) lifting
   const { angle } = aim;
   aim = NO_AIM;
-  if (mode === 'play') launch(world, angle);
+  serveAt(angle);
 });
-window.addEventListener('pointercancel', (e) => { if (e.pointerId === aim.id) aim = NO_AIM; });
+window.addEventListener('pointercancel', (e) => {
+  if (e.pointerId === aim.id) aim = NO_AIM;
+  if (e.pointerId === serve.id) serve = { ...serve, id: null, cancel: false }; // never a shot
+});
 window.addEventListener('keydown', (e) => {
   audio.unlock();
   keys.add(e.code);
@@ -572,7 +606,10 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (mode !== 'play') return;
-  if (e.code === 'Space') { e.preventDefault(); launch(world, aim.angle); }
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (launch(world, touchServe ? serve.angle : aim.angle)) serve = SERVE_START;
+  }
   if (e.code === 'Digit1' || e.code === 'KeyQ') trySkill('split');
   if (e.code === 'Digit2' || e.code === 'KeyW') trySkill('meteor');
 });
@@ -601,12 +638,22 @@ function aimText(angle, held) {
   return t('aim.angle', { angle: angle < 0 ? `◀ ${deg}°` : `${deg}° ▶` });
 }
 
+/** The touch serve hint for each step (serveInput.js). */
+function serveText() {
+  if (serve.phase === 'place') return `◀ ${t('serve.place')} ▶`;
+  if (serve.id === null) return t('serve.aim');
+  return serve.cancel ? t('serve.cancel') : aimText(serve.angle, true);
+}
+
 function hud() {
   const g = world.grid;
-  if (world.state === 'ready') {
+  const ready = world.state === 'ready';
+  if (ready) {
     const at = stage.project(COLS / 2, PADDLE_Y + HINT_ABOVE, 1);
-    ui.placeHint(at.x, at.y, aimText(aim.angle, aim.held));
+    ui.placeHint(at.x, at.y, touchServe ? serveText() : aimText(aim.angle, aim.held));
   }
+  // The touch extras: "move paddle" while waiting to aim, and the fingertip until the first touch serve.
+  ui.setServe(touchServe && ready && serve.phase === 'aim' && serve.id === null, touchServe && ready && !save.serveTip);
   ui.setHud({
     score: world.score,
     balls: world.state === 'ready' ? 1 : world.balls.n,
@@ -664,7 +711,9 @@ function step(now) {
       else if (world.state === 'over') finishLevel(false);
     }
     const resting = world.state === 'ready' ? { x: world.paddle.x, y: PADDLE_Y + PADDLE_H / 2 + BALL_R } : null;
-    aimGuide.show(mode === 'play' && world.state === 'ready' ? predictPath(world, aim.angle) : null);
+    // Touch: no guide while placing the paddle, a faint one while a lift would cancel.
+    const guiding = mode === 'play' && world.state === 'ready' && (!touchServe || serve.phase === 'aim');
+    aimGuide.show(guiding ? predictPath(world, touchServe ? serve.angle : aim.angle) : null, touchServe && serve.cancel);
     balls3d.update(world.balls, resting);
     trails3d.update(world.balls);
     drops3d.update(world.drops, now / 1000);
@@ -693,6 +742,7 @@ function step(now) {
 function showMenu() {
   mode = 'title';
   aim = NO_AIM;
+  serve = SERVE_START;
   picking = false;
   ui.showSplitPicker(null);
   aimGuide.show(null);
