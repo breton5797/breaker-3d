@@ -190,11 +190,6 @@ export function createDirector({ stage, bricks, fx, audio, ui, units3d, coins3d,
           // The coin is on its way down: a glint and a blip, so the eye knows to catch it.
           if (coinDrops++ < COIN_DROPS) { fx.chip(e.c, e.r); audio.coinDrop(); }
           break;
-        case 'assist':
-          // The opening help added a ball off the paddle: a small ring says so (it used to be silent).
-          fx.split(e.x, PADDLE_Y + 1, 2);
-          audio.split(2);
-          break;
         case 'reenter':
           // Back into the box after a dry spell: a whoosh (the "들어갔다!" toast is for the first time only).
           audio.whoosh();

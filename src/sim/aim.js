@@ -1,5 +1,5 @@
 import { COLS, ROWS, CELL, BALL_R, BALL_SPEED, PADDLE_Y, PADDLE_H } from './constants.js';
-import { aimBall, MIN_VY } from './cells.js';
+import { aimBall } from './cells.js';
 import { isInside } from './box.js';
 
 // The aim guide: where a serve at a given angle will fly, worked out with the
@@ -7,7 +7,10 @@ import { isInside } from './box.js';
 // gets into the box, comes back down to the paddle, or reaches the ceiling
 // (which kicks balls off at a random angle, so the guide stops there).
 
-export const AIM_MAX = Math.acos(MIN_VY); // steepest aim a ball can fly (radians from straight up)
+// A serve aims anywhere across 180 degrees (owner, 2026-11-02), stopping 2 degrees short of flat:
+// a perfectly flat ball would slide along the paddle line forever and never rise.
+export const AIM_MAX = (88 * Math.PI) / 180; // radians from straight up, either side
+export const SERVE_MIN_VY = Math.cos(AIM_MAX); // the share of speed an aimed serve keeps vertical
 export const AIM_FAN = 0.04; // an aimed serve's three balls fly this close together (radians)
 const STEP = 0.3; // cells per trace step (a real ball moves at most 0.4 per substep)
 // A frame splits a ball's move into equal substeps of 0.25-0.4 cells depending on the frame rate
@@ -36,7 +39,7 @@ export function predictPath(w, angle) {
 /** One trace of the flight with a fixed step size (cells). */
 function trace(w, angle, step) {
   const ball = { x: [w.paddle.x], y: [PADDLE_TOP + BALL_R + 0.01], vx: [0], vy: [BALL_SPEED] };
-  aimBall(ball, 0, angle);
+  aimBall(ball, 0, angle, BALL_SPEED, SERVE_MIN_VY);
   let x = ball.x[0];
   let y = ball.y[0];
   let vx = ball.vx[0];

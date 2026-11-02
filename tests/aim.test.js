@@ -43,9 +43,29 @@ describe('aimed serve', () => {
     expect(w.state).toBe('play');
   });
 
-  it('the aim is limited to what a ball can fly (never flatter than the game allows)', () => {
-    expect(AIM_MAX).toBeGreaterThan(1);
+  it('the serve aims anywhere across 180 degrees, short of flat (a flat ball would never rise)', () => {
+    expect(AIM_MAX).toBeGreaterThanOrEqual((87 * Math.PI) / 180);
     expect(AIM_MAX).toBeLessThan(Math.PI / 2);
+  });
+
+  it('a near-flat aimed serve flies at that angle and still climbs', () => {
+    for (const side of [-1, 1]) {
+      const w = world(0);
+      launch(w, side * AIM_MAX);
+      for (let k = 0; k < w.balls.n; k++) {
+        const a = Math.atan2(w.balls.vx[k], w.balls.vy[k]);
+        expect(Math.abs(a)).toBeGreaterThan((85 * Math.PI) / 180);
+        expect(w.balls.vy[k]).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('the guide follows a near-flat serve the same way', () => {
+    const w = world(0);
+    const path = predictPath(w, AIM_MAX);
+    const [x0, y0] = path.points[0];
+    const [x1, y1] = path.points[1];
+    expect(Math.atan2(x1 - x0, y1 - y0)).toBeGreaterThan((85 * Math.PI) / 180);
   });
 });
 

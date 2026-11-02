@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
-  COLS, ROWS, CELL, ITEM_MULT, PADDLE_Y, PADDLE_H, BALL_R, PRE_ENTRY_MAX, REENTRY_ASSIST_AFTER, COIN_FALL, SWEEP_GAP, BEAM_RATE,
+  COLS, ROWS, CELL, ITEM_MULT, PADDLE_Y, PADDLE_H, BALL_R, COIN_FALL, SWEEP_GAP, BEAM_RATE,
   LONE_BALLS, LONE_PACE, UNIT_TIERS, UNIT_CHARS, BEAM_SHARE,
 } from '../src/sim/constants.js';
 import { getLevel, stageParams, parseLevel } from '../src/sim/levels.js';
@@ -64,28 +64,17 @@ describe('first fruit near the holes', () => {
   });
 });
 
-describe('the lonely ball: help after the entrance too', () => {
-  it(`once the box has had no ball for ${REENTRY_ASSIST_AFTER} s, a paddle return adds a ball again (up to ${PRE_ENTRY_MAX})`, () => {
+describe('the lonely ball: no extra balls off the paddle', () => {
+  it('even after a long dry spell a paddle return adds no ball (owner, 2026-11-02)', () => {
     const w = world(0);
     launch(w);
     w.entered = true;
     w.balls.n = 0;
     addBall(w.balls, w.paddle.x, PADDLE_TOP + BALL_R + 0.3, 0, -20, 0); // coming down onto the paddle
-    w.outsideFor = REENTRY_ASSIST_AFTER + 0.1;
-    stepWorld(w, 1 / 60);
-    expect(w.balls.n).toBe(2);
-    expect(drainEvents(w).some((e) => e.t === 'assist')).toBe(true);
-  });
-
-  it('right after a ball leaves the box there is no assist yet (it has to be a real dry spell)', () => {
-    const w = world(0);
-    launch(w);
-    w.entered = true;
-    w.balls.n = 0;
-    addBall(w.balls, w.paddle.x, PADDLE_TOP + BALL_R + 0.3, 0, -20, 0);
-    w.outsideFor = 0.5;
+    w.outsideFor = 30;
     stepWorld(w, 1 / 60);
     expect(w.balls.n).toBe(1);
+    expect(drainEvents(w).some((e) => e.t === 'assist')).toBe(false);
   });
 
   it('a ball getting back into the box after a dry spell is announced (reenter), once per spell', () => {
