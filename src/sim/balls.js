@@ -15,6 +15,7 @@ export function createBalls(cap = MAX_BALLS) {
     vy: new Float32Array(cap),
     fire: new Float32Array(cap), // seconds of fire left
     lastCell: new Int32Array(cap), // last gate passed, so a gate fires once per pass
+    piped: new Float32Array(cap), // seconds spent in the stage's pipe on this visit (pipes.js)
   };
 }
 
@@ -28,6 +29,7 @@ export function addBall(b, x, y, vx, vy, fire = 0) {
   b.vy[i] = vy;
   b.fire[i] = fire;
   b.lastCell[i] = -1;
+  b.piped[i] = 0;
   return true;
 }
 
@@ -41,4 +43,5 @@ export function removeBall(b, i) {
   b.vy[i] = b.vy[last];
   b.fire[i] = b.fire[last];
   b.lastCell[i] = b.lastCell[last];
+  b.piped[i] = b.piped[last];
 }

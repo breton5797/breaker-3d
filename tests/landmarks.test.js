@@ -195,7 +195,7 @@ describe('entrance difficulty', () => {
   });
 
   it('the single hole moves to harder spots as stages rise', () => {
-    const odds = (i) => getLevel(i).holes.reduce((sum, h) => sum + SLOTS.find((s) => s.slot === h.slot).odds[1], 0);
+    const odds = (i) => getLevel(i).holes.filter((h) => h.slot !== 'pipe').reduce((sum, h) => sum + SLOTS.find((s) => s.slot === h.slot).odds[1], 0);
     const band = (from, to) => {
       let sum = 0;
       for (let i = from; i < to; i++) sum += odds(i);
@@ -220,9 +220,10 @@ describe('entrance difficulty', () => {
   it('built stages have exactly the planned holes, all on different spots', () => {
     for (const i of [0, 29, 30, 75, 120, 150, 199, 640]) {
       const { lvl } = build(i);
-      expect(lvl.holes).toHaveLength(lvl.params.holeCount);
-      expect(new Set(lvl.holes.map((h) => h.slot)).size).toBe(lvl.holes.length);
-      for (const h of lvl.holes) expect(SIDES).toContain(h.side);
+      const own = lvl.holes.filter((h) => h.slot !== 'pipe'); // + a pipe's own mouth (pipes.js)
+      expect(own).toHaveLength(lvl.params.holeCount);
+      expect(new Set(own.map((h) => h.slot)).size).toBe(own.length);
+      for (const h of own) expect(SIDES).toContain(h.side);
     }
   });
 

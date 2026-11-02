@@ -1,78 +1,175 @@
 import { ROWS } from './constants.js';
 import { stageSlot } from './sequence.js';
+import { mulberry32 } from './rng.js';
 
-// The pipe stage (owner, 2026-11-02; docs/plans/2026-11-02-size-fullscreen-pipes): an L pipe of steel
-// climbs from a floor hole and bends sideways into the mural. Whether a ball gets through to the fruit
-// past its far end, or comes back out, is plain physics (where it hit the paddle decides most of it):
-// nothing is rolled or steered. Measured with scripts/pipe-trial.mjs and scripts/pipe-stages.mjs.
-// Tuned on 2026-11-02 for "a little more suspense" (owner): first fruit 1.04x the plain stage
-// (target 1.0-1.3), centre vs edge paddle hits 18% vs 56% through, 0 stuck, 60/120 Hz within 2.1pp.
-export const PIPE = Object.freeze({
-  W: 2, // open cells across; the mouth in the floor is as wide (a narrower mouth traps balls)
-  UP: 14, // rows the shaft climbs before the bend
-  RUN: 16, // cells the bend then runs sideways
+// The pipe stage (owner, 2026-11-02; docs/plans/2026-11-02-size-fullscreen-pipes): a steel pipe climbs
+// from a floor hole and winds into the mural. Whether a ball gets through to the fruit past its far end
+// or comes back out is plain physics (where it hit the paddle decides much of it): nothing is rolled
+// or steered. Longer and more winding as stages rise (owner: "too short; very varied, many bends,
+// hard to get in and likely to come back out"). Measured with scripts/pipe-trial.mjs and pipe-stages.mjs.
+//
+// A shape is a path of moves traced by a w x w head from the floor hole: U(p), D(own), L(eft), R(ight).
+// Steel walls go round every open cell; the floor under the head is the mouth (as wide as the pipe:
+// a narrower mouth traps balls); the last move opens into the mural.
+export const SHAPES = Object.freeze({
+  L: [['U', 16], ['R', 20]],
+  Z: [['U', 10], ['R', 14], ['U', 12]],
+  S: [['U', 8], ['R', 12], ['U', 8], ['L', 12], ['U', 8]],
+  stairs: [['U', 5], ['R', 5], ['U', 5], ['R', 5], ['U', 5], ['R', 5], ['U', 5], ['R', 5], ['U', 6]],
+  dip: [['U', 14], ['R', 10], ['D', 8], ['R', 10], ['U', 12]],
+  zigzag: [['U', 6], ['R', 7], ['U', 6], ['L', 7], ['U', 6], ['R', 7], ['U', 6], ['L', 7], ['U', 6]],
+  hook: [['U', 18], ['R', 14], ['D', 10], ['L', 6]],
+  snake: [['U', 6], ['R', 18], ['U', 6], ['L', 18], ['U', 6], ['R', 18], ['U', 6]],
 });
-const FIRST = 9; // stage index (0-based) of the first pipe stage: stage 10
-const LAST = 33; // ...and the last: stage 34
-const FRUIT = /[ACDEIM]/; // fruit cells (one fine cell each)
+// Which shapes each stretch of stages draws from (0-based stage index from which it applies), ordered by
+// the measured share of entering balls that get through (scripts/pipe-trial.mjs, 2026-11-02): L/Z 25-28%,
+// S/hook 19-20%, dip 17-19%, snake/zigzag 12-15%, stairs 9%.
+export const TIERS = Object.freeze([
+  { from: 9, shapes: ['L', 'Z'] },
+  { from: 30, shapes: ['S', 'hook'] },
+  { from: 60, shapes: ['dip', 'snake', 'zigzag'] },
+  { from: 100, shapes: ['zigzag', 'snake', 'stairs'] },
+]);
+export const PIPE_W = 2; // open cells across
+export const PIPE_PATIENCE = 2; // seconds a ball rattles in the pipe before it turns (world.js pipePatience)
+export const PIPE_TURN = (23 * Math.PI) / 180; // how far it turns: an angle no wall pattern repeats on
 const isBrick = (ch) => ch === '#' || (ch >= 'a' && ch <= 'h');
+// A special block the pipe cuts through (fruit, coin, enemy unit, bomb...) is kept: it moves to the vault.
+const special = (ch) => ch !== '.' && ch !== 'S' && !isBrick(ch);
+const STEP = { U: [0, 1], D: [0, -1], L: [-1, 0], R: [1, 0] };
+const FLIP = { U: 'U', D: 'D', L: 'R', R: 'L' };
+const key = (x, y) => y * 1024 + x;
 
-/** @param {number} n stage index (0-based) @returns {boolean} the stage gets a pipe on its floor hole (if it has room) */
-export const pipeStage = (n) => n >= FIRST && n <= LAST && !stageSlot(n).boss;
+/** @param {number} n stage index (0-based) @returns {boolean} the stage gets a pipe (if its floor hole has room) */
+export const pipeStage = (n) => n >= TIERS[0].from && !stageSlot(n).boss;
+
+/** @param {number} n stage index @returns {string[]} the shapes stage n may use, best first (deterministic) */
+export function shapesFor(n) {
+  const tier = [...TIERS].reverse().find((t) => n >= t.from) ?? TIERS[0];
+  const rng = mulberry32(n * 31 + 7);
+  const list = [...tier.shapes];
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+  return list;
+}
+
+/** Puts fruit `chars` on the plain bricks nearest `point` (outside the pipe), in place. */
+function placeNear(rows, box, floor, openSet, [px, py], chars) {
+  if (!chars.length) return;
+  const spots = [];
+  for (let y = floor + 1; y < box.top; y++) {
+    for (let x = box.left + 1; x < box.right; x++) {
+      if (isBrick(rows[ROWS - 1 - y][x]) && !openSet?.has(key(x, y))) spots.push([Math.hypot(x - px, y - py), x, y]);
+    }
+  }
+  spots.sort((a, b) => a[0] - b[0]);
+  chars.forEach((ch, i) => { if (spots[i]) rows[ROWS - 1 - spots[i][2]][spots[i][1]] = ch; });
+}
 
 /**
- * Carves an L pipe above a floor hole. Fruit the pipe cuts away move to the plain bricks just past its
- * far end (the vault), so the stage keeps every fruit.
- * @param {string[]} lines stage rows, top first
- * @param {{left:number,right:number}} box
- * @param {{ cells: number[][] }} hole a floor hole
- * @param {{ W:number, UP:number, RUN:number }} [shape] PIPE (other shapes: the tuning scripts)
- * @returns {{ lines: string[], pipe: object }|null} null when the bend would run into the box wall
+ * Traces a path of moves from the floor hole. @returns {{ open: number[][], head: number[], dir: string }}
  */
-export function carvePipe(lines, box, hole, shape = PIPE) {
-  const { W, UP, RUN } = shape;
+function trace(moves, hx, floor, w) {
+  let x = hx - Math.floor(w / 2);
+  let y = floor;
+  const open = [];
+  const add = () => { for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) open.push([x + i, y + j]); };
+  add();
+  for (const [d, n] of moves) {
+    const [dx, dy] = STEP[d];
+    for (let k = 0; k < n; k++) { x += dx; y += dy; add(); }
+  }
+  return { open, head: [x, y], dir: moves[moves.length - 1][0] };
+}
+
+/**
+ * Carves a pipe of `moves` above a floor hole, or returns null when it does not fit (box walls, other
+ * holes). Fruit the pipe cuts away move to the plain bricks just past its far end (the vault).
+ * @param {string[]} lines stage rows, top first
+ * @param {{left:number,right:number,top:number}} box
+ * @param {{ cells: number[][] }} hole the floor hole
+ * @param {Array<[string, number]>} moves the path (SHAPES entries)
+ * @param {{ others?: Array<{cells:number[][]}>, w?: number, name?: string, vault?: boolean }} [opts] vault: false
+ *   leaves the cut-away fruit to the caller (`lost`, with the pipe's `exit` point)
+ * @returns {{ lines: string[], pipe: object, lost: string[] }|null}
+ */
+export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, name = '', vault = true } = {}) {
   const [hx, floor] = hole.cells[0];
-  const dir = hx - box.left > box.right - hx ? -1 : 1; // bend toward the roomier side
-  const x0 = hx - 1; // shaft columns x0..x0+W-1
-  const top = floor + 1 + UP; // the cap's row
-  const side = dir > 0 ? x0 + W : x0 - 1; // the wall the bend opens through
-  const far = dir > 0 ? x0 - 1 : x0 + W;
-  const endX = side + dir * (RUN - 1); // the bend's last column
-  if (endX <= box.left + 1 || endX >= box.right - 1) return null;
+  const { open, head, dir } = trace(moves, hx, floor, w);
+  const inside = (x, y) => x > box.left && x < box.right && y > floor && y < box.top;
+  const near = (x, y) => others.some((h) => h.cells.some(([c, r]) => Math.abs(c - x) <= 3 && Math.abs(r - y) <= 3));
+  const openSet = new Set(open.map(([x, y]) => key(x, y)));
+  for (const [x, y] of open) if ((y !== floor && !inside(x, y)) || near(x, y)) return null;
+  // Past the far end: the cells the pipe opens onto (never walled), and where its fruit go.
+  const [dx, dy] = STEP[dir];
+  const exit = new Set();
+  for (let s = 1; s <= 2; s++) for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) exit.add(key(head[0] + i + dx * s, head[1] + j + dy * s));
+  const [ex, ey] = [head[0] + dx * (w + 1), head[1] + dy * (w + 1)];
+  if (!inside(ex, ey)) return null; // the far end must open onto the mural, not the box wall
   const rows = lines.map((l) => [...l]);
   const at = (x, y) => rows[ROWS - 1 - y][x];
   const lost = [];
-  const put = (x, y, ch) => { if (FRUIT.test(at(x, y))) lost.push(at(x, y)); rows[ROWS - 1 - y][x] = ch; };
-  for (let x = x0; x < x0 + W; x++) put(x, floor, '.');
-  for (let y = floor + 1; y < top; y++) {
-    for (let x = x0; x < x0 + W; x++) put(x, y, '.');
-    put(far, y, 'S');
-    if (y < top - W) put(side, y, 'S');
-  }
-  for (let k = -1; k <= W + RUN; k++) put(x0 + (dir > 0 ? k : W - 1 - k), top, 'S'); // cap and roof
-  for (let k = 0; k < RUN; k++) {
-    const x = side + dir * k;
-    for (let y = top - W; y < top; y++) put(x, y, '.');
-    put(x, top - W - 1, 'S'); // floor of the sideways run
-  }
-  const spots = [];
-  for (let y = top - W - 2; y <= top + 2; y++) {
-    for (let k = 1; k <= 8; k++) {
-      const x = endX + dir * k;
-      if (x > box.left && x < box.right && isBrick(at(x, y))) spots.push([x, y]);
+  const put = (x, y, ch) => { if (special(at(x, y))) lost.push(at(x, y)); rows[ROWS - 1 - y][x] = ch; };
+  for (const [x, y] of open) put(x, y, '.');
+  for (const [x, y] of open) {
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        const [nx, ny] = [x + i, y + j];
+        const k = key(nx, ny);
+        if (openSet.has(k) || exit.has(k) || ny <= floor || !inside(nx, ny)) continue;
+        put(nx, ny, 'S');
+      }
     }
   }
-  lost.forEach((ch, i) => { if (spots[i]) rows[ROWS - 1 - spots[i][1]][spots[i][0]] = ch; });
-  return { lines: rows.map((r) => r.join('')), pipe: Object.freeze({ x0, floor, top, dir, side, endX, w: W }) };
+  // The vault: the fruit the pipe cut away go to the plain bricks nearest past its far end (pipeFor may
+  // send some to a bypass hole first).
+  if (vault) placeNear(rows, box, floor, openSet, [ex, ey], lost);
+  const end = new Set();
+  for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) end.add(key(head[0] + i, head[1] + j));
+  return {
+    lines: rows.map((r) => r.join('')),
+    pipe: Object.freeze({ name, w, floor, mouth: hx, cells: openSet, end, exit: [ex, ey], length: open.length / (w * w) }),
+    lost: vault ? [] : lost,
+  };
+}
+
+const HOLE_GAP = 10; // the pipe's own mouth keeps at least this far (cells) from the stage's holes
+
+/**
+ * The pipe for stage n, or null. It gets its own new mouth in the box floor, clear of the stage's holes:
+ * every hole and the fruit near it stay as they were (the stage keeps its measured difficulty) and the
+ * pipe is an extra, risky road to a vault. It takes the stage's shapes in turn, each also mirrored, at
+ * the floor spots farthest from the holes first; the first that fits wins. (2026-11-02: a pipe on the
+ * floor hole itself, even with a bypass hole beside it, cost the bot its first fruit on most runs.)
+ * @returns {{ lines: string[], pipe: object, hole: object }|null} hole: the pipe's mouth (an entrance too)
+ */
+export function pipeFor(n, lines, box, holes) {
+  if (!pipeStage(n) || !holes.some((h) => h.side === 'bottom')) return null;
+  const floor = holes.find((h) => h.side === 'bottom').cells[0][1];
+  const gap = (x) => Math.min(...holes.flatMap((h) => h.cells.map(([c]) => Math.abs(c - x))));
+  const spots = [];
+  for (let x = box.left + 4; x < box.right - 3; x++) if (gap(x) >= HOLE_GAP) spots.push(x);
+  spots.sort((a, b) => gap(b) - gap(a) || a - b);
+  const flipFirst = mulberry32(n * 53 + 11)() < 0.5;
+  for (const name of shapesFor(n)) {
+    const base = SHAPES[name];
+    const mirrored = base.map(([d, k]) => [FLIP[d], k]);
+    for (const moves of flipFirst ? [mirrored, base] : [base, mirrored]) {
+      for (const x of spots) {
+        const hole = { slot: 'pipe', side: 'bottom', size: 1, cells: [[x, floor]], inward: [0, 1] };
+        const made = carvePipe(lines, box, hole, moves, { others: holes, name });
+        if (made) return { lines: made.lines, pipe: made.pipe, hole };
+      }
+    }
+  }
+  return null;
 }
 
 /** @returns {boolean} (x, y) is in the pipe's open cells (the mouth row included) */
 export function inPipe(pipe, x, y) {
-  if (!pipe) return false;
-  const cx = Math.floor(x);
-  const cy = Math.floor(y);
-  if (cx >= pipe.x0 && cx < pipe.x0 + pipe.w && cy >= pipe.floor && cy < pipe.top) return true;
-  const lo = Math.min(pipe.side, pipe.endX);
-  const hi = Math.max(pipe.side, pipe.endX);
-  return cy >= pipe.top - pipe.w && cy < pipe.top && cx >= lo && cx <= hi;
+  return Boolean(pipe) && pipe.cells.has(key(Math.floor(x), Math.floor(y)));
+}
+
+/** @returns {boolean} (x, y) is in the pipe's last cells, where it opens onto the mural */
+export function atPipeEnd(pipe, x, y) {
+  return Boolean(pipe) && pipe.end.has(key(Math.floor(x), Math.floor(y)));
 }

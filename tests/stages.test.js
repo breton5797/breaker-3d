@@ -97,7 +97,7 @@ describe('endless difficulty curve', () => {
       const p = lvl.params;
       expect(lvl.lines.length).toBeLessThanOrEqual(ROWS - 14);
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
-      expect(lvl.holes).toHaveLength(p.holeCount);
+      expect(lvl.holes.filter((h) => h.slot !== 'pipe')).toHaveLength(p.holeCount); // + the pipe's own mouth (pipes.js)
       expect(items).toBeGreaterThanOrEqual(Math.floor(p.items * 0.8));
       expect(items).toBeLessThanOrEqual(p.items + p.unitCount); // only seeded fruit (veteran units drop extra later)
       expect(coins).toBeGreaterThanOrEqual(Math.floor(p.coins * 0.8));

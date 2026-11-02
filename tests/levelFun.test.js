@@ -114,7 +114,7 @@ describe('difficulty curve', () => {
   it('single-hole stages never use the two lowest side spots, and never three side-only stages in a row', () => {
     let sideRun = 0;
     for (let n = 30; n < 200; n++) {
-      const holes = getLevel(n).holes;
+      const holes = getLevel(n).holes.filter((h) => h.slot !== 'pipe'); // the stage's own holes (not a pipe's mouth)
       expect(holes).toHaveLength(1);
       expect(['left-lo', 'right-lo'], `stage ${n + 1}`).not.toContain(holes[0].slot);
       const side = holes[0].side === 'left' || holes[0].side === 'right';
@@ -124,7 +124,7 @@ describe('difficulty curve', () => {
   });
 
   it('the floor and corner stages among them still move to harder spots as stages rise (v17 intent kept)', () => {
-    const floorSlots = (from, to) => { const s = []; for (let n = from; n < to; n++) { const h = getLevel(n).holes[0]; if (!['left', 'right'].includes(h.side)) s.push(h.slot); } return s; };
+    const floorSlots = (from, to) => { const s = []; for (let n = from; n < to; n++) { const h = getLevel(n).holes.find((x) => x.slot !== 'pipe'); if (!['left', 'right'].includes(h.side)) s.push(h.slot); } return s; };
     expect(floorSlots(30, 60).length).toBeGreaterThan(0);
     expect(floorSlots(170, 200).length).toBeGreaterThan(0);
   });

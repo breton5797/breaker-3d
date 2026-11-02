@@ -11,7 +11,26 @@ import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
 import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
-import { inPipe } from './pipes.js';
+import { inPipe, PIPE_PATIENCE, PIPE_TURN } from './pipes.js';
+
+/**
+ * A long winding pipe with mirror walls can hold a ball in a loop that never meets either end. A ball
+ * that has rattled in the pipe for PIPE_PATIENCE seconds turns by PIPE_TURN, then 2x, 3x... (no dice),
+ * which breaks the loop; it may then go on to the fruit or come back out.
+ */
+function pipePatience(w, b, i, dt) {
+  if (!inPipe(w.pipe, b.x[i], b.y[i])) { b.piped[i] = 0; return; }
+  const before = Math.floor(b.piped[i] / PIPE_PATIENCE);
+  b.piped[i] += dt;
+  const turns = Math.floor(b.piped[i] / PIPE_PATIENCE);
+  if (turns === before) return;
+  // The k-th turn is k times PIPE_TURN, so a ball can't settle into the next loop over.
+  const a = PIPE_TURN * turns;
+  const [c, s] = [Math.cos(a), Math.sin(a)];
+  const [vx, vy] = [b.vx[i], b.vy[i]];
+  b.vx[i] = vx * c - vy * s;
+  b.vy[i] = vx * s + vy * c;
+}
 
 const anyInPipe = (w) => {
   for (let i = 0; i < w.balls.n; i++) if (inPipe(w.pipe, w.balls.x[i], w.balls.y[i])) return true;
@@ -251,6 +270,7 @@ function updateBalls(w, dt) {
       moveBall(w, i, dt / steps);
       if (w.boss) collideBoss(w, i);
     }
+    if (w.pipe) pipePatience(w, b, i, dt);
     if (b.y[i] < -1) { removeBall(b, i); continue; }
     i++;
   }
