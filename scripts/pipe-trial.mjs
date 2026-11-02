@@ -2,19 +2,24 @@
 // a floor hole. Balls come up off the paddle at a known hit position; of those that get into the pipe,
 // how many reach its far end (the fruit), come back out, or get stuck, at 60 and 120 Hz.
 // Gates: nothing stuck; 60 vs 120 Hz within 3pp. Reported: how often a serve gets in, and through.
-// Usage: node scripts/pipe-trial.mjs [trials=40000] [stage=41] [shape,shape,...]
+// Usage: node scripts/pipe-trial.mjs [trials=40000] [stage=41] [name,name,...] (names below)
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
 import { aimBall } from '../src/sim/cells.js';
 import { mulberry32 } from '../src/sim/rng.js';
-import { carvePipe, inPipe, atPipeEnd, SHAPES } from '../src/sim/pipes.js';
+import { carvePipe, inPipe, atPipeEnd, meander, comb, spiral } from '../src/sim/pipes.js';
 import { PADDLE_Y, PADDLE_H, BALL_R, BALL_SPEED, PADDLE_MAX_ANGLE } from '../src/sim/constants.js';
 
 const TRIALS = Number(process.argv[2] ?? 40000);
 const STAGE = Number(process.argv[3] ?? 41);
+// The largest path of each kind per tier (pipes.js TIERS), shortest first.
+const SHAPES = {
+  'meander-4x24': meander(4, 24), 'comb-6x14': comb(6, 14), 'meander-6x26': meander(6, 26), 'spiral-24': spiral(24),
+  'comb-10x18': comb(10, 18), 'spiral-30': spiral(30), 'meander-11x30': meander(11, 30), 'spiral-36': spiral(36),
+};
 const NAMES = process.argv[4] ? process.argv[4].split(',') : Object.keys(SHAPES);
-const STUCK = 15; // seconds inside the pipe that count as stuck (long pipes take a while)
+const STUCK = 60; // seconds inside the pipe that count as stuck (a 400-cell pipe takes a while)
 
 /** One ball off the paddle at hit offset `off` (-1..1), stepped at `dt` until it settles. */
 function shoot(level, lines, pipe, off, x, dt) {
@@ -25,7 +30,7 @@ function shoot(level, lines, pipe, off, x, dt) {
   aimBall(w.balls, 0, off * PADDLE_MAX_ANGLE, BALL_SPEED);
   let entered = false;
   let inside = 0;
-  for (let t = 0; t < 30; t += dt) {
+  for (let t = 0; t < 90; t += dt) {
     stepWorld(w, dt);
     w.events = [];
     if (w.balls.n === 0) return entered ? 'back' : 'miss';
