@@ -17,6 +17,9 @@ export const RAIL_W = 1.4;
 const APRON = 2.5; // extra board in front of the open bottom edge
 const LIP = 1.2; // board beyond the rails at the sides and back
 const GLOOM_R = 170; // floor radius the overhead spot still reaches
+// Tall screens: the slab runs this much further past the near and far edges, so the bands
+// under the HUD and the skill buttons show the table instead of the room (owner, 2026-11-02).
+export const TALL_REACH = 60;
 
 /** Board outline (world units) including rails, apron and lip. */
 export const BOARD = Object.freeze({
@@ -104,18 +107,16 @@ export function buildRoom(scene, renderer, lightDir) {
   const cy = (BOARD.near + BOARD.far) / 2;
 
   // The board: a thick slab with softened edges; its top sits just under the table surface.
-  const slab = new THREE.Mesh(
-    new RoundedBoxGeometry(w, h, SLAB_DEPTH, 3, 0.9),
-    new THREE.MeshStandardMaterial({ color: 0x1d2445, roughness: 0.55, metalness: 0.25 }),
-  );
+  // Tall screens swap in a longer slab (TALL_REACH past both ends); the centre stays put.
+  const tallH = h + 2 * TALL_REACH;
+  const slabGeo = { short: new RoundedBoxGeometry(w, h, SLAB_DEPTH, 3, 0.9), tall: new RoundedBoxGeometry(w, tallH, SLAB_DEPTH, 3, 0.9) };
+  const bandGeo = { short: new THREE.BoxGeometry(w + 0.2, h + 0.2, 0.5), tall: new THREE.BoxGeometry(w + 0.2, tallH + 0.2, 0.5) };
+  const slab = new THREE.Mesh(slabGeo.short, new THREE.MeshStandardMaterial({ color: 0x1d2445, roughness: 0.55, metalness: 0.25 }));
   slab.position.set(cx, cy, -SLAB_DEPTH / 2 - 0.06);
   slab.receiveShadow = true;
   scene.add(slab);
   // A thin brushed-steel band around the slab's waist catches the light along its edge.
-  const band = new THREE.Mesh(
-    new THREE.BoxGeometry(w + 0.2, h + 0.2, 0.5),
-    new THREE.MeshStandardMaterial({ color: 0x8b93a8, roughness: 0.35, metalness: 0.8 }),
-  );
+  const band = new THREE.Mesh(bandGeo.short, new THREE.MeshStandardMaterial({ color: 0x8b93a8, roughness: 0.35, metalness: 0.8 }));
   band.position.set(cx, cy, -SLAB_DEPTH * 0.72);
   scene.add(band);
 
@@ -170,5 +171,11 @@ export function buildRoom(scene, renderer, lightDir) {
     scene.fog.far = dist * 2.1;
   }
 
-  return { setDistance };
+  /** @param {boolean} tall a portrait screen: the long slab fills the bands above and below the field */
+  function setTall(tall) {
+    slab.geometry = tall ? slabGeo.tall : slabGeo.short;
+    band.geometry = tall ? bandGeo.tall : bandGeo.short;
+  }
+
+  return { setDistance, setTall };
 }
