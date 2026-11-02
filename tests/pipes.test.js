@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { carvePipe, inPipe, atPipeEnd, pipeStage, shapesFor, SHAPES, TIERS, PIPE_W, PIPE_PATIENCE } from '../src/sim/pipes.js';
+import { carvePipe, inPipe, atPipeEnd, wayBack, pipeStage, shapesFor, meander, comb, spiral, TIERS, PIPE_W, PIPE_PATIENCE, PIPE_FLUSH } from '../src/sim/pipes.js';
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, drainEvents } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
@@ -19,13 +19,14 @@ describe('which stages get which pipes', () => {
     for (let n = 9; n < 120; n++) expect(pipeStage(n), `stage ${n + 1}`).toBe(!stageSlot(n).boss);
   });
 
-  it('the shapes get windier with the stage: each tier draws from its own list', () => {
-    for (const t of TIERS) for (const name of t.shapes) expect(SHAPES[name], name).toBeTruthy();
-    expect(shapesFor(9).every((s) => TIERS[0].shapes.includes(s))).toBe(true);
-    expect(shapesFor(150).every((s) => TIERS.at(-1).shapes.includes(s))).toBe(true);
-    const turns = (name) => SHAPES[name].length - 1;
-    const avg = (t) => t.shapes.reduce((s, n) => s + turns(n), 0) / t.shapes.length;
-    expect(avg(TIERS.at(-1))).toBeGreaterThan(avg(TIERS[0]));
+  it('pipes are long and get longer and more twisted as stages rise (owner: "as long as possible")', () => {
+    const len = (n) => getLevel(n).pipe?.length ?? 0;
+    const median = (ns) => { const s = ns.map(len).filter(Boolean).sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const early = median([10, 11, 12, 13, 17, 18, 20, 21, 22]);
+    const late = median([100, 101, 102, 103, 104, 105, 106, 107, 108, 110, 111]);
+    expect(early).toBeGreaterThanOrEqual(100);
+    expect(late).toBeGreaterThan(early * 2);
+    expect(shapesFor(150)[0].moves.length).toBeGreaterThan(shapesFor(9).at(-1).moves.length);
   });
 
   it('every stage with a floor hole from 10 to 200 gets a pipe, and keeps exactly its fruit', () => {
@@ -41,7 +42,7 @@ describe('which stages get which pipes', () => {
 describe('a carved pipe', () => {
   const lvl = plain(40); // 숫자 1: one floor hole with room either side
   const hole = lvl.holes.find((h) => h.side === 'bottom');
-  const { lines, pipe } = carvePipe(lvl.lines, lvl.box, hole, SHAPES.snake, { name: 'snake' });
+  const { lines, pipe } = carvePipe(lvl.lines, lvl.box, hole, meander(6, 26), { name: 'meander' });
 
   it('opens its mouth as wide as the pipe (a 1-cell hole under a wide pipe traps balls)', () => {
     const [hx, floor] = hole.cells[0];
@@ -67,6 +68,15 @@ describe('a carved pipe', () => {
     expect(atPipeEnd(pipe, k % 1024, Math.floor(k / 1024))).toBe(true);
   });
 
+  it('a spiral, a comb and a meander all fit the box and stay walled', () => {
+    for (const moves of [spiral(24), comb(8, 16), meander(6, 26)]) expect(carvePipe(lvl.lines, lvl.box, hole, moves)).toBeTruthy();
+  });
+
+  it('every pipe cell knows the way back to the mouth', () => {
+    for (const k of pipe.cells) expect(wayBack(pipe, k % 1024, Math.floor(k / 1024)), `cell ${k}`).toBeTruthy();
+    expect(wayBack(pipe, 0, 0)).toBeNull();
+  });
+
   it('does not fit when it would run into the box wall', () => {
     expect(carvePipe(lvl.lines, lvl.box, hole, [['U', 10], ['R', 80]])).toBeNull();
   });
@@ -75,7 +85,7 @@ describe('a carved pipe', () => {
 describe('"들어갔다!" only when a ball gets out of the far end of the pipe', () => {
   const lvl = plain(40);
   const hole = lvl.holes.find((h) => h.side === 'bottom');
-  const { lines, pipe } = carvePipe(lvl.lines, lvl.box, hole, SHAPES.L, { name: 'L' });
+  const { lines, pipe } = carvePipe(lvl.lines, lvl.box, hole, comb(4, 8), { name: 'comb' });
   const world = () => {
     const w = createWorld(lines, { box: lvl.box, holes: lvl.holes, pipe, rng: () => 0.5 });
     w.state = 'play';
@@ -98,6 +108,15 @@ describe('"들어갔다!" only when a ball gets out of the far end of the pipe',
     addBall(w.balls, (lvl.box.left + lvl.box.right) / 2, lvl.box.top - 3, 0, 10, 0);
     stepWorld(w, 1 / 120);
     expect(drainEvents(w).map((e) => e.t)).toContain('enter');
+  });
+
+  it('a ball too long in the pipe is sent back the way it came (out of the mouth)', () => {
+    const w = world();
+    const x = hole.cells[0][0];
+    addBall(w.balls, x, pipe.floor + 6, 0, 30, 0); // in the first tooth, going up
+    w.balls.piped[0] = PIPE_FLUSH;
+    stepWorld(w, 1 / 120);
+    expect(w.balls.vy[0]).toBeLessThan(0); // heading back down to the mouth
   });
 
   it('a ball rattling in the pipe longer than its patience turns (a fixed angle: no dice)', () => {

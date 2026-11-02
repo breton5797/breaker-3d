@@ -11,7 +11,7 @@ import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
 import { createBoss, updateBoss, collideBoss } from './boss.js';
 import { createGimmick, bendBall, updateGimmick } from './gimmicks.js';
-import { inPipe, PIPE_PATIENCE, PIPE_TURN } from './pipes.js';
+import { inPipe, wayBack, PIPE_PATIENCE, PIPE_TURN, PIPE_FLUSH } from './pipes.js';
 
 /**
  * A long winding pipe with mirror walls can hold a ball in a loop that never meets either end. A ball
@@ -20,8 +20,18 @@ import { inPipe, PIPE_PATIENCE, PIPE_TURN } from './pipes.js';
  */
 function pipePatience(w, b, i, dt) {
   if (!inPipe(w.pipe, b.x[i], b.y[i])) { b.piped[i] = 0; return; }
-  const before = Math.floor(b.piped[i] / PIPE_PATIENCE);
   b.piped[i] += dt;
+  if (b.piped[i] >= PIPE_FLUSH) {
+    // Too long in a long pipe: it sends the ball back the way it came, out of the mouth (no dice).
+    const [bx, by] = wayBack(w.pipe, b.x[i], b.y[i]);
+    const speed = Math.hypot(b.vx[i], b.vy[i]);
+    const side = 0.25; // a slight slant, so it never runs exactly along a wall
+    const len = Math.hypot(bx + by * side, by - bx * side);
+    b.vx[i] = ((bx + by * side) / len) * speed;
+    b.vy[i] = ((by - bx * side) / len) * speed;
+    return;
+  }
+  const before = Math.floor((b.piped[i] - dt) / PIPE_PATIENCE);
   const turns = Math.floor(b.piped[i] / PIPE_PATIENCE);
   if (turns === before) return;
   // The k-th turn is k times PIPE_TURN, so a ball can't settle into the next loop over.
