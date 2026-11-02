@@ -7,11 +7,6 @@ export const BALL_SPEED = 54; // cells per second outside the box (serves, retur
 export const BALL_SPEED_INSIDE = 72; // inside the steel box a ball flies twice as fast (owner, 2026-10-29)
 export const WALL_EVENTS_MAX = 4; // wall knocks reported per step at most (thousands of balls bounce)
 export const MAX_BALLS = 4000;
-// Until the first ball of a serve gets into the box, each paddle bounce adds a
-// ball (up to this many): the opening has more tries instead of dead time.
-export const PRE_ENTRY_MAX = 8;
-// ...and after a ball has been in: once the box has had no ball for this long, the same help comes back.
-export const REENTRY_ASSIST_AFTER = 3;
 // Fruit placed within a few bricks of the holes (the first catch should come early): 3, or 2 on stages 1-5.
 export const NEAR_HOLE_FRUIT = 3;
 export const NEAR_HOLE_FRUIT_EARLY = 2;

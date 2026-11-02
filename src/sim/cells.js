@@ -12,12 +12,12 @@ export function wallKnock(w, i) {
   w.events.push({ t: 'wall', x: w.balls.x[i], y: w.balls.y[i] });
 }
 
-/** Points a ball along `angle` (radians from straight up), keeping it from going flat. */
-export function aimBall(b, i, angle, speed = BALL_SPEED) {
-  const lim = Math.acos(MIN_VY);
+/** Points a ball along `angle` (radians from straight up), keeping at least `minVy` of its speed vertical. */
+export function aimBall(b, i, angle, speed = BALL_SPEED, minVy = MIN_VY) {
+  const lim = Math.acos(minVy);
   let a = angle;
   const up = Math.cos(a) >= 0;
-  // Fold the angle so |cos| >= MIN_VY while preserving up/down direction.
+  // Fold the angle so |cos| >= minVy while preserving up/down direction.
   const s = Math.sin(a);
   const clampedS = Math.max(-Math.sin(lim), Math.min(Math.sin(lim), s));
   a = Math.asin(clampedS);

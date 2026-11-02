@@ -1,12 +1,11 @@
 import {
   COLS, ROWS, CELL, BALL_R, BALL_SPEED, BALL_SPEED_INSIDE, MAX_SUBSTEP, PADDLE_Y, PADDLE_H, PADDLE_W, WALL_EVENTS_MAX,
-  PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION, PRE_ENTRY_MAX,
-  REENTRY_ASSIST_AFTER,
+  PADDLE_MAX_ANGLE, RELEASE_RATE, DROP_SPEED, START_LIVES, METEOR_FIRE, METEOR_COUNT, LAUNCH_BALLS, SPLIT_SKILL_MAX, FINALE_FRACTION, STALL_TIME, STALL_FRACTION,
 } from './constants.js';
 import { parseLevel } from './levels.js';
 import { createBalls, addBall, removeBall } from './balls.js';
 import { hitCell, processPending, splitBall, aimBall, startFinale, wallKnock } from './cells.js';
-import { AIM_FAN } from './aim.js';
+import { AIM_FAN, AIM_MAX, SERVE_MIN_VY } from './aim.js';
 import { isInside } from './box.js';
 import { updateDrops } from './items.js';
 import { buildUnits, updateUnits, updateShells, ballInside } from './units.js';
@@ -41,7 +40,7 @@ export function createWorld(lines, opts = {}) {
     aggression: opts.aggression ?? 1, // unit fire-rate and bomb-speed factor
     state: 'ready', // ready | play | clear | over
     entered: false, // a ball of this serve has been inside the box
-    outsideFor: 0, // seconds the box has had no ball (the opening assist returns after a dry spell)
+    outsideFor: 0, // seconds the box has had no ball (a ball back in after a dry spell is announced)
     lives: opts.lives ?? START_LIVES,
     drops: [], // falling multiplier items { x, y, mult }
     coins: [], // falling gold coins { x, y }
@@ -95,10 +94,13 @@ export function launch(w, angle) {
   const fan = aimed ? AIM_FAN : 0.28;
   for (let k = 0; k < LAUNCH_BALLS; k++) {
     addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, BALL_SPEED, 0);
-    aimBall(b, k, drift + (k - (LAUNCH_BALLS - 1) / 2) * fan);
+    const a = drift + (k - (LAUNCH_BALLS - 1) / 2) * fan;
+    // An aimed serve may go almost flat (180 degrees of aim); a stray serve keeps the usual limit.
+    if (aimed) aimBall(b, k, Math.max(-AIM_MAX, Math.min(AIM_MAX, a)), BALL_SPEED, SERVE_MIN_VY);
+    else aimBall(b, k, a);
   }
   w.state = 'play';
-  w.entered = false; // a new serve: the opening assist is back on until a ball gets in
+  w.entered = false; // a new serve: no ball in the box yet
   w.outsideFor = 0;
   w.events.push({ t: 'launch' });
   return true;
@@ -136,7 +138,7 @@ export function useSkill(w, name, mult = 3) {
     const cap = n0 + SPLIT_SKILL_MAX;
     for (let i = 0; i < n0 && b.n < cap; i++) splitBall(w, i, Math.min(mult, 1 + cap - b.n));
   } else {
-    if (w.state === 'ready') { b.n = 0; w.entered = false; w.outsideFor = 0; } // a serve like launch(): the opening help is back on
+    if (w.state === 'ready') { b.n = 0; w.entered = false; w.outsideFor = 0; } // a serve like launch()
     for (let k = 0; k < METEOR_COUNT; k++) {
       if (!addBall(b, w.paddle.x, PADDLE_TOP + BALL_R + 0.01, 0, 0, METEOR_FIRE)) break;
       aimBall(b, b.n - 1, ((k / (METEOR_COUNT - 1)) - 0.5) * 2 * 1.1);
@@ -158,18 +160,12 @@ function bouncePaddle(w, i) {
   const p = w.paddle;
   if (b.vy[i] >= 0 || b.y[i] - BALL_R > PADDLE_TOP || b.y[i] < PADDLE_Y - PADDLE_H) return;
   if (Math.abs(b.x[i] - p.x) > p.w / 2 + BALL_R) return;
-  // Not in yet this serve, or the box has been empty a while: each return off the paddle brings a
-  // friend (more tries, less dead time; the lonely ball after a bounce-out gets the same help).
-  const assist = w.state === 'play' && b.n < PRE_ENTRY_MAX && (!w.entered || w.outsideFor >= REENTRY_ASSIST_AFTER);
+  // A return off the paddle never adds a ball (the opening assist was removed: owner, 2026-11-02).
   let off = Math.max(-1, Math.min(1, (b.x[i] - p.x) / (p.w / 2)));
   // Never return a ball perfectly vertical: that can loop forever in a cleared column.
   if (Math.abs(off) < 0.08) off = w.rng() < 0.5 ? -0.08 : 0.08;
   aimBall(b, i, off * PADDLE_MAX_ANGLE, Math.hypot(b.vx[i], b.vy[i]));
   b.y[i] = PADDLE_TOP + BALL_R;
-  if (assist && addBall(b, b.x[i], b.y[i], 0, 1)) {
-    aimBall(b, b.n - 1, -off * PADDLE_MAX_ANGLE * 0.8 + (w.rng() - 0.5) * 0.3, Math.hypot(b.vx[i], b.vy[i]));
-    if (w.events.length < 8000) w.events.push({ t: 'assist', x: b.x[i] });
-  }
   if (w.events.length < 8000) w.events.push({ t: 'paddle', x: b.x[i] });
 }
 

@@ -6,7 +6,7 @@ import { addBall } from '../src/sim/balls.js';
 import { multiplyBalls, updateDrops } from '../src/sim/items.js';
 import { updateBoss } from '../src/sim/boss.js';
 import { mapBossSpec } from '../src/sim/mapBosses.js';
-import { STUN_SHRINK, PADDLE_Y, PADDLE_H, BALL_R, PRE_ENTRY_MAX, BEAM_SHARE, LAUNCH_BALLS } from '../src/sim/constants.js';
+import { STUN_SHRINK, PADDLE_Y, PADDLE_H, BALL_R, BEAM_SHARE } from '../src/sim/constants.js';
 
 const PADDLE_TOP = PADDLE_Y + PADDLE_H / 2; // as the sim computes it
 import { isInside } from '../src/sim/box.js';
@@ -63,15 +63,15 @@ describe('the opening: getting in', () => {
     expect(drainEvents(w).filter((e) => e.t === 'enter')).toHaveLength(1);
   });
 
-  it('until a ball gets in, every paddle bounce adds a ball (up to PRE_ENTRY_MAX)', () => {
+  it('a paddle bounce never adds a ball, even before the first ball gets in (owner, 2026-11-02)', () => {
     const w = world(0);
     launch(w);
     const before = w.balls.n;
     // A ball falling onto the middle of the paddle.
     addBall(w.balls, w.paddle.x, PADDLE_TOP + BALL_R + 0.2, 0, -30);
     for (let k = 0; k < 3; k++) stepWorld(w, 1 / 120);
-    expect(w.balls.n).toBe(before + 2);
-    expect(PRE_ENTRY_MAX).toBeGreaterThanOrEqual(6);
+    expect(w.balls.n).toBe(before + 1);
+    expect(drainEvents(w).some((e) => e.t === 'assist')).toBe(false);
   });
 
   it('once a ball is inside, paddle bounces add nothing', () => {
@@ -84,20 +84,6 @@ describe('the opening: getting in', () => {
     addBall(w.balls, w.paddle.x, PADDLE_TOP + BALL_R + 0.2, 0, -30);
     for (let k = 0; k < 3; k++) stepWorld(w, 1 / 120);
     expect(w.balls.n).toBe(before + 1);
-  });
-
-  it('the assist stops adding once the serve has PRE_ENTRY_MAX balls', () => {
-    const w = world(0);
-    launch(w);
-    let assisted = 0;
-    for (let k = 0; k < 20; k++) {
-      const before = w.balls.n;
-      addBall(w.balls, w.paddle.x, PADDLE_TOP + BALL_R + 0.2, 0, -30);
-      for (let j = 0; j < 3; j++) stepWorld(w, 1 / 120);
-      assisted += Math.max(0, w.balls.n - before - 1);
-    }
-    expect(assisted).toBeGreaterThan(0);
-    expect(assisted).toBeLessThanOrEqual(PRE_ENTRY_MAX - LAUNCH_BALLS);
   });
 });
 
