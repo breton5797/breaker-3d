@@ -29,7 +29,7 @@ describe('release paperwork', () => {
     expect(html).toMatch(/보상형 광고/);
     expect(html).toMatch(/Standard EULA|stdeula/);
     expect(html).toMatch(/href="privacy\.html"/);
-    expect(html).toMatch(/mailto:breton5797@gmail\.com/);
+    expect(html).toMatch(/mailto:minimalkorea@naver\.com/);
   });
 
   it('the game links to the privacy policy and the licences', () => {
