@@ -1,7 +1,7 @@
 // Entry point. Checks the browser can run the game before loading it, shows a
 // clear message instead of a blank page when it can't, and registers the
 // offline cache in production builds.
-import { hasWebGL } from './webgl.js';
+import { webglReport } from './webgl.js';
 
 const $ = (id) => document.getElementById(id);
 const CONTEXT_GRACE_MS = 2500; // a lost GPU context usually comes back within this
@@ -29,8 +29,9 @@ function fail(text) {
 
 $('boot-error-reload').addEventListener('click', () => location.reload());
 
-if (!hasWebGL()) {
-  fail();
+const gl = webglReport();
+if (!gl.ok) {
+  fail(`${MSG.webgl}\n\n(${gl.reason})`);
 } else {
   import('./main.js').catch(() => fail(MSG.load));
 
