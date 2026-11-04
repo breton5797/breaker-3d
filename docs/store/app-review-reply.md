@@ -1,12 +1,17 @@
 # App Review reply (Guideline 2.1 Information Needed, 2026-11-03)
 
-Pasted into App Store Connect: App Review Information > Notes, and as the reply to the review message
-(with the screen recording attached).
+Pasted into App Store Connect: App Review Information > Notes, with the screen recording as the App Review
+attachment. Resubmitted 2026-11-05: the rejected submission was cancelled and 1.0.1 (202611041456) went in one
+submission with the Remove Ads in-app purchase. Recording: `~/.breaker3d-release/review/BREAKER3D-1.0.1-review*.mp4`
+(iOS 26.5 Simulator, iPhone 17 Pro; the user played with the mouse while `xcrun simctl io <udid> recordVideo` ran).
 
 ```
-1. Screen recording: attached (iPhone, latest iOS). It starts at app launch and shows the typical flow:
-   title screen > Start > placing the paddle and aiming > serving > balls entering the box > catching fruit
-   (balls multiply) > clearing the stage, plus the "Remove Ads" in-app purchase (sandbox) and "Restore Purchases".
+1. Screen recording: attached (file in App Review Information). It was captured in the iOS 26.5 Simulator
+   (iPhone 17 Pro) from the same source as build 1.0.1 (202611041456), because our only physical test device
+   cannot update to the latest OS. It starts at app launch and shows the typical flow: ad consent > title >
+   Start > placing the paddle > aiming and serving > catching fruit (balls multiply) > boss > stage clear >
+   the "Remove Ads" in-app purchase ($1.99, store sign-in sheet) and "Restore Purchases". No account, login or
+   user-generated content.
 
 2. Purpose and audience: BREAKER 3D is a casual 3D brick-breaker game for a general audience. Players serve
    balls into a steel box through small holes, break brick murals of world landmarks, catch falling fruit to
