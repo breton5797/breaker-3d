@@ -20,6 +20,18 @@ describe('release paperwork', () => {
     expect(html).toMatch(/광고|분석/);
   });
 
+  it('has terms of use (KO + EN) covering purchases, ads, refunds and contact', () => {
+    const html = read('public/terms.html');
+    expect(html).toMatch(/이용약관/);
+    expect(html).toMatch(/Terms of Use/);
+    expect(html).toMatch(/광고 제거/);
+    expect(html).toMatch(/환불/);
+    expect(html).toMatch(/보상형 광고/);
+    expect(html).toMatch(/Standard EULA|stdeula/);
+    expect(html).toMatch(/href="privacy\.html"/);
+    expect(html).toMatch(/mailto:breton5797@gmail\.com/);
+  });
+
   it('the game links to the privacy policy and the licences', () => {
     const html = read('index.html');
     expect(html).toMatch(/href="[^"]*privacy\.html"/);
