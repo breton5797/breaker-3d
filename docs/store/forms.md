@@ -75,9 +75,9 @@
 - 로그인: 필요 없음 (계정 없음).
 - Notes (영어로 입력):
   > No account is needed. Rewarded ads (Google AdMob) are optional: after a game over the player may watch an ad to revive, and after a clear to double gold. The App Tracking Transparency prompt appears on first launch after Google's consent form (only shown in regions that require it); declining does not limit any feature. The in-app purchase "Remove Ads" (non-consumable, product id remove_ads) is on the title screen together with "Restore Purchases"; it gives the same rewards without watching ads.
-- 연락처: 이름·전화·breton5797@gmail.com (전화번호는 공개되지 않음).
+- 연락처: 이름·전화·minimalkorea@naver.com (전화번호는 공개되지 않음).
 
 ## 5. Google Play 앱 콘텐츠 기타
 - 개인정보처리방침 URL: https://breton5797.github.io/breaker-3d/privacy.html
 - 앱 액세스: "모든 기능을 특별한 액세스 권한 없이 사용 가능".
-- 스토어 설정 > 연락처: 이메일 breton5797@gmail.com, 웹사이트 https://breton5797.github.io/breaker-3d/
+- 스토어 설정 > 연락처: 이메일 minimalkorea@naver.com, 웹사이트 https://breton5797.github.io/breaker-3d/

@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'Goldstein: Fang die fallende Münze und sichere dir Gold',
   'title.controls': 'Maus/Touch bewegt den Schläger · ←→ · Leertaste schießt · 1 Teilen · 2 Meteor · P Pause',
   'legal.privacy': 'Datenschutz',
+  'legal.terms': 'Nutzungsbedingungen',
   'legal.licenses': 'Open-Source-Lizenzen',
 
   'clear.title': 'LEVEL GESCHAFFT',

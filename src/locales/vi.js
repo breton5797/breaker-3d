@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'Gạch vàng: hứng xu rơi để tích vàng',
   'title.controls': 'Chuột/chạm để di chuyển thanh đỡ · ←→ · Space bắn · 1 Tách · 2 Thiên thạch · P tạm dừng',
   'legal.privacy': 'Chính sách quyền riêng tư',
+  'legal.terms': 'Điều khoản sử dụng',
   'legal.licenses': 'Giấy phép mã nguồn mở',
 
   'clear.title': 'QUA MÀN',

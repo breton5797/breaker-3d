@@ -77,6 +77,7 @@ export default {
   'legend.coin': "Brique dorée : attrape la pièce qui tombe pour gagner de l'or",
   'title.controls': 'Souris/tactile déplace la raquette · ←→ · Espace lance · 1 Diviser · 2 Météore · P pause',
   'legal.privacy': 'Politique de confidentialité',
+  'legal.terms': "Conditions d'utilisation",
   'legal.licenses': 'Licences open source',
 
   // ---------- stage clear ----------

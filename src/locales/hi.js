@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'गोल्ड ईंट: गिरता सिक्का पकड़ो और गोल्ड जमा करो',
   'title.controls': 'माउस/टच से पैडल चलाएँ · ←→ · Space से गेंद · 1 विभाजन · 2 उल्का · P रोकें',
   'legal.privacy': 'गोपनीयता नीति',
+  'legal.terms': 'उपयोग की शर्तें',
   'legal.licenses': 'ओपन-सोर्स लाइसेंस',
 
   'clear.title': 'स्टेज क्लियर',

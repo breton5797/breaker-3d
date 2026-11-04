@@ -77,6 +77,7 @@ export default {
   'legend.coin': 'Ladrillo de oro: atrapa la moneda que cae para sumar oro',
   'title.controls': 'Mouse/táctil mueve la paleta · ←→ · Espacio lanza · 1 Dividir · 2 Meteoro · P pausa',
   'legal.privacy': 'Política de privacidad',
+  'legal.terms': 'Términos de uso',
   'legal.licenses': 'Licencias de código abierto',
 
   // ---------- stage clear ----------

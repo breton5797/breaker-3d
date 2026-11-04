@@ -9,7 +9,7 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 | --- | --- |
 | 앱 이름 (30) | BREAKER 3D |
 | 카테고리 | Play: 게임 > 아케이드 · App Store: 게임 > 아케이드 (보조: 캐주얼) |
-| 이메일 | breton5797@gmail.com |
+| 이메일 | minimalkorea@naver.com |
 | 웹사이트 | https://breton5797.github.io/breaker-3d/ |
 | 개인정보 처리방침 URL | https://breton5797.github.io/breaker-3d/privacy.html |
 | 지원 URL (Apple 필수) | https://github.com/breton5797/breaker-3d/issues |
