@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'Altın tuğla: düşen jetonu yakala, altın biriksin',
   'title.controls': 'Fare/dokunma raketi oynatır · ←→ · Boşluk fırlatır · 1 Bölünme · 2 Meteor · P duraklat',
   'legal.privacy': 'Gizlilik politikası',
+  'legal.terms': 'Kullanım koşulları',
   'legal.licenses': 'Açık kaynak lisansları',
 
   'clear.title': 'SEVİYE GEÇİLDİ',

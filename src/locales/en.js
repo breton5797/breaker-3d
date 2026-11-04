@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'Gold brick: catch the falling coin to bank gold',
   'title.controls': 'Mouse/touch moves the paddle · ←→ · Space serves · 1 Split · 2 Meteor · P pause',
   'legal.privacy': 'Privacy policy',
+  'legal.terms': 'Terms of use',
   'legal.licenses': 'Open-source licences',
 
   'clear.title': 'STAGE CLEAR',

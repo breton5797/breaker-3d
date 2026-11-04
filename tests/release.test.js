@@ -36,6 +36,15 @@ describe('release paperwork', () => {
     const html = read('index.html');
     expect(html).toMatch(/href="[^"]*privacy\.html"/);
     expect(html).toMatch(/href="[^"]*licenses\.txt"/);
+    expect(html).toMatch(/href="[^"]*terms\.html"[^>]*data-i18n="legal\.terms"/);
+  });
+
+  it('the privacy policy and the terms give the same contact email', () => {
+    for (const f of ['public/privacy.html', 'public/terms.html']) {
+      const html = read(f);
+      expect(html, f).toMatch(/mailto:minimalkorea@naver\.com/);
+      expect(html, f).not.toMatch(/breton5797@gmail\.com/);
+    }
   });
 
   it('describes itself for search and link previews', () => {

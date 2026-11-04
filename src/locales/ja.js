@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'ゴールドブロック：落ちてくるコインを取るとゴールドがたまる',
   'title.controls': 'マウス・タッチでパドル移動 · ←→ · Space で発射 · 1 分裂 · 2 メテオ · P ポーズ',
   'legal.privacy': 'プライバシーポリシー',
+  'legal.terms': '利用規約',
   'legal.licenses': 'オープンソースライセンス',
 
   'clear.title': 'ステージクリア',

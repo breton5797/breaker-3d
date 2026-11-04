@@ -74,6 +74,7 @@ export default {
   'legend.coin': 'Bata emas: tangkap koin yang jatuh untuk menabung emas',
   'title.controls': 'Mouse/sentuh menggerakkan paddle · ←→ · Spasi luncurkan · 1 Belah · 2 Meteor · P jeda',
   'legal.privacy': 'Kebijakan privasi',
+  'legal.terms': 'Ketentuan penggunaan',
   'legal.licenses': 'Lisensi open source',
 
   'clear.title': 'LEVEL SELESAI',

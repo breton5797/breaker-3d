@@ -74,6 +74,7 @@ export default {
   'legend.coin': '金砖：接住掉落的硬币即可积攒金币',
   'title.controls': '鼠标/触摸移动挡板 · ←→ · 空格发射 · 1 分裂 · 2 陨石 · P 暂停',
   'legal.privacy': '隐私政策',
+  'legal.terms': '使用条款',
   'legal.licenses': '开源许可',
 
   'clear.title': '关卡完成',

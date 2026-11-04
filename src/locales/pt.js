@@ -77,6 +77,7 @@ export default {
   'legend.coin': 'Tijolo de ouro: pegue a moeda que cai para guardar ouro',
   'title.controls': 'Mouse/toque move a raquete · ←→ · Espaço lança · 1 Dividir · 2 Meteoro · P pausa',
   'legal.privacy': 'Política de privacidade',
+  'legal.terms': 'Termos de uso',
   'legal.licenses': 'Licenças de código aberto',
 
   // ---------- stage clear ----------

@@ -79,6 +79,7 @@ export default {
   'legend.coin': '골드 벽돌: 떨어지는 동전을 받으면 골드가 쌓여요',
   'title.controls': '마우스·터치로 패들 이동 · ←→ · Space 발사 · 1 분열 · 2 메테오 · P 일시정지',
   'legal.privacy': '개인정보 처리방침',
+  'legal.terms': '이용약관',
   'legal.licenses': '오픈소스 라이선스',
 
   // ---------- stage clear ----------
