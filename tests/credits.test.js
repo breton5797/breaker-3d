@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { cleanCredit } from '../src/credits.js';
+import { OWN_BACKDROP } from '../src/sim/maps.js';
 
 const ok = { artist: 'Jane Doe', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:X.jpg' };
 
@@ -37,11 +38,13 @@ describe('photo credits', () => {
   });
 
   // Licence audit (owner, 2026-11-07): CC BY / BY-SA photos can't ship under app-store DRM. Every
-  // photo file is either credited public domain / CC0, or one of our own generated animal scenes.
-  it('ships only public-domain / CC0 photos, and no photo file without a credit', () => {
+  // photo file is either credited public domain / CC0, or our own generated art (Higgsfield: the
+  // animal scenes, scripts/art/hf-animals.jsonl, and the backdrops, scripts/art/hf-backdrops.jsonl).
+  it('ships only public-domain / CC0 photos, and no picture file without a credit unless it is our own art', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
     for (const [id, c] of Object.entries(credits)) expect(c.license, id).toMatch(/^(public domain|cc0)$/i);
-    const OWN_ART = new Set(['cat', 'dog', 'lion', 'panda', 'penguin', 'rabbit']); // Higgsfield (scripts/art/hf-animals.jsonl)
+    const OWN_ART = new Set(['cat', 'dog', 'lion', 'panda', 'penguin', 'rabbit', ...OWN_BACKDROP]);
+    for (const id of OWN_BACKDROP) expect(credits[id], id).toBeUndefined();
     const files = readdirSync(new URL('../public/landmarks/', import.meta.url)).filter((f) => f.endsWith('.jpg'));
     for (const f of files) {
       const id = f.slice(0, -4);

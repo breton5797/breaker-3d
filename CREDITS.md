@@ -4,7 +4,9 @@ Background photos come from Wikimedia Commons and are all public domain or CC0.
 They were resized (768 px), cropped to the play area and tinted for the sunset/night stages.
 Licence audit 2026-11-07: the 23 CC BY / CC BY-SA photos were removed, because those licences forbid
 distribution under technological protection measures (app-store DRM such as Apple FairPlay). Those
-maps now play on the bare table (`NO_PHOTO` in `src/sim/maps.js`).
+maps now use painted backdrops made for this game with Higgsfield (GPT Image 2.6) on 2026-11-07, from
+text prompts only (no reference images, people, text or logos; `scripts/art/hf-backdrops.jsonl`),
+listed as `OWN_BACKDROP` in `src/sim/maps.js`. Being our own art, they are not in the photo credits.
 Licences and authors were re-checked against the Commons file pages on 2026-10-26 (landmarks) and 2026-10-27 (the 12 "경이의 세계" photos).
 
 | Landmark | Photo | Author | Licence |

@@ -179,8 +179,7 @@ describe('boss dex and travel album (data the game already saves)', () => {
     expect(album).toHaveLength(LAP.length);
     expect(album[0]).toMatchObject({ id: 'giza', cleared: true, bestStars: 3, stamps: { sunset: true, night: false } });
     expect(album[1]).toMatchObject({ cleared: false, bestStars: 0, stamps: { sunset: false, night: false } });
-    expect(album[0].photo).toBeNull(); // giza's photo was CC BY-SA: removed in the licence audit (2026-11-07)
-    expect(album.find((m) => m.id === 'eiffel').photo).toBe('eiffel'); // public domain: kept
+    expect(album[0].photo).toBe('giza'); // our own backdrop since the licence audit (2026-11-07)
     expect(album.find((m) => m.id === 'num1').photo).toBeNull(); // glyph murals have a palette tile instead
   });
 
