@@ -17,8 +17,19 @@ import { playMural, playPalette } from './landmarks/play.js';
 
 export { COLS, toLines };
 
-// id names the background photo (public/landmarks/<id>.jpg).
-const map = (id, name, subtitle, build, palette) => Object.freeze({ id, name, subtitle, build, palette: Object.freeze(palette) });
+// Licence audit (owner, 2026-11-07: "라이센스 문제가 될만한 요소를 모두 제거"): these maps' photos were
+// CC BY / CC BY-SA, whose terms forbid shipping them under technological protection (App Store
+// FairPlay DRM). Their photos are gone; the maps play on the bare table like the bosses. Only
+// public-domain / CC0 photos ship (public/landmarks/credits.json).
+export const NO_PHOTO = Object.freeze(new Set([
+  'giza', 'fuji', 'stonehenge', 'moai', 'tajMahal', 'bigBen', 'sungnyemun', 'goldenGate', 'stBasil',
+  'angkorWat', 'forbiddenCity', 'petra', 'machuPicchu', 'greatWall', 'sagradaFamilia', 'chichenItza',
+  'himeji', 'brandenburgGate', 'gyeongbokgung', 'charlesBridge', 'blackHole', 'spermWhale', 'iceberg',
+]));
+
+// id names the background photo (public/landmarks/<id>.jpg), unless photo is null (no photo).
+const map = (id, name, subtitle, build, palette) =>
+  Object.freeze({ id, name, subtitle, build, palette: Object.freeze(palette), ...(NO_PHOTO.has(id) ? { photo: null } : {}) });
 const wonder = (theme, ...args) => Object.freeze({ ...map(...args), theme });
 
 export const LEVELS = Object.freeze([

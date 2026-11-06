@@ -51,15 +51,27 @@ describe('landmark maps', () => {
     }
   });
 
-  it('every landmark has a freely licensed photo with credits', () => {
+  // Licence audit (owner, 2026-11-07: "라이센스 문제가 될만한 요소를 모두 제거"): CC BY / BY-SA forbid
+  // shipping under technological protection (App Store FairPlay), so only public-domain / CC0 photos
+  // ship; every other landmark plays on the bare table like the bosses.
+  it('a landmark photo ships only when it is public domain or CC0; the rest play on the bare table', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
+    let withPhoto = 0;
     for (const m of LEVELS) {
-      expect(existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url))).toBe(true);
+      const shipped = existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url));
+      if (m.photo === null) {
+        expect(shipped, `${m.id} photo file removed`).toBe(false);
+        expect(credits[m.id], `${m.id} credit removed`).toBeUndefined();
+        continue;
+      }
+      withPhoto++;
+      expect(shipped, m.id).toBe(true);
       const c = credits[m.id];
       expect(c.artist.length).toBeGreaterThan(0);
-      expect(c.license).toMatch(/^(public domain|cc0|cc by(-sa)? [\d.]+( \w+)?)$/i);
+      expect(c.license, m.id).toMatch(/^(public domain|cc0)$/i);
       expect(c.source).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
     }
+    expect(withPhoto).toBeGreaterThan(0);
   });
 
   it('after the landmarks comes the "경이의 세계" chapter, each map with its gimmick theme', () => {
@@ -74,7 +86,7 @@ describe('landmark maps', () => {
       const lvl = getLevel(regular[LEVELS.length + k]);
       expect(lvl.name).toBe(wnd.name);
       expect(lvl.theme).toBe(wnd.theme);
-      expect(lvl.photo).toBe(wnd.id);
+      expect(lvl.photo).toBe(wnd.photo === null ? null : wnd.id); // null: photo removed in the licence audit
     });
     expect(getLevel(0).theme).toBeNull(); // landmarks have no gimmick
   });

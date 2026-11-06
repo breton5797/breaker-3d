@@ -18,7 +18,9 @@ describe('경이의 세계 murals', () => {
 
   it('entries have the landmark shape plus a theme', () => {
     for (const m of WONDERS) {
-      expect(Object.keys(m).sort()).toEqual([...Object.keys(LEVELS[0]), 'theme'].sort());
+      // 'photo' (null) is there only when the licence audit removed the map's photo
+      const keys = Object.keys(m).filter((k) => k !== 'photo');
+      expect(keys.sort()).toEqual([...Object.keys(LEVELS[0]).filter((k) => k !== 'photo'), 'theme'].sort());
       expect(m.subtitle).toMatch(/·/);
       expect(m.palette).toHaveLength(8);
       for (const hex of m.palette) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
@@ -26,11 +28,14 @@ describe('경이의 세계 murals', () => {
     }
   });
 
-  it('every map has a photo with a valid credit', () => {
+  it('a map has a photo with a valid public-domain / CC0 credit, or plays on the bare table (licence audit 2026-11-07)', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
     for (const m of WONDERS) {
-      expect(existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url)), m.id).toBe(true);
+      const shipped = existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url));
+      if (m.photo === null) { expect(shipped, m.id).toBe(false); continue; }
+      expect(shipped, m.id).toBe(true);
       expect(cleanCredit(credits[m.id]), m.id).not.toBeNull();
+      expect(credits[m.id].license, m.id).toMatch(/^(public domain|cc0)$/i);
     }
   });
 });
