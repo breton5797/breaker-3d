@@ -5,10 +5,10 @@
 // Then shrink them for the web: sips -Z 768 -s formatOptions 70 public/landmarks/<id>.jpg
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { FREE_LICENSE } from '../src/credits.js';
-import { NO_PHOTO } from '../src/sim/maps.js';
+import { OWN_BACKDROP } from '../src/sim/maps.js';
 
 // Licence audit (owner, 2026-11-07): only public domain / CC0 ship. CC BY / BY-SA forbid distribution
-// under technological protection (app-store DRM), so those are skipped, and maps in NO_PHOTO are never fetched.
+// under technological protection (app-store DRM), so those are skipped; maps in OWN_BACKDROP use our own art and are never fetched.
 const SHIP_LICENSE = /^(public domain|cc0)$/i;
 
 const UA = 'breaker3d/1.0 (https://breton5797.github.io/breaker-3d/; landmark backgrounds)';
@@ -98,7 +98,7 @@ async function main() {
     credits = Object.fromEntries(Object.entries(old).filter(([id]) => id in SOURCES)); // drop retired landmarks
   }
   for (const [id, title] of Object.entries(SOURCES)) {
-    if ((only && !only.includes(id)) || NO_PHOTO.has(id)) continue;
+    if ((only && !only.includes(id)) || OWN_BACKDROP.has(id)) continue;
     const file = title.startsWith('File:') ? title.slice(5) : await leadImage(title);
     const info = file && await commonsInfo(file);
     if (!info || !FREE_LICENSE.test(info.license) || !SHIP_LICENSE.test(info.license) || info.restrictions) {
@@ -128,7 +128,7 @@ function creditsMarkdown(credits) {
     'Background photos come from Wikimedia Commons and are all public domain or CC0.',
     'They were resized (768 px), cropped to the play area and tinted for the sunset/night stages.',
     'Licence audit 2026-11-07: CC BY / CC BY-SA photos are not shipped (their licences forbid app-store DRM);',
-    'those maps play on the bare table (`NO_PHOTO` in `src/sim/maps.js`).',
+    'those maps use backdrops made for this game (`OWN_BACKDROP` in `src/sim/maps.js`).',
     'Licences and authors were re-checked against the Commons file pages on 2026-10-26.',
     '',
     '| Landmark | Photo | Author | Licence |',

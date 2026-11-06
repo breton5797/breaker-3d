@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { COLS, ROWS, CELL } from '../src/sim/constants.js';
 import { parseLevel, getLevel, stageParams, LEVELS, levelName, BOX, SLOTS, laneFor } from '../src/sim/levels.js';
-import { tint, LAP, WONDERS } from '../src/sim/maps.js';
+import { tint, LAP, WONDERS, OWN_BACKDROP } from '../src/sim/maps.js';
 import { isInside } from '../src/sim/box.js';
 import { stageSlot } from '../src/sim/sequence.js';
 
@@ -53,19 +53,18 @@ describe('landmark maps', () => {
 
   // Licence audit (owner, 2026-11-07: "라이센스 문제가 될만한 요소를 모두 제거"): CC BY / BY-SA forbid
   // shipping under technological protection (App Store FairPlay), so only public-domain / CC0 photos
-  // ship; every other landmark plays on the bare table like the bosses.
-  it('a landmark photo ships only when it is public domain or CC0; the rest play on the bare table', () => {
+  // ship; every other landmark gets a backdrop made for this game (Higgsfield, OWN_BACKDROP).
+  it('every landmark has a background: a public-domain / CC0 photo, or our own backdrop', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
     let withPhoto = 0;
     for (const m of LEVELS) {
-      const shipped = existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url));
-      if (m.photo === null) {
-        expect(shipped, `${m.id} photo file removed`).toBe(false);
-        expect(credits[m.id], `${m.id} credit removed`).toBeUndefined();
+      expect(m.photo, m.id).toBeUndefined();
+      expect(existsSync(new URL(`../public/landmarks/${m.id}.jpg`, import.meta.url)), m.id).toBe(true);
+      if (OWN_BACKDROP.has(m.id)) {
+        expect(credits[m.id], `${m.id}: own art, no photo credit`).toBeUndefined();
         continue;
       }
       withPhoto++;
-      expect(shipped, m.id).toBe(true);
       const c = credits[m.id];
       expect(c.artist.length).toBeGreaterThan(0);
       expect(c.license, m.id).toMatch(/^(public domain|cc0)$/i);
@@ -86,7 +85,7 @@ describe('landmark maps', () => {
       const lvl = getLevel(regular[LEVELS.length + k]);
       expect(lvl.name).toBe(wnd.name);
       expect(lvl.theme).toBe(wnd.theme);
-      expect(lvl.photo).toBe(wnd.photo === null ? null : wnd.id); // null: photo removed in the licence audit
+      expect(lvl.photo).toBe(wnd.id);
     });
     expect(getLevel(0).theme).toBeNull(); // landmarks have no gimmick
   });

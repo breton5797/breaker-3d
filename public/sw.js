@@ -3,7 +3,7 @@
 // - Hashed build files, landmark photos and the web font: cache first (fast, offline).
 // Everything else (other sites, non-GET requests) is left to the browser.
 
-const CACHE = 'breaker3d-v2'; // v2: new icons and title art (2026-10-28)
+const CACHE = 'breaker3d-v3'; // v3: own backdrops replace the CC photos at the same paths (2026-11-07)
 const FONT_HOST = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@';
 
 self.addEventListener('install', () => self.skipWaiting());
