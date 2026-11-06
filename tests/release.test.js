@@ -13,6 +13,21 @@ describe('release paperwork', () => {
     expect(txt).toMatch(/SIL Open Font License/);
   });
 
+  // Licence audit (owner, 2026-11-07): every runtime dependency ships inside the app, so each one's
+  // notice (its own copyright line and licence) travels with it; MPL-2.0 also needs where its source is.
+  it('carries the notice of every runtime dependency, with its own copyright line', () => {
+    const txt = read('public/licenses.txt');
+    const deps = Object.keys(JSON.parse(read('package.json')).dependencies);
+    for (const d of deps) {
+      expect(txt, d).toContain(d === 'three' ? 'three.js' : d);
+      const lic = read(`node_modules/${d}/LICENSE`);
+      const copyright = lic.split('\n').find((l) => /copyright/i.test(l) && /\d{4}/.test(l));
+      if (copyright) expect(txt, `${d} copyright`).toContain(copyright.trim());
+    }
+    expect(txt).toMatch(/Mozilla Public License,? (Version|v\.?) ?2\.0/i);
+    expect(txt).toMatch(/github\.com\/Cap-go\/capacitor-native-purchases/i);
+  });
+
   it('has a privacy policy that says what is (and is not) collected', () => {
     const html = read('public/privacy.html');
     expect(html).toMatch(/개인정보/);

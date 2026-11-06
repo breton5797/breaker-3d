@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { cleanCredit } from '../src/credits.js';
 
 const ok = { artist: 'Jane Doe', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:X.jpg' };
@@ -33,6 +33,19 @@ describe('photo credits', () => {
     const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
     for (const [id, c] of Object.entries(credits)) {
       if (/^cc/i.test(c.license)) expect(cleanCredit(c).licenseUrl, id).toMatch(/^https?:\/\/creativecommons\.org\//);
+    }
+  });
+
+  // Licence audit (owner, 2026-11-07): CC BY / BY-SA photos can't ship under app-store DRM. Every
+  // photo file is either credited public domain / CC0, or one of our own generated animal scenes.
+  it('ships only public-domain / CC0 photos, and no photo file without a credit', () => {
+    const credits = JSON.parse(readFileSync(new URL('../public/landmarks/credits.json', import.meta.url), 'utf8'));
+    for (const [id, c] of Object.entries(credits)) expect(c.license, id).toMatch(/^(public domain|cc0)$/i);
+    const OWN_ART = new Set(['cat', 'dog', 'lion', 'panda', 'penguin', 'rabbit']); // Higgsfield (scripts/art/hf-animals.jsonl)
+    const files = readdirSync(new URL('../public/landmarks/', import.meta.url)).filter((f) => f.endsWith('.jpg'));
+    for (const f of files) {
+      const id = f.slice(0, -4);
+      expect(Boolean(credits[id]) || OWN_ART.has(id), `${f} has no credit`).toBe(true);
     }
   });
 

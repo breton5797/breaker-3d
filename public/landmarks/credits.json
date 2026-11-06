@@ -1,32 +1,4 @@
 {
-  "giza": {
-    "file": "Pyramids_of_the_Giza_Necropolis.jpg",
-    "artist": "KennyOMG",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Pyramids_of_the_Giza_Necropolis.jpg"
-  },
-  "fuji": {
-    "file": "View_of_Mount_Fuji_from_Ōwakudani_20211202.jpg",
-    "artist": "Suicasmo",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:View_of_Mount_Fuji_from_%C5%8Cwakudani_20211202.jpg"
-  },
-  "stonehenge": {
-    "file": "Stonehenge2007_07_30.jpg",
-    "artist": "garethwiscombe",
-    "license": "CC BY 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Stonehenge2007_07_30.jpg"
-  },
-  "moai": {
-    "file": "AhuTongariki.JPG",
-    "artist": "Ian Sewell",
-    "license": "CC BY 2.5",
-    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
-    "source": "https://commons.wikimedia.org/wiki/File:AhuTongariki.JPG"
-  },
   "liberty": {
     "file": "Front_view_of_Statue_of_Liberty_(cropped).jpg",
     "artist": "AskALotl",
@@ -41,41 +13,6 @@
     "licenseUrl": "",
     "source": "https://commons.wikimedia.org/wiki/File:Tour_Eiffel_Wikimedia_Commons_(cropped).jpg"
   },
-  "tajMahal": {
-    "file": "Taj_Mahal_(Edited).jpeg",
-    "artist": "Yann; edited by Jim Carter",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Taj_Mahal_(Edited).jpeg"
-  },
-  "bigBen": {
-    "file": "Elizabeth_Tower_and_the_north_front_of_the_Palace_of_Westminster,_London.jpg",
-    "artist": "Christian David",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Elizabeth_Tower_and_the_north_front_of_the_Palace_of_Westminster,_London.jpg"
-  },
-  "sungnyemun": {
-    "file": "Sungnyemun_Gate,_front,_2013.jpg",
-    "artist": "DoulosCore",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Sungnyemun_Gate,_front,_2013.jpg"
-  },
-  "goldenGate": {
-    "file": "Golden_Gate_Bridge_as_seen_from_Battery_East.jpg",
-    "artist": "Frank Schulenburg",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Battery_East.jpg"
-  },
-  "stBasil": {
-    "file": "Saint_Basil's_Cathedral_in_Moscow.jpg",
-    "artist": "Tsy1980",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Saint_Basil%27s_Cathedral_in_Moscow.jpg"
-  },
   "sphinx": {
     "file": "Sphinx_with_the_third_pyramid.jpg",
     "artist": "Hesham Ebaid",
@@ -83,89 +20,12 @@
     "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
     "source": "https://commons.wikimedia.org/wiki/File:Sphinx_with_the_third_pyramid.jpg"
   },
-  "angkorWat": {
-    "file": "Angkor_Wat.jpg",
-    "artist": "Bjørn Christian Tørrissen",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Angkor_Wat.jpg"
-  },
-  "forbiddenCity": {
-    "file": "The_Forbidden_City_-_View_from_Coal_Hill.jpg",
-    "artist": "Pixelflake",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:The_Forbidden_City_-_View_from_Coal_Hill.jpg"
-  },
-  "petra": {
-    "file": "Al_khazneh.jpg",
-    "artist": "Susanahajer",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Al_khazneh.jpg"
-  },
-  "machuPicchu": {
-    "file": "Machu_Picchu,_2023_(012).jpg",
-    "artist": "Draceane",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Machu_Picchu,_2023_(012).jpg"
-  },
-  "greatWall": {
-    "file": "The_Great_Wall_of_China_at_Jinshanling-edit.jpg",
-    "artist": "Severin.stalder",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:The_Great_Wall_of_China_at_Jinshanling-edit.jpg"
-  },
-  "sagradaFamilia": {
-    "file": "SF_maig_2_cropped.jpg",
-    "artist": "Canaan",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:SF_maig_2_cropped.jpg"
-  },
-  "chichenItza": {
-    "file": "Chichen-Itza-Castillo-Seen-From-East.JPG",
-    "artist": "Bjørn Christian Tørrissen",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Chichen-Itza-Castillo-Seen-From-East.JPG"
-  },
-  "himeji": {
-    "file": "Himeji castle in may 2015.jpg",
-    "artist": "Nikos Kitsakis",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Himeji_castle_in_may_2015.jpg"
-  },
-  "brandenburgGate": {
-    "file": "Brandenburger Tor morgens.jpg",
-    "artist": "Thomas Wolf, www.foto-tw.de",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Brandenburger_Tor_morgens.jpg"
-  },
-  "gyeongbokgung": {
-    "file": "Front view of the Imperial Throne Hall Geunjeongjeon at Gyeongbokgung Palace with blue sky in Seoul.jpg",
-    "artist": "Basile Morin",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Front_view_of_the_Imperial_Throne_Hall_Geunjeongjeon_at_Gyeongbokgung_Palace_with_blue_sky_in_Seoul.jpg"
-  },
   "grandCanyon": {
     "file": "Grand Canyon National Park, View from Hermits Rest 4235 - Flickr - Grand Canyon NPS.jpg",
     "artist": "Grand Canyon National Park",
     "license": "Public domain",
     "licenseUrl": "",
     "source": "https://commons.wikimedia.org/wiki/File:Grand_Canyon_National_Park,_View_from_Hermits_Rest_4235_-_Flickr_-_Grand_Canyon_NPS.jpg"
-  },
-  "charlesBridge": {
-    "file": "The Vltava, Charles Bridge, Old Town Bridge Tower and Church of St. Francis of Assisi. Prague, Czech Republic.jpg",
-    "artist": "Ввласенко",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "source": "https://commons.wikimedia.org/wiki/File:The_Vltava,_Charles_Bridge,_Old_Town_Bridge_Tower_and_Church_of_St._Francis_of_Assisi._Prague,_Czech_Republic.jpg"
   },
   "saturn": {
     "file": "Saturn during Equinox.jpg",
@@ -188,13 +48,6 @@
     "licenseUrl": "",
     "source": "https://commons.wikimedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg"
   },
-  "blackHole": {
-    "file": "Black hole - Messier 87 crop max res.jpg",
-    "artist": "Event Horizon Telescope, uploader cropped and converted TIF to JPG",
-    "license": "CC BY 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Black_hole_-_Messier_87_crop_max_res.jpg"
-  },
   "dumbo": {
     "file": "Dumbo-hires.jpg",
     "artist": "NOAA Okeanos Explorer",
@@ -216,13 +69,6 @@
     "licenseUrl": "",
     "source": "https://commons.wikimedia.org/wiki/File:Halitrephes_Maasi.jpg"
   },
-  "spermWhale": {
-    "file": "Mother and baby sperm whale.jpg",
-    "artist": "Gabriel Barathieu",
-    "license": "CC BY-SA 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Mother_and_baby_sperm_whale.jpg"
-  },
   "lavaFountain": {
     "file": "Pahoeoe fountain edit2.jpg",
     "artist": "J.D. Griggs",
@@ -243,12 +89,5 @@
     "license": "Public domain",
     "licenseUrl": "",
     "source": "https://commons.wikimedia.org/wiki/File:Supercell-thunderstorm-in-Kansas.jpg"
-  },
-  "iceberg": {
-    "file": "Iceberg in the Arctic with its underside exposed.jpg",
-    "artist": "AWeith",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Iceberg_in_the_Arctic_with_its_underside_exposed.jpg"
   }
 }
