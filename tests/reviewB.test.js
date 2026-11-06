@@ -7,6 +7,7 @@ import { createDirector } from '../src/director.js';
 import { COLS, ITEM_MULT, PADDLE_Y, PADDLE_H, SWEEP_GAP } from '../src/sim/constants.js';
 import { stageSlot } from '../src/sim/sequence.js';
 import { landmarkAt } from '../src/sim/maps.js';
+import { vaultFor } from '../src/sim/pipes.js';
 import { mulberry32 } from '../src/sim/rng.js';
 
 // The PR-B review's findings, as behaviour (not source patterns).
@@ -70,7 +71,8 @@ describe('level seeding', () => {
       const g = parseLevel(lvl.lines, { box: lvl.box, holes: lvl.holes });
       let items = 0;
       for (let i = 0; i < g.cells.length; i++) if (ITEM_MULT[g.cells[i]]) items++;
-      expect(items, `stage ${n + 1}`).toBe(stageParams(n).items);
+      // + the fixed vault bonus past a pipe's far end (pipes.js vaultFor, owner 2026-11-07)
+      expect(items, `stage ${n + 1}`).toBe(stageParams(n).items + (lvl.pipe ? vaultFor(n).fruit.length : 0));
     }
   });
 });

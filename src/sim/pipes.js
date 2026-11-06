@@ -47,12 +47,24 @@ export function spiral(size) {
 
 // Each stretch of stages (0-based index from which it applies): which generators, and the sizes tried
 // from largest down (the longest that fits wins). Longer and more twisted as stages rise.
+// vault: the fixed bonus waiting past the far end, on top of the fruit the pipe cut away (owner,
+// 2026-11-07: "금고 보상 키우기"). Big fruit only (D orange x5, E apple x7, I watermelon x9, M pineapple
+// x10) and coins ('$'); bigger as the pipes get longer. Fixed per tier: nothing is rolled.
 export const TIERS = Object.freeze([
-  { from: 9, kinds: ['meander', 'comb'], meander: [[4, 24], [3, 20], [3, 14]], comb: [[6, 14], [4, 12], [4, 8]] },
-  { from: 30, kinds: ['meander', 'comb', 'spiral'], meander: [[6, 26], [5, 22], [4, 16]], comb: [[8, 16], [6, 14], [5, 10]], spiral: [24, 20, 16] },
-  { from: 60, kinds: ['meander', 'comb', 'spiral'], meander: [[8, 28], [7, 24], [6, 18]], comb: [[10, 18], [8, 16], [6, 12]], spiral: [30, 26, 22, 18] },
-  { from: 100, kinds: ['spiral', 'meander', 'comb'], meander: [[11, 30], [9, 26], [8, 20]], comb: [[12, 20], [10, 18], [8, 14]], spiral: [36, 32, 28, 24, 20] },
+  { from: 9, kinds: ['meander', 'comb'], meander: [[4, 24], [3, 20], [3, 14]], comb: [[6, 14], [4, 12], [4, 8]], vault: { fruit: ['E', 'D'], coins: 6 } },
+  { from: 30, kinds: ['meander', 'comb', 'spiral'], meander: [[6, 26], [5, 22], [4, 16]], comb: [[8, 16], [6, 14], [5, 10]], spiral: [24, 20, 16], vault: { fruit: ['I', 'E', 'D'], coins: 8 } },
+  { from: 60, kinds: ['meander', 'comb', 'spiral'], meander: [[8, 28], [7, 24], [6, 18]], comb: [[10, 18], [8, 16], [6, 12]], spiral: [30, 26, 22, 18], vault: { fruit: ['M', 'I', 'E'], coins: 10 } },
+  { from: 100, kinds: ['spiral', 'meander', 'comb'], meander: [[11, 30], [9, 26], [8, 20]], comb: [[12, 20], [10, 18], [8, 14]], spiral: [36, 32, 28, 24, 20], vault: { fruit: ['M', 'M', 'I', 'E'], coins: 12 } },
 ]);
+const tierOf = (n) => [...TIERS].reverse().find((t) => n >= t.from) ?? TIERS[0];
+
+/** @param {number} n stage index (0-based) @returns {{ fruit: string[], coins: number }} the vault bonus of stage n's pipe */
+export function vaultFor(n) {
+  const { fruit, coins } = tierOf(n).vault;
+  return { fruit: [...fruit], coins };
+}
+/** The vault bonus as the cells it puts down: its fruit first (closest to the far end), then its coins. */
+const bonusCells = ({ fruit, coins }) => [...fruit, ...Array.from({ length: coins }, () => '$')];
 const MAKE = { meander, comb, spiral };
 
 export const PIPE_W = 2; // open cells across
@@ -80,7 +92,7 @@ export const pipeStage = (n) => n >= TIERS[0].from && !stageSlot(n).boss;
  * @returns {Array<{ name: string, moves: Array<[string, number]> }>}
  */
 export function shapesFor(n) {
-  const tier = [...TIERS].reverse().find((t) => n >= t.from) ?? TIERS[0];
+  const tier = tierOf(n);
   const rng = mulberry32(n * 31 + 7);
   const kinds = [...tier.kinds];
   for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
@@ -142,11 +154,12 @@ function trace(moves, hx, floor, w) {
  * @param {{left:number,right:number,top:number}} box
  * @param {{ cells: number[][] }} hole the floor hole
  * @param {Array<[string, number]>} moves the path (meander, comb, spiral)
- * @param {{ others?: Array<{cells:number[][]}>, w?: number, name?: string, vault?: boolean }} [opts] vault: false
- *   leaves the cut-away fruit to the caller (`lost`, with the pipe's `exit` point)
+ * @param {{ others?: Array<{cells:number[][]}>, w?: number, name?: string, vault?: boolean, bonus?: string[] }} [opts]
+ *   vault: false leaves the cut-away fruit to the caller (`lost`, with the pipe's `exit` point);
+ *   bonus: extra cells (fruit, '$') put down in the vault after the cut-away ones
  * @returns {{ lines: string[], pipe: object, lost: string[] }|null}
  */
-export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, name = '', vault = true } = {}) {
+export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, name = '', vault = true, bonus = [] } = {}) {
   const [hx, floor] = hole.cells[0];
   const { open, back, head, dir } = trace(moves, hx, floor, w);
   const inside = (x, y) => x > box.left && x < box.right && y > floor && y < box.top;
@@ -176,7 +189,7 @@ export function carvePipe(lines, box, hole, moves, { others = [], w = PIPE_W, na
   }
   // The vault: the fruit the pipe cut away go to the plain bricks nearest past its far end (pipeFor may
   // send some to a bypass hole first).
-  if (vault) placeNear(rows, box, floor, openSet, [ex, ey], lost);
+  if (vault) placeNear(rows, box, floor, openSet, [ex, ey], [...lost, ...bonus]);
   const end = new Set();
   for (let i = 0; i < w; i++) for (let j = 0; j < w; j++) end.add(key(head[0] + i, head[1] + j));
   return {
@@ -210,7 +223,7 @@ export function pipeFor(n, lines, box, holes) {
     for (const moves of flipFirst ? [mirrored, base] : [base, mirrored]) {
       for (const x of spots) {
         const hole = { slot: 'pipe', side: 'bottom', size: 1, cells: [[x, floor]], inward: [0, 1] };
-        const made = carvePipe(lines, box, hole, moves, { others: holes, name });
+        const made = carvePipe(lines, box, hole, moves, { others: holes, name, bonus: bonusCells(vaultFor(n)) });
         if (made) return { lines: made.lines, pipe: made.pipe, hole };
       }
     }
