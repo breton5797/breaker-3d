@@ -262,7 +262,7 @@ function startLevel(i) {
     boss: level.boss, theme: level.theme ?? null,
     charges: { split: 0, meteor: 0 }, // no free skills: each use is bought with coins (skill buttons)
   });
-  bricks.setLevel(world.grid, level.palette);
+  bricks.setLevel(world.grid, level.palette, level.pipe);
   beacon.setLevel(world.grid);
   photo.setLevel(level);
   ui.setPhotoCredit(credits[level.photo] ?? null);

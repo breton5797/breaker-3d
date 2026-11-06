@@ -3,6 +3,7 @@ import { COLS, ROWS, CELL, ITEM_MULT, PADDLE_Y } from '../src/sim/constants.js';
 import { parseLevel, getLevel, stageParams, LEVELS } from '../src/sim/levels.js';
 import { createWorld, stepWorld, setPaddleX, drainEvents } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
+import { vaultFor } from '../src/sim/pipes.js';
 
 const idx = (c, r) => r * COLS + c;
 
@@ -99,7 +100,8 @@ describe('endless difficulty curve', () => {
       for (const l of lvl.lines) expect(l.length).toBe(COLS);
       expect(lvl.holes.filter((h) => h.slot !== 'pipe')).toHaveLength(p.holeCount); // + the pipe's own mouth (pipes.js)
       expect(items).toBeGreaterThanOrEqual(Math.floor(p.items * 0.8));
-      expect(items).toBeLessThanOrEqual(p.items + p.unitCount); // only seeded fruit (veteran units drop extra later)
+      // only seeded fruit (veteran units drop extra later), + the pipe's vault bonus (pipes.js vaultFor)
+      expect(items).toBeLessThanOrEqual(p.items + p.unitCount + (lvl.pipe ? vaultFor(lvl.index).fruit.length : 0));
       expect(coins).toBeGreaterThanOrEqual(Math.floor(p.coins * 0.8));
       // A boss stage (every 10th) has no enemy units: the boss itself shoots.
       expect(units).toBe(lvl.bossStage ? 0 : p.unitCount);

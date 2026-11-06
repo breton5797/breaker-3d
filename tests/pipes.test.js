@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { carvePipe, inPipe, atPipeEnd, wayBack, pipeStage, shapesFor, meander, comb, spiral, TIERS, PIPE_W, PIPE_PATIENCE, PIPE_FLUSH } from '../src/sim/pipes.js';
+import { carvePipe, inPipe, atPipeEnd, wayBack, pipeStage, shapesFor, meander, comb, spiral, vaultFor, TIERS, PIPE_W, PIPE_PATIENCE, PIPE_FLUSH } from '../src/sim/pipes.js';
 import { getLevel } from '../src/sim/levels.js';
 import { createWorld, stepWorld, drainEvents } from '../src/sim/world.js';
 import { addBall } from '../src/sim/balls.js';
 import { stageSlot } from '../src/sim/sequence.js';
-import { ROWS } from '../src/sim/constants.js';
+import { ROWS, FRUIT_GAINS } from '../src/sim/constants.js';
 
 // Pipe stage (owner, 2026-11-02; docs/plans/2026-11-02-size-fullscreen-pipes): a winding steel pipe from
 // a floor hole into the mural, longer and windier as stages rise; the ball may get through to the fruit
@@ -12,6 +12,7 @@ import { ROWS } from '../src/sim/constants.js';
 const cell = (lines, x, y) => lines[ROWS - 1 - y][x];
 const fruit = (ls) => ls.join('').replace(/[^ACDEIM]/g, '').length;
 const plain = (n) => getLevel(n, { pipe: false });
+const coins = (ls) => ls.join('').replace(/[^$]/g, '').length;
 
 describe('which stages get which pipes', () => {
   it('from stage 10 on, never a big-boss stage', () => {
@@ -29,13 +30,57 @@ describe('which stages get which pipes', () => {
     expect(shapesFor(150)[0].moves.length).toBeGreaterThan(shapesFor(9).at(-1).moves.length);
   });
 
-  it('every stage with a floor hole from 10 to 200 gets a pipe, and keeps exactly its fruit', () => {
+  it('every stage with a floor hole from 10 to 200 gets a pipe, keeps its fruit and adds the vault bonus', () => {
     for (let n = 9; n < 200; n++) {
       if (!pipeStage(n) || !plain(n).holes.some((h) => h.side === 'bottom')) continue;
       const lvl = getLevel(n);
       expect(lvl.pipe, `stage ${n + 1}`).toBeTruthy();
-      expect(fruit(lvl.lines), `stage ${n + 1}`).toBe(fruit(plain(n).lines));
+      expect(fruit(lvl.lines), `stage ${n + 1}`).toBe(fruit(plain(n).lines) + vaultFor(n).fruit.length);
+      expect(coins(lvl.lines), `stage ${n + 1}`).toBe(coins(plain(n).lines) + vaultFor(n).coins);
     }
+  });
+});
+
+// A bigger vault (owner, 2026-11-07: "금고 보상 키우기"): past the far end of the pipe, on top of the
+// fruit the pipe cut away, a fixed bonus of big fruit and coins, bigger in later tiers. No dice.
+describe('the vault past the pipe', () => {
+  const CHAR_MULT = { A: 5, C: 10, D: 20, E: 30, I: 50, M: 100 };
+  const gain = (n) => vaultFor(n).fruit.reduce((g, ch) => g * FRUIT_GAINS[CHAR_MULT[ch]], 1);
+
+  it('holds big fruit and coins, more in every later tier', () => {
+    const firsts = TIERS.map((t) => t.from);
+    for (const n of firsts) {
+      const v = vaultFor(n);
+      expect(v.fruit.length, `tier from ${n}`).toBeGreaterThanOrEqual(2);
+      expect(v.fruit.every((ch) => CHAR_MULT[ch] >= 20), 'only big fruit (orange or better)').toBe(true);
+      expect(v.coins).toBeGreaterThan(0);
+    }
+    for (let k = 1; k < firsts.length; k++) {
+      expect(gain(firsts[k])).toBeGreaterThan(gain(firsts[k - 1]));
+      expect(vaultFor(firsts[k]).coins).toBeGreaterThan(vaultFor(firsts[k - 1]).coins);
+    }
+    expect(vaultFor(55)).toEqual(vaultFor(55)); // fixed: the same every time
+  });
+
+  it('is gathered right past the far end of the pipe', () => {
+    let checked = 0;
+    for (const n of [12, 45, 80, 130]) {
+      const lvl = getLevel(n);
+      if (!lvl.pipe) continue;
+      checked++;
+      const [ex, ey] = lvl.pipe.exit;
+      let close = 0;
+      for (let li = 0; li < lvl.lines.length; li++) {
+        const y = ROWS - 1 - li;
+        for (let x = 0; x < lvl.lines[li].length; x++) {
+          const ch = lvl.lines[li][x];
+          if ((ch in CHAR_MULT || ch === '$') && Math.hypot(x - ex, y - ey) <= 24) close++; // a spiral's heart is mostly pipe: its vault spills a little
+        }
+      }
+      const v = vaultFor(n);
+      expect(close, `stage ${n + 1}`).toBeGreaterThanOrEqual(v.fruit.length + v.coins);
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });
 

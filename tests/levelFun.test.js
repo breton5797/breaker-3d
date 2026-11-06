@@ -10,6 +10,7 @@ import { updateBoss, WARN_TIME, ATTACK_EVERY } from '../src/sim/boss.js';
 import { updateDrops } from '../src/sim/items.js';
 import { addBall } from '../src/sim/balls.js';
 import { mulberry32 } from '../src/sim/rng.js';
+import { vaultFor } from '../src/sim/pipes.js';
 
 // Second audit round (PLAN v38, PR-B): the level and fun fixes. The level check found the
 // real bottleneck is the stretch from getting in to the first fruit, not the entrance.
@@ -61,7 +62,8 @@ describe('first fruit near the holes', () => {
   it("the stage's fruit count is unchanged (the owner's numbers): only where some of them sit", () => {
     for (const n of [0, 12, 30, 95, 150]) {
       const { total } = fruitNearHoles(n);
-      expect(total, `stage ${n + 1}`).toBe(stageParams(n).items);
+      // + the fixed vault bonus past a pipe's far end (pipes.js vaultFor, owner 2026-11-07)
+      expect(total, `stage ${n + 1}`).toBe(stageParams(n).items + (getLevel(n).pipe ? vaultFor(n).fruit.length : 0));
     }
   });
 });

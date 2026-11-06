@@ -6,6 +6,7 @@ import { coinMaterials, coinGeometry } from './coinLook.js';
 import { vivid } from './vivid.js';
 import { ART, fruitArt } from '../art.js';
 import { paintedTexture } from './art.js';
+import { pipeLook } from './pipeLook.js';
 
 /** Icon spec for a fruit item: the fruit itself, no tile and no number. */
 function fruitSpec(mult) {
@@ -104,6 +105,52 @@ export function fruitTexture(fruit, size = 128, contactShadow = true) {
   }, fruitArt(fruit.id), (tex) => { tex.anisotropy = 4; });
 }
 
+// The pipe as a trough (owner, 2026-11-07: "강철 블록 → 홈통"): matte copper rims, lower than the
+// bricks, around a dark channel floor. No glow (owner's standing rule): plain Lambert, soft shadows.
+const TROUGH_RIM = 0xc27a45;
+const TROUGH_FLOOR = 0x4a3024;
+const RIM_HEIGHT = 0.55; // bricks are 1 tall: the rim sits low so the ball inside stays in view
+const FLOOR_LIFT = 0.02; // the channel floor just above the table (and the landmark photo on it)
+
+/** A rolled rim: soft round light in the middle, darker toward the edges (reads as a curved lip). */
+function rimTexture() {
+  return paintedTexture(64, (g, n) => {
+    const r = g.createRadialGradient(n * 0.42, n * 0.38, n * 0.05, n / 2, n / 2, n * 0.72);
+    r.addColorStop(0, '#ffffff');
+    r.addColorStop(0.55, '#d9d9d9');
+    r.addColorStop(1, '#8c8c8c');
+    g.fillStyle = r;
+    g.fillRect(0, 0, n, n);
+  });
+}
+
+/** The channel floor: darker toward its sides like the inside of a gutter, with faint seams. */
+function channelTexture() {
+  return paintedTexture(64, (g, n) => {
+    const r = g.createRadialGradient(n / 2, n / 2, n * 0.1, n / 2, n / 2, n * 0.75);
+    r.addColorStop(0, '#ffffff');
+    r.addColorStop(1, '#9a9a9a');
+    g.fillStyle = r;
+    g.fillRect(0, 0, n, n);
+    g.fillStyle = 'rgba(0,0,0,0.12)';
+    g.fillRect(0, 0, n, n * 0.04);
+  });
+}
+
+function createTrough(scene, total) {
+  const make = (geo, map, color) => {
+    const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ map, color }), total);
+    m.count = 0;
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  };
+  const rim = make(new THREE.BoxGeometry(1, 1, RIM_HEIGHT), rimTexture(), TROUGH_RIM);
+  rim.castShadow = true;
+  const floor = make(new THREE.PlaneGeometry(1, 1), channelTexture(), TROUGH_FLOOR);
+  return { rim, floor };
+}
+
 const tmp = new THREE.Object3D();
 const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 const BRICK_SIZE = 1; // bricks fill their whole cell (the bevel texture still marks each one); was 0.92 with gaps
@@ -135,6 +182,7 @@ export function createBricks(scene) {
     scene.add(m);
     return [type, m];
   }));
+  const trough = createTrough(scene, total);
 
   let palette = [];
   let grid = null;
@@ -165,8 +213,23 @@ export function createBricks(scene) {
   const isFruit = (type) => Boolean(SPECIALS[type]?.fruit);
   const scaleOf = (type) => (isFruit(type) ? FRUIT_SCALE : ICON_SCALE);
 
-  /** Rebuilds every instance for a new level. */
-  function setLevel(g, pal) {
+  /** Lays the pipe's trough (pipeLook.js) and hides the steel blocks it replaces. */
+  function setTrough(g, pipe) {
+    const { walls, floor } = pipeLook(g, pipe);
+    // place() puts a cell's centre at z 0.5 (bricks are 1 tall): lift by the difference.
+    walls.forEach((i, slot) => { place(trough.rim, slot, i, 1, RIM_HEIGHT / 2 - 0.5); mesh.setMatrixAt(i, hidden); });
+    floor.forEach((i, slot) => place(trough.floor, slot, i, 1, FLOOR_LIFT - 0.5));
+    trough.rim.count = walls.length;
+    trough.floor.count = floor.length;
+    trough.rim.instanceMatrix.needsUpdate = true;
+    trough.floor.instanceMatrix.needsUpdate = true;
+  }
+
+  /**
+   * Rebuilds every instance for a new level.
+   * @param {object} g the parsed grid @param {string[]} pal palette @param {object|null} [pipe] the stage's pipe
+   */
+  function setLevel(g, pal, pipe = null) {
     grid = g;
     palette = pal.map(vivid); // brighter, fresher than the map's own palette (vivid.js)
     pops = [];
@@ -193,6 +256,7 @@ export function createBricks(scene) {
       cells.forEach((i, slot) => place(m, slot, i, scaleOf(type), SPECIALS[type].coin ? COIN_LIFT : 0));
       m.instanceMatrix.needsUpdate = true;
     }
+    setTrough(g, pipe);
     mesh.instanceMatrix.needsUpdate = true;
     mesh.instanceColor.needsUpdate = true;
   }
