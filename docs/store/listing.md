@@ -56,7 +56,13 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 광고는 이어하기·골드 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
 
 **이번 버전의 새로운 기능**
-1.0.1 (500자 이내)
+1.0.2 (500자 이내)
+- 관이 구리 홈통 모양으로 바뀌어 길이 한눈에 보여요
+- 관 끝 과일 금고가 커졌어요: 큰 과일과 코인이 더 들어 있어요
+- 랜드마크 23곳의 배경을 새로 그린 그림으로 바꿨어요
+
+1.0.1
+- 10스테이지부터 길고 구불구불한 강철 관이 등장! 관 끝까지 가면 과일 금고가 열려요
 - 10스테이지부터 길고 구불구불한 강철 관이 등장! 관 끝까지 가면 과일 금고가 열려요
 - 공·블록이 더 커지고 화면을 꽉 채워 보기 편해졌어요
 - 첫 발사: 끌어서 바 위치를 정하고, 다시 눌러 좌우로 끌어 조준
@@ -105,7 +111,13 @@ One-handed portrait play, no sign-up, plays offline, 14 languages.
 The only ads are optional rewarded ads you choose to watch for a revive or double gold. Buy "Remove Ads" to get the same rewards without ads.
 
 **What's new**
-1.0.1 (500 chars max)
+1.0.2 (500 chars max)
+- Pipes now look like copper troughs, so you can see the way at a glance
+- Bigger fruit vault at the end of each pipe: more big fruit and coins
+- New painted backgrounds for 23 landmarks
+
+1.0.1
+- From stage 10, long winding steel pipes: make it to the end and the fruit vault opens
 - From stage 10, long winding steel pipes: make it to the end and the fruit vault opens
 - Bigger balls and bricks, and the board fills the screen
 - First shot: drag to place the paddle, then press and drag sideways to aim
