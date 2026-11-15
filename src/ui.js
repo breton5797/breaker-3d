@@ -8,6 +8,8 @@ import { iconArt, splitIcons } from './icons.js';
 import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
 import { bossDex, travelAlbum, collectionCounts } from './collection.js';
 import { renderBossDex, renderTravel, renderChapters } from './collectionView.js';
+import { eventsStatus } from './events.js';
+import { renderEvents, eventsButtonText } from './eventsView.js';
 import { t, applyStatic, fillLanguageSelects, locale } from './i18n.js';
 import { stageTitle, stageTitleAt, mapName, mapSubtitle, bossName, chapterName, achievementName, achievementDesc } from './names.js';
 
@@ -54,8 +56,8 @@ function iconifyStatic(root) {
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
 const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;
 
-const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv', 'screen-credits', 'screen-collection'];
-const SUBSCREENS = ['screen-achv', 'screen-credits', 'screen-collection']; // lists opened from the title (Esc / back closes them)
+const SCREENS = ['screen-title', 'screen-clear', 'screen-over', 'screen-pause', 'screen-achv', 'screen-credits', 'screen-collection', 'screen-events'];
+const SUBSCREENS = ['screen-achv', 'screen-credits', 'screen-collection', 'screen-events']; // lists opened from the title (Esc / back closes them)
 
 /**
  * DOM layer. All dynamic text goes through textContent.
@@ -110,6 +112,9 @@ export function createUI(h) {
   bind('btn-collection', h.onCollection);
   bind('btn-collection-back', h.onMenu);
   bind('btn-collection-close', h.onMenu);
+  bind('btn-events', h.onEvents);
+  bind('btn-events-back', h.onMenu);
+  bind('btn-events-close', h.onMenu);
   bind('collection-tab-boss', () => showCollection(lastSave, 'boss'));
   bind('collection-tab-travel', () => showCollection(lastSave, 'travel'));
   bind('btn-mute', h.onMute);
@@ -180,6 +185,7 @@ export function createUI(h) {
     setRich($('btn-achv'), t('title.achievements', { have: ownedCount(save), total: ACHIEVEMENTS.length }));
     const counts = collectionCounts(save);
     setRich($('btn-collection'), t('title.collection', { b: counts.bosses.have, bt: counts.bosses.total, m: counts.maps.have, mt: counts.maps.total }));
+    setRich($('btn-events'), eventsButtonText(eventsStatus(save, today())));
     setRich($('title-gold'), t('title.gold', { gold: save.gold, stars: totalStars(save) }));
     // What is ahead and what coming back pays, in plain words (no "lose it" pressure).
     const g = nextGoals(Math.max(0, next));
@@ -226,6 +232,12 @@ export function createUI(h) {
    * the chapter progress bars above either.
    * @param {object} save @param {'boss'|'travel'} [tab]
    */
+  /** The daily missions and weekly challenge (eventsView.js); a claim goes back to main.js. */
+  function showEvents(save) {
+    renderEvents($('events-list'), eventsStatus(save, today()), { setRich, fmt, onClaim: h.onClaimEvent });
+    show('screen-events');
+  }
+
   function showCollection(save, tab = collectionTab) {
     collectionTab = tab;
     lastSave = save;
@@ -792,6 +804,7 @@ export function createUI(h) {
     showPause: (on) => show(on ? 'screen-pause' : null),
     showAchievements,
     showCollection,
+    showEvents,
     showCredits,
     pumpGold,
     damageFlash,

@@ -33,7 +33,9 @@ describe('save data', () => {
 
   it('old saves without achievements still load', () => {
     localStorage.setItem(KEY, JSON.stringify({ unlocked: 7, best: { 2: 900 }, muted: true }));
-    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, vibrate: false, adsRemoved: false, achievements: [], gold: 0, stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [], beatenAt: {}, lang: '', serveTip: false });
+    expect(loadSave()).toEqual({ unlocked: 7, best: { 2: 900 }, muted: true, vibrate: false, adsRemoved: false, achievements: [], gold: 0, stars: {}, chests: 0, daily: { last: '', streak: 0 }, loadout: { split: 0, meteor: 0 }, beaten: [], beatenAt: {}, lang: '', serveTip: false,
+      // an old save gets an empty events state (events.js cleanEvents)
+      events: { day: '', missions: [], dp: {}, dc: [false, false, false], bonus: false, week: '', wp: {}, wc: [false, false, false], stamps: [] } });
   });
 
   it('remembers that the two-step serve tip was seen (only a real true counts)', () => {
