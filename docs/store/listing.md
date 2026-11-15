@@ -57,6 +57,7 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 
 **이번 버전의 새로운 기능**
 1.0.2 (500자 이내)
+- 매일 바뀌는 오늘의 미션 3개와 이번 주 챌린지가 생겼어요: 골드와 주간 스탬프를 모아 보세요
 - 관이 구리 홈통 모양으로 바뀌어 길이 한눈에 보여요
 - 관 끝 과일 금고가 커졌어요: 큰 과일과 코인이 더 들어 있어요
 - 랜드마크 23곳의 배경을 새로 그린 그림으로 바꿨어요
@@ -112,6 +113,7 @@ The only ads are optional rewarded ads you choose to watch for a revive or doubl
 
 **What's new**
 1.0.2 (500 chars max)
+- New daily missions and a weekly challenge: earn gold and collect week stamps
 - Pipes now look like copper troughs, so you can see the way at a glance
 - Bigger fruit vault at the end of each pipe: more big fruit and coins
 - New painted backgrounds for 23 landmarks
