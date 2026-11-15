@@ -295,6 +295,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .achv-list li.locked { opacity: 0.4; }
 .achv-list li.locked .icon { filter: grayscale(1); }
 
+/* Events panel (eventsView.js): section heads, a row ready to claim stands out, claimed rows recede. */
+.events-list li.events-head { display: block; padding: 10px 2px 2px; border: 0; background: none; }
+.events-list li.events-head b { display: block; font-size: 16px; }
+.events-list li.events-head small { display: block; margin-top: 2px; }
+.events-list li.ready { border-color: var(--gold); background: rgba(255, 207, 74, 0.1); }
+.events-list li.done { opacity: 0.5; }
+.events-claim { grid-column: 3; grid-row: 1 / span 2; align-self: center; width: auto; min-height: 0; margin: 0; padding: 8px 12px; font-size: 13px; box-shadow: none; white-space: nowrap; }
+
 /* Collection: boss dex and travel album (two tabs, chapter bars above the grid). */
 .tabs { display: flex; gap: 8px; margin: 0 0 12px; }
 .tab { flex: 1; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.05); font-weight: 800; font-size: 13px; }

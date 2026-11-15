@@ -37,6 +37,8 @@ import {
   buyInPlay, SKILL_USES, SKILL_PRICES, refundLoadout, firstClearBonus, chestProgress, achievementStage,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
+import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
+import { missionLabel } from './eventsView.js';
 import { Capacitor } from '@capacitor/core';
 import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
@@ -75,7 +77,7 @@ const { ads, store, ready: monetizationReady } = createMonetization({
 // The app's ads and store come up a moment after launch: refresh the title's shop button then.
 monetizationReady.then(() => { if (mode === 'title') showStore(); });
 // This attempt at the current stage: revives used and gold already banked (a game over banks it).
-let run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
+let run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0, tally: {} }; // tally: this stage's play for the events (events.js)
 const fullscreen = createFullscreen();
 const quality = createQualityGovernor();
 const PADDLE_HEX = 0xa9b8dc; // steel; the paddle's satin sheen brightens its top
@@ -139,6 +141,8 @@ const ui = createUI({
   onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
   onCollection: () => ui.showCollection(save, 'boss'),
+  onEvents: () => ui.showEvents(save),
+  onClaimEvent: (kind, i) => claimEvent(kind, i),
   onLanguage: async (code) => {
     save = { ...save, lang: code }; // '' = follow the device
     persist();
@@ -251,7 +255,7 @@ function startLevel(i) {
   picking = false;
   serve = SERVE_START;
   ui.showSplitPicker(null);
-  run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0 };
+  run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0, tally: {} };
   level = getLevel(i);
   coins3d.reset();
   const p = level.params;
@@ -387,6 +391,7 @@ function finishLevel(cleared) {
     const chest = claimChests(save);
     const daily = dailyBonus(chest.save, today());
     save = daily.save;
+    const missionsDone = recordEvents({ won: true, boss: Boolean(w.boss && !w.boss.alive), coins: w.gold, stars });
     persist();
     run.clearGold = w.gold + run.goldBanked; // all gold this attempt (before and after a revive)
     checkAchievements(true);
@@ -394,6 +399,7 @@ function finishLevel(cleared) {
       ...(firstClear ? [t('clear.firstClear', { gold: firstClear })] : []),
       ...(daily.gold ? [t('clear.daily', { gold: daily.gold, n: daily.streak })] : []),
       ...(chest.gold ? [t('clear.chest', { gold: chest.gold })] : []),
+      ...missionsDone.map((m) => t('clear.mission', { name: missionLabel(m.metric, m.goal) })),
       ...stageAchievements.map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean)
         .map((a) => t('clear.achv', { name: achievementName(a), gold: a.gold })),
     ];
@@ -419,6 +425,7 @@ function finishLevel(cleared) {
     }), w.finale ? 2600 : 1600); // let the finale fireworks play out first
   } else {
     save = addGold(save, w.gold); // gold caught is kept even when the run ends
+    recordEvents({ won: false, boss: false, coins: w.gold, stars: 0 });
     persist();
     run.goldBanked += w.gold;
     w.gold = 0; // banked: a revived run must not bank it twice
@@ -433,6 +440,29 @@ function finishLevel(cleared) {
     const over = { gold: run.goldBanked, total: save.gold, best: save.best[level.index] ?? 0, tip, bonus };
     setTimeout(() => ui.showOver(w.score, offers().revive, progressShare(w.grid), over), 900);
   }
+}
+
+// ---------- daily missions and the weekly challenge (events.js) ----------
+
+/** Folds this stage's play into the events; returns the missions it just completed. */
+function recordEvents(result) {
+  const date = today();
+  const before = eventsStatus(save, date).missions;
+  save = track(save, date, stageCounts(run.tally, result));
+  run.tally = {}; // a revived run counts on from here
+  return eventsStatus(save, date).missions.filter((m, i) => m.done && !before[i]?.done);
+}
+
+const CLAIMS = { mission: claimMission, bonus: (s, d) => claimAllBonus(s, d), weekly: claimWeekly };
+
+/** A tap on a claim button in the events panel: pays once, then redraws the panel. */
+function claimEvent(kind, i) {
+  const r = CLAIMS[kind]?.(save, today(), i);
+  if (!r?.gold) return;
+  save = r.save;
+  persist();
+  audio.coin();
+  ui.showEvents(save);
 }
 
 // ---------- rewards and the remove-ads purchase ----------
@@ -706,7 +736,9 @@ function step(now) {
       keyboardPaddle(dt);
       stepWorld(world, dt * scale);
       elapsed += dt * scale;
-      director.handle(drainEvents(world), world);
+      const events = drainEvents(world);
+      run.tally = tallyEvents(run.tally, events, Boolean(level.pipe));
+      director.handle(events, world);
       if (world.state === 'clear') finishLevel(true);
       else if (world.state === 'over') finishLevel(false);
     }

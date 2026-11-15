@@ -1,4 +1,5 @@
 import { LOADOUT, dayNumber, today } from './meta.js';
+import { cleanEvents } from './events.js';
 import { isLanguage } from './i18n.js';
 import { BOSS_KINDS } from './sim/boss.js';
 import { MAP_BOSSES } from './sim/mapBosses.js';
@@ -44,6 +45,7 @@ function metaFields(raw) {
     loadout: { split: charge('split'), meteor: charge('meteor') },
     beaten,
     beatenAt,
+    events: cleanEvents(raw.events, today()), // daily missions and the weekly challenge (events.js)
   };
 }
 
