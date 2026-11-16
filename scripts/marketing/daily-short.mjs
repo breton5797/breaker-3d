@@ -57,6 +57,14 @@ try {
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', cut.toFixed(2), '-i', webm, '-t', length.toFixed(2),
     '-vf', 'scale=1080:1920:flags=lanczos,fps=30', '-c:v', 'libx264', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-crf', '24', '-maxrate', '10M', '-bufsize', '20M', '-movflags', '+faststart', '-an', mp4]);
   rmSync(raw, { recursive: true, force: true });
+  // A small copy (<= 9.5 MB, 720x1280) for browser upload tools that cap a file at 10 MB.
+  const small = mp4.replace(/\.mp4$/, '-upload.mp4');
+  const kbps = Math.floor((9.5 * 8192) / length) - 32;
+  const enc = (pass) => ['-y', '-loglevel', 'error', '-i', mp4, '-vf', 'scale=720:1280:flags=lanczos', '-c:v', 'libx264', '-preset', 'slow',
+    '-b:v', `${kbps}k`, '-pass', String(pass), '-passlogfile', join(out, 'x264'), '-pix_fmt', 'yuv420p', '-an'];
+  execFileSync('ffmpeg', [...enc(1), '-f', 'mp4', '/dev/null']);
+  execFileSync('ffmpeg', [...enc(2), '-movflags', '+faststart', small]);
+  for (const f of readdirSync(out)) if (f.startsWith('x264')) rmSync(join(out, f));
   const level = getLevel(stage - 1);
   writeFileSync(join(out, 'caption.md'), shortCaption({ date, stage, id: level.id, peak: clip.peak, seconds: clearAt }));
   console.log(`done: ${mp4}\n      ${join(out, 'caption.md')}`);
