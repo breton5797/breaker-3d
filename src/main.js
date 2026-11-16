@@ -39,6 +39,9 @@ import {
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
 import { missionLabel } from './eventsView.js';
+import { demoStage, demoTarget, demoAngle } from './demo.js';
+
+const DEMO = demoStage(location.search); // ?demo=<stage>: a bot plays it, for gameplay videos (demo.js)
 import { Capacitor } from '@capacitor/core';
 import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
@@ -734,6 +737,10 @@ function step(now) {
   if (world && (mode === 'play' || mode === 'outro')) {
     if (mode === 'play' && !picking) {
       keyboardPaddle(dt);
+      if (DEMO) {
+        if (world.state === 'ready') launch(world, demoAngle(elapsed));
+        setPaddleX(world, demoTarget(world, elapsed));
+      }
       stepWorld(world, dt * scale);
       elapsed += dt * scale;
       const events = drainEvents(world);
@@ -801,6 +808,7 @@ function showMenu() {
 }
 
 showMenu();
+if (DEMO) startLevel(DEMO - 1);
 requestAnimationFrame(frame);
 // The first frame is on screen: lift the loading screen (see index.html / boot.js).
 requestAnimationFrame(() => {
