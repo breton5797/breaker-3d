@@ -54,6 +54,7 @@ export default {
   'title.fullscreen': '⛶ 전체 화면',
   'title.fullscreenOff': '⛶ 전체 화면 끄기',
   'title.restore': '구매 복원',
+  'title.privacy': '광고 개인정보 설정', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 사진 출처',
   'title.achievements': '🏆 업적 {have} / {total}',
   'title.collection': '👾 도감 {b}/{bt} · 🌍 여행 {m}/{mt}',

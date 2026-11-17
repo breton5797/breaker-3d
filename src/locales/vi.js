@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Toàn màn hình',
   'title.fullscreenOff': '⛶ Thoát toàn màn hình',
   'title.restore': 'Khôi phục mua hàng',
+  'title.privacy': 'Quyền riêng tư quảng cáo', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Nguồn ảnh',
   'title.achievements': '🏆 Thành tựu {have} / {total}',
   'title.collection': '👾 Sổ tay {b}/{bt} · 🌍 Du lịch {m}/{mt}',

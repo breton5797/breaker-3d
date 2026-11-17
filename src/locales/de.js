@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Vollbild',
   'title.fullscreenOff': '⛶ Vollbild beenden',
   'title.restore': 'Kauf wiederherstellen',
+  'title.privacy': 'Werbe-Datenschutz', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Bildnachweise',
   'title.achievements': '🏆 Erfolge {have} / {total}',
   'title.collection': '👾 Bossbuch {b}/{bt} · 🌍 Reise {m}/{mt}',
