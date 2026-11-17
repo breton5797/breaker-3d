@@ -808,7 +808,7 @@ function showMenu() {
 }
 
 showMenu();
-if (DEMO) startLevel(DEMO - 1);
+if (DEMO) { audio.unlock(); startLevel(DEMO - 1); } // the recorder's browser allows sound without a tap
 requestAnimationFrame(frame);
 // The first frame is on screen: lift the loading screen (see index.html / boot.js).
 requestAnimationFrame(() => {
@@ -820,4 +820,4 @@ requestAnimationFrame(() => {
 document.getElementById('app-version').textContent = `v${__APP_VERSION__}`;
 
 // Dev-only handle for browser E2E checks; stripped from production builds.
-if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage };
+if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage, audio };

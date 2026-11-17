@@ -8,13 +8,15 @@ export function createAudio() {
   let muted = false;
   let voices = 0;
   let noise = null;
+  let comp = null;
+  let tap = null; // MediaStream destination for recording (stream())
 
   function unlock() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
-    const comp = ctx.createDynamicsCompressor();
+    comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -18;
     comp.ratio.value = 6;
     master = ctx.createGain();
@@ -65,6 +67,16 @@ export function createAudio() {
 
   return {
     unlock,
+    /**
+     * The mixed output as a MediaStream, for recording gameplay videos with their sound (demo mode,
+     * scripts/marketing/daily-short.mjs). Null where WebAudio or MediaStream output is missing.
+     */
+    stream() {
+      unlock();
+      if (!ctx || typeof ctx.createMediaStreamDestination !== 'function') return null;
+      if (!tap) { tap = ctx.createMediaStreamDestination(); comp.connect(tap); }
+      return tap.stream;
+    },
     /** Call once per rendered frame to reset the voice budget. */
     frame() { voices = 0; },
     setMuted(m) {
