@@ -20,6 +20,13 @@ const dayNumber = (iso) => {
 /** @param {string} date 'YYYY-MM-DD' @returns {number} the day's stage (1-based) */
 export const pickStage = (date) => FILMABLE[dayNumber(date) % FILMABLE.length];
 
+/**
+ * The day's n clip stages (owner, 2026-11-17: two TikToks a day): the day pick, then ones half the list
+ * away, so the second clip is never tomorrow's first. @returns {number[]}
+ */
+export const pickStages = (date, n) => Array.from({ length: n }, (_, k) =>
+  FILMABLE[(dayNumber(date) + Math.round((k * FILMABLE.length) / n)) % FILMABLE.length]);
+
 const TAGS = '#BREAKER3D #brickbreaker #벽돌깨기 #mobilegame #모바일게임 #indiegame #casualgame #satisfying #shorts';
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickStage, shortCaption, FILMABLE, LINKS } from '../scripts/marketing/caption.mjs';
+import { pickStage, pickStages, shortCaption, FILMABLE, LINKS } from '../scripts/marketing/caption.mjs';
 
 // Captions for the daily gameplay short (owner, 2026-11-17). Honest copy: what the clip shows, where
 // to get the game; no made-up numbers or rankings.
@@ -9,6 +9,15 @@ describe('daily short', () => {
     expect(pickStage('2026-11-17')).toBe(pickStage('2026-11-17'));
     const week = ['2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23'].map(pickStage);
     expect(new Set(week).size).toBe(7);
+  });
+
+  it('two clips a day (owner, 2026-11-17: TikTok x2): two different stages, the first being the day pick', () => {
+    for (const d of ['2026-11-17', '2026-11-18', '2026-11-30']) {
+      const [a, b] = pickStages(d, 2);
+      expect(a).toBe(pickStage(d));
+      expect(b).not.toBe(a);
+      expect(FILMABLE).toContain(b);
+    }
   });
 
   it('writes Korean and English captions with the store links and hashtags', () => {

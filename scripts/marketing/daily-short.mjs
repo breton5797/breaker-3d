@@ -91,7 +91,9 @@ try {
   const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
   const raw = join(out, 'raw');
   let clip = null;
-  const order = [first, ...FILMABLE.filter((s) => s !== first)];
+  // Retakes skip stages already filmed today (the other daily clip).
+  const done = new Set(readdirSync(out).map((f) => /-stage(\d+)\.mp4$/.exec(f)?.[1]).filter(Boolean).map(Number));
+  const order = [first, ...FILMABLE.filter((s) => s !== first && !done.has(s))];
   for (let k = 0; k < TRIES; k++) {
     clip = await film(browser, order[k], raw);
     console.log(`take ${k + 1}: stage ${clip.stage} peak ${clip.peak} ${clip.cleared ? `cleared ${clip.clearAt}s` : 'not cleared'}`);
@@ -117,8 +119,9 @@ try {
   execFileSync('ffmpeg', [...enc(2), ...(clip.audio ? ['-c:a', 'aac', '-b:a', '96k'] : ['-an']), '-movflags', '+faststart', small]);
   for (const f of readdirSync(out)) if (f.startsWith('x264')) rmSync(join(out, f));
   rmSync(raw, { recursive: true, force: true });
-  writeFileSync(join(out, 'caption.md'), shortCaption({ date, stage: clip.stage, id: level.id, peak: clip.peak, seconds: clip.clearAt }));
-  console.log(`done: ${mp4}\n      ${join(out, 'caption.md')}`);
+  const captionFile = mp4.replace(/\.mp4$/, '.md'); // one caption per clip
+  writeFileSync(captionFile, shortCaption({ date, stage: clip.stage, id: level.id, peak: clip.peak, seconds: clip.clearAt }));
+  console.log(`done: ${mp4}\n      ${captionFile}`);
 } finally {
   server.kill();
 }
