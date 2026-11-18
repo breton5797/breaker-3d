@@ -125,7 +125,7 @@ export default {
   'achv.count': '{have} / {total} · còn 🪙 {gold} chưa nhận',
   'achv.unlocked': ' Đạt thành tựu: ',
   'credits.title': 'NGUỒN ẢNH',
-  'credits.note': 'Ảnh nền là ảnh được cấp phép tự do từ Wikimedia Commons. Thay đổi: thu nhỏ (768px), cắt cho vừa bàn chơi và nhuộm màu ở các màn hoàng hôn và ban đêm. Ảnh đã chỉnh sửa tuân theo cùng giấy phép với bản gốc. Chạm vào tên tác giả để xem bản gốc, chạm vào giấy phép để xem toàn văn giấy phép.',
+  'credits.note': "Các ảnh nền trong danh sách dưới đây là ảnh thuộc phạm vi công cộng hoặc CC0 từ Wikimedia Commons; mọi ảnh nền khác đều là hình vẽ gốc được tạo riêng cho trò chơi này. Thay đổi trên ảnh: thu nhỏ (768px), cắt cho vừa bàn chơi và nhuộm màu ở các màn hoàng hôn và ban đêm. Chạm vào tên tác giả để xem ảnh gốc.",
   'credits.failed': 'Không tải được thông tin ảnh.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'BỘ SƯU TẬP',
