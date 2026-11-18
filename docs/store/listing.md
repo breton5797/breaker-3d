@@ -56,7 +56,11 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 광고는 이어하기·골드 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
 
 **이번 버전의 새로운 기능**
-1.0.2 (500자 이내)
+1.0.3 (500자 이내)
+- 타이틀 화면에 '광고 개인정보 설정'을 추가했어요: 광고 동의를 언제든 바꾸거나 철회할 수 있어요 (필요한 지역에서만 보여요)
+- 사진 출처 화면의 안내 문구를 정확하게 고쳤어요
+
+1.0.2
 - 매일 바뀌는 오늘의 미션 3개와 이번 주 챌린지가 생겼어요: 골드와 주간 스탬프를 모아 보세요
 - 관이 구리 홈통 모양으로 바뀌어 길이 한눈에 보여요
 - 관 끝 과일 금고가 커졌어요: 큰 과일과 코인이 더 들어 있어요
@@ -112,7 +116,11 @@ One-handed portrait play, no sign-up, plays offline, 14 languages.
 The only ads are optional rewarded ads you choose to watch for a revive or double gold. Buy "Remove Ads" to get the same rewards without ads.
 
 **What's new**
-1.0.2 (500 chars max)
+1.0.3 (500 chars max)
+- New "Ad privacy settings" on the title screen: change or withdraw your ad consent at any time (shown where required)
+- Clearer wording on the photo credits screen
+
+1.0.2
 - New daily missions and a weekly challenge: earn gold and collect week stamps
 - Pipes now look like copper troughs, so you can see the way at a glance
 - Bigger fruit vault at the end of each pipe: more big fruit and coins
