@@ -4,3 +4,6 @@ dist
 .playwright-mcp
 __pycache__
 build
+
+# marketing clips (scripts/marketing): local output, never committed
+marketing/out/
