@@ -39,7 +39,7 @@ import {
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
 import { missionLabel } from './eventsView.js';
-import { demoStage, demoTarget, demoAngle } from './demo.js';
+import { demoStage, demoTarget, demoServe } from './demo.js';
 
 const DEMO = demoStage(location.search); // ?demo=<stage>: a bot plays it, for gameplay videos (demo.js)
 import { Capacitor } from '@capacitor/core';
@@ -738,7 +738,7 @@ function step(now) {
     if (mode === 'play' && !picking) {
       keyboardPaddle(dt);
       if (DEMO) {
-        if (world.state === 'ready') launch(world, demoAngle(elapsed));
+        if (world.state === 'ready') launch(world, demoServe(world, elapsed));
         setPaddleX(world, demoTarget(world, elapsed));
       }
       stepWorld(world, dt * scale);
