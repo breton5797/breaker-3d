@@ -125,7 +125,7 @@ export default {
   'achv.count': '{have} / {total} · kazanılacak 🪙 {gold}',
   'achv.unlocked': ' Başarım açıldı: ',
   'credits.title': 'FOTOĞRAF KAYNAKLARI',
-  'credits.note': "Arka plan fotoğrafları Wikimedia Commons'tan alınmış özgür lisanslı görsellerdir. Değişiklikler: küçültüldü (768px), oyun alanına göre kırpıldı ve gün batımı ile gece seviyelerinde renklendirildi. Değiştirilmiş görseller orijinalleriyle aynı lisansa tabidir. Orijinali görmek için yazarın adına, tam lisans metni için lisansa dokun.",
+  'credits.note': "Aşağıda listelenen arka planlar Wikimedia Commons'tan alınmış kamu malı veya CC0 fotoğraflardır; diğer tüm arka planlar bu oyun için yapılmış özgün çizimlerdir. Fotoğraflardaki değişiklikler: küçültüldü (768px), oyun alanına göre kırpıldı ve gün batımı ile gece seviyelerinde renklendirildi. Orijinal fotoğrafı görmek için yazarın adına dokun.",
   'credits.failed': 'Fotoğraf bilgileri yüklenemedi.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'KOLEKSİYON',

@@ -132,7 +132,7 @@ export default {
   'achv.count': '{have} / {total} · 🪙 {gold} ainda por ganhar',
   'achv.unlocked': ' Conquista: ',
   'credits.title': 'CRÉDITOS DAS FOTOS',
-  'credits.note': 'As fotos de fundo são imagens de uso livre do Wikimedia Commons. Alterações: foram reduzidas (768px), recortadas para caber no tabuleiro e coloridas nas fases de pôr do sol e noite. As fotos alteradas mantêm a mesma licença das originais. Toque no nome do autor para ver a original e na licença para ler o texto completo.',
+  'credits.note': "Os fundos listados abaixo são fotos de domínio público ou CC0 do Wikimedia Commons; todos os outros fundos são artes originais feitas para este jogo. Alterações nas fotos: foram reduzidas (768px), recortadas para caber no tabuleiro e coloridas nas fases de pôr do sol e noite. Toque no nome do autor para ver a foto original.",
   'credits.failed': 'Não foi possível carregar as informações da foto.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'COLEÇÃO',
