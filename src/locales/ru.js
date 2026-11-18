@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Во весь экран',
   'title.fullscreenOff': '⛶ Выйти из полного экрана',
   'title.restore': 'Восстановить покупку',
+  'title.privacy': 'Конфиденциальность рекламы', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Авторы фото',
   'title.achievements': '🏆 Достижения {have} / {total}',
   'title.collection': '👾 Боссы {b}/{bt} · 🌍 Путешествия {m}/{mt}',

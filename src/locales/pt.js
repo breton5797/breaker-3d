@@ -52,6 +52,7 @@ export default {
   'title.fullscreen': '⛶ Tela cheia',
   'title.fullscreenOff': '⛶ Sair da tela cheia',
   'title.restore': 'Restaurar compra',
+  'title.privacy': 'Privacidade dos anúncios', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Créditos das fotos',
   'title.achievements': '🏆 Conquistas {have} / {total}',
   'title.collection': '👾 Bestiário {b}/{bt} · 🌍 Viagens {m}/{mt}',

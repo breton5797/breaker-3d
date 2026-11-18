@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ फ़ुल स्क्रीन',
   'title.fullscreenOff': '⛶ फ़ुल स्क्रीन बंद',
   'title.restore': 'खरीद बहाल करें',
+  'title.privacy': 'विज्ञापन गोपनीयता सेटिंग', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 फ़ोटो श्रेय',
   'title.achievements': '🏆 उपलब्धियाँ {have} / {total}',
   'title.collection': '👾 संग्रह {b}/{bt} · 🌍 यात्रा {m}/{mt}',

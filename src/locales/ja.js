@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ 全画面',
   'title.fullscreenOff': '⛶ 全画面を終了',
   'title.restore': '購入を復元',
+  'title.privacy': '広告のプライバシー設定', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 写真クレジット',
   'title.achievements': '🏆 実績 {have} / {total}',
   'title.collection': '👾 図鑑 {b}/{bt} · 🌍 旅 {m}/{mt}',

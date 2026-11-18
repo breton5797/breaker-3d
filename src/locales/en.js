@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Full screen',
   'title.fullscreenOff': '⛶ Exit full screen',
   'title.restore': 'Restore purchase',
+  'title.privacy': 'Ad privacy settings', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Photo credits',
   'title.achievements': '🏆 Achievements {have} / {total}',
   'title.collection': '👾 Dex {b}/{bt} · 🌍 Travel {m}/{mt}',

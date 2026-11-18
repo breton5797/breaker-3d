@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Layar penuh',
   'title.fullscreenOff': '⛶ Keluar layar penuh',
   'title.restore': 'Pulihkan pembelian',
+  'title.privacy': 'Privasi iklan', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Kredit foto',
   'title.achievements': '🏆 Pencapaian {have} / {total}',
   'title.collection': '👾 Koleksi {b}/{bt} · 🌍 Jelajah {m}/{mt}',

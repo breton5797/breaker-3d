@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Tam ekran',
   'title.fullscreenOff': '⛶ Tam ekrandan çık',
   'title.restore': 'Satın alımı geri yükle',
+  'title.privacy': 'Reklam gizliliği', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Fotoğraf kaynakları',
   'title.achievements': '🏆 Başarımlar {have} / {total}',
   'title.collection': '👾 Boss defteri {b}/{bt} · 🌍 Seyahat {m}/{mt}',

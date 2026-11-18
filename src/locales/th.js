@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ เต็มจอ',
   'title.fullscreenOff': '⛶ ออกจากเต็มจอ',
   'title.restore': 'กู้คืนการซื้อ',
+  'title.privacy': 'ความเป็นส่วนตัวของโฆษณา', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 เครดิตภาพ',
   'title.achievements': '🏆 ความสำเร็จ {have} / {total}',
   'title.collection': '👾 สมุดสะสม {b}/{bt} · 🌍 ท่องเที่ยว {m}/{mt}',

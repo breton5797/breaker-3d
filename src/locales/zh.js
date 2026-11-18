@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ 全屏',
   'title.fullscreenOff': '⛶ 退出全屏',
   'title.restore': '恢复购买',
+  'title.privacy': '广告隐私设置', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 图片来源',
   'title.achievements': '🏆 成就 {have} / {total}',
   'title.collection': '👾 图鉴 {b}/{bt} · 🌍 旅行 {m}/{mt}',

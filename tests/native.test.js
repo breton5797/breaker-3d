@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { startAdMob, createNativeBilling, adUnitFor, AD_UNITS } from '../src/monetize/native.js';
+import { startAdMob, createNativeBilling, adUnitFor, AD_UNITS, privacyEntry } from '../src/monetize/native.js';
 import { createAds } from '../src/monetize/ads.js';
 
 function fakeAdMob({ consentRequired = false, canRequestAds = true, reward = { type: 'coins', amount: 1 } } = {}) {
@@ -54,6 +54,33 @@ describe('AdMob start-up', () => {
   it('a plugin failure means no ads, not a crash', async () => {
     const admob = { ...fakeAdMob(), requestConsentInfo: async () => { throw new Error('no network'); } };
     expect(await startAdMob(admob, 'android')).toBe(false);
+  });
+});
+
+// A way back into the consent choices (owner, 2026-11-18: "AdMob 설정 완료"; GDPR lets users withdraw
+// consent, and AdMob's US-states message needs the same entry point). Shown only where UMP says so.
+describe('privacy options entry', () => {
+  const withStatus = (s, opened = []) => ({
+    requestConsentInfo: async () => ({ status: 'OBTAINED', canRequestAds: true, privacyOptionsRequirementStatus: s }),
+    showPrivacyOptionsForm: async () => { opened.push('privacyForm'); },
+  });
+
+  it('is offered where UMP requires it, and opens Google’s privacy options form', async () => {
+    const opened = [];
+    const p = await privacyEntry(withStatus('REQUIRED', opened));
+    expect(p.required).toBe(true);
+    expect(await p.open()).toBe(true);
+    expect(opened).toEqual(['privacyForm']);
+  });
+
+  it('is hidden where it is not required, or when the plugin fails', async () => {
+    expect((await privacyEntry(withStatus('NOT_REQUIRED'))).required).toBe(false);
+    expect((await privacyEntry({ requestConsentInfo: async () => { throw new Error('x'); } })).required).toBe(false);
+  });
+
+  it('a failing form does not crash the game', async () => {
+    const p = await privacyEntry({ ...withStatus('REQUIRED'), showPrivacyOptionsForm: async () => { throw new Error('x'); } });
+    expect(await p.open()).toBe(false);
   });
 });
 
