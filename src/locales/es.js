@@ -388,6 +388,7 @@ export default {
   'events.tier': 'Nivel {k}',
   'events.claim': 'Reclamar 🪙 {gold}',
   'events.claimed': 'Reclamado ✓',
+  'events.double': "x2 🪙 {gold}",
   'events.stamps': '🏆 Sellos semanales: {n}',
   'mission.fruit': 'Atrapa {n} frutas',
   'mission.clear': 'Supera {n} fases',

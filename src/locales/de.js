@@ -373,6 +373,7 @@ export default {
   'events.tier': 'Stufe {k}',
   'events.claim': 'Abholen 🪙 {gold}',
   'events.claimed': 'Abgeholt ✓',
+  'events.double': "2× 🪙 {gold}",
   'events.stamps': '🏆 Gesammelte Wochenstempel: {n}',
   'mission.fruit': '{n} Früchte fangen',
   'mission.clear': '{n} Level schaffen',

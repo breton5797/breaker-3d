@@ -53,7 +53,7 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 ● 누구나 편하게
 한 손 세로 화면, 회원가입 없음, 인터넷 없이도 플레이 가능, 14개 언어 지원.
 
-광고는 이어하기·골드 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
+광고는 이어하기·골드 2배·미션 보상 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
 
 **이번 버전의 새로운 기능**
 1.0.3 (500자 이내)
@@ -113,7 +113,7 @@ Achievements, star chests, daily streak bonuses, a boss dex and a travel album.
 ● Easy for everyone
 One-handed portrait play, no sign-up, plays offline, 14 languages.
 
-The only ads are optional rewarded ads you choose to watch for a revive or double gold. Buy "Remove Ads" to get the same rewards without ads.
+The only ads are optional rewarded ads you choose to watch for a revive, double gold or double mission rewards. Buy "Remove Ads" to get the same rewards without ads.
 
 **What's new**
 1.0.3 (500 chars max)

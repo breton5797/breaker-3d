@@ -27,6 +27,13 @@ describe('reward offers', () => {
     const o = rewardOffers({ ...base, adsAvailable: false });
     expect(o.revive).toBeNull();
     expect(o.doubleGold).toBeNull();
+    expect(o.missionDouble).toBeNull();
+  });
+
+  it('mission rewards x2 (2026-11-19): through an ad, free after "remove ads", any time a claim is ready', () => {
+    expect(rewardOffers(base).missionDouble).toBe('ad');
+    expect(rewardOffers({ ...base, revivesUsed: 1, goldDoubled: true }).missionDouble).toBe('ad'); // not tied to the run
+    expect(rewardOffers({ ...base, adsAvailable: false, adsRemoved: true }).missionDouble).toBe('free');
   });
 
   it('one revive per attempt', () => {

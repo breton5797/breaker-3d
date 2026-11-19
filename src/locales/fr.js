@@ -388,6 +388,7 @@ export default {
   'events.tier': 'Palier {k}',
   'events.claim': 'Récupérer 🪙 {gold}',
   'events.claimed': 'Récupéré ✓',
+  'events.double': "x2 🪙 {gold}",
   'events.stamps': '🏆 Tampons de la semaine : {n}',
   'mission.fruit': 'Attraper {n} fruits',
   'mission.clear': 'Terminer {n} niveaux',

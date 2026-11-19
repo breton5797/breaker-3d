@@ -373,6 +373,7 @@ export default {
   'events.tier': '{k}段階',
   'events.claim': '受け取る 🪙 {gold}',
   'events.claimed': '受け取り済み ✓',
+  'events.double': "2倍 🪙 {gold}",
   'events.stamps': '🏆 集めた週間スタンプ {n}個',
   'mission.fruit': 'フルーツを{n}個キャッチ',
   'mission.clear': 'ステージを{n}回クリア',

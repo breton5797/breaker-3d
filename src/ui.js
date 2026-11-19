@@ -198,8 +198,8 @@ export function createUI(h) {
    * @param {object} save @param {'boss'|'travel'} [tab]
    */
   /** The daily missions and weekly challenge (eventsView.js); a claim goes back to main.js. */
-  function showEvents(save) {
-    renderEvents($('events-list'), eventsStatus(save, today()), { setRich, fmt, onClaim: h.onClaimEvent });
+  function showEvents(save, double = null) { // double: how a claim can be doubled ('ad' | 'free' | null)
+    renderEvents($('events-list'), eventsStatus(save, today()), { setRich, fmt, onClaim: h.onClaimEvent, double });
     show('screen-events');
   }
 

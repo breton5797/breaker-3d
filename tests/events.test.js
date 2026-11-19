@@ -94,6 +94,22 @@ describe('progress and rewards', () => {
     expect(claimMission(c.save, DAY, 0).gold).toBe(0); // only once
   });
 
+  it('a claim can pay double (after a rewarded ad), still only once; any other multiplier pays the normal amount', () => {
+    const all = track(base(), DAY, Object.fromEntries(missions.map((m) => [m.metric, m.goal])));
+    const c = claimMission(all, DAY, 0, 2);
+    expect(c.gold).toBe(first.gold * 2);
+    expect(c.save.gold).toBe(first.gold * 2);
+    expect(claimMission(c.save, DAY, 0, 2).gold).toBe(0); // the double is the claim itself: once
+    expect(claimMission(all, DAY, 0, 3).gold).toBe(first.gold);
+    expect(claimMission(all, DAY, 0, '2').gold).toBe(first.gold);
+    let s = all;
+    for (let i = 0; i < 3; i++) s = claimMission(s, DAY, i).save;
+    expect(claimAllBonus(s, DAY, 2).gold).toBe(ALL_DONE_GOLD * 2);
+    const w = weeklyChallenge(DAY);
+    const ws = track(base(), DAY, { [w.metric]: w.goals[0] });
+    expect(claimWeekly(ws, DAY, 0, 2).gold).toBe(w.gold[0] * 2);
+  });
+
   it('the all-done bonus pays once after all three are claimed', () => {
     let s = track(base(), DAY, Object.fromEntries(missions.map((m) => [m.metric, m.goal])));
     expect(claimAllBonus(s, DAY).gold).toBe(0);

@@ -373,6 +373,7 @@ export default {
   'events.tier': 'Tahap {k}',
   'events.claim': 'Klaim 🪙 {gold}',
   'events.claimed': 'Diklaim ✓',
+  'events.double': "2x 🪙 {gold}",
   'events.stamps': '🏆 Stempel mingguan terkumpul: {n}',
   'mission.fruit': 'Tangkap {n} buah',
   'mission.clear': 'Selesaikan {n} level',

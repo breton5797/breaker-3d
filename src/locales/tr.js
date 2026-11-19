@@ -373,6 +373,7 @@ export default {
   'events.tier': '{k}. aşama',
   'events.claim': 'Al 🪙 {gold}',
   'events.claimed': 'Alındı ✓',
+  'events.double': "2 kat 🪙 {gold}",
   'events.stamps': '🏆 Toplanan haftalık damga: {n}',
   'mission.fruit': '{n} meyve yakala',
   'mission.clear': '{n} bölüm geç',
