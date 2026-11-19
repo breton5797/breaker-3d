@@ -29,7 +29,7 @@ describe('demo bot', () => {
     expect(w.peakBalls).toBeGreaterThan(1000);
     expect(broken).toBe(1);
     expect(w.state).toBe('clear');
-  });
+  }, 30_000); // a whole simulated minute with thousands of balls: slow CI runners need more than 5 s
 
   it('moves the paddle at most a human-like step per frame and serves at varied angles', () => {
     const { w } = play(3, 2);
