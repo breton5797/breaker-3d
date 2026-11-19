@@ -56,7 +56,10 @@ Google Play와 App Store에 그대로 붙여 넣는 문구. 글자 수 제한은
 광고는 이어하기·골드 2배·미션 보상 2배를 원할 때만 보는 보상형 광고뿐입니다. '광고 제거'를 구매하면 광고 없이 같은 보상을 받을 수 있습니다.
 
 **이번 버전의 새로운 기능**
-1.0.3 (500자 이내)
+1.0.4 (500자 이내)
+- 오늘의 미션·주간 챌린지 보상을 광고를 보고 2배로 받을 수 있어요 (원할 때만, 광고 제거 구매 시 광고 없이 2배)
+
+1.0.3
 - 타이틀 화면에 '광고 개인정보 설정'을 추가했어요: 광고 동의를 언제든 바꾸거나 철회할 수 있어요 (필요한 지역에서만 보여요)
 - 사진 출처 화면의 안내 문구를 정확하게 고쳤어요
 
@@ -116,7 +119,10 @@ One-handed portrait play, no sign-up, plays offline, 14 languages.
 The only ads are optional rewarded ads you choose to watch for a revive, double gold or double mission rewards. Buy "Remove Ads" to get the same rewards without ads.
 
 **What's new**
-1.0.3 (500 chars max)
+1.0.4 (500 chars max)
+- Double your daily mission and weekly challenge rewards by watching an ad (only if you want; free with Remove Ads)
+
+1.0.3
 - New "Ad privacy settings" on the title screen: change or withdraw your ad consent at any time (shown where required)
 - Clearer wording on the photo credits screen
 
