@@ -39,6 +39,9 @@ import {
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
 import { missionLabel } from './eventsView.js';
+import { demoStage, demoTarget, demoServe } from './demo.js';
+
+const DEMO = demoStage(location.search); // ?demo=<stage>: a bot plays it, for gameplay videos (demo.js)
 import { Capacitor } from '@capacitor/core';
 import { createMonetization } from './monetize/platform.js';
 import { rewardOffers } from './monetize/rewards.js';
@@ -740,6 +743,10 @@ function step(now) {
   if (world && (mode === 'play' || mode === 'outro')) {
     if (mode === 'play' && !picking) {
       keyboardPaddle(dt);
+      if (DEMO) {
+        if (world.state === 'ready') launch(world, demoServe(world, elapsed));
+        setPaddleX(world, demoTarget(world, elapsed));
+      }
       stepWorld(world, dt * scale);
       elapsed += dt * scale;
       const events = drainEvents(world);
@@ -807,6 +814,7 @@ function showMenu() {
 }
 
 showMenu();
+if (DEMO) { audio.unlock(); startLevel(DEMO - 1); } // the recorder's browser allows sound without a tap
 requestAnimationFrame(frame);
 // The first frame is on screen: lift the loading screen (see index.html / boot.js).
 requestAnimationFrame(() => {
@@ -818,4 +826,4 @@ requestAnimationFrame(() => {
 document.getElementById('app-version').textContent = `v${__APP_VERSION__}`;
 
 // Dev-only handle for browser E2E checks; stripped from production builds.
-if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage };
+if (import.meta.env.DEV) window.__breaker = { get world() { return world; }, stage, audio };
