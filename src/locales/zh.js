@@ -373,6 +373,7 @@ export default {
   'events.tier': '第{k}阶段',
   'events.claim': '领取 🪙 {gold}',
   'events.claimed': '已领取 ✓',
+  'events.double': "双倍 🪙 {gold}",
   'events.stamps': '🏆 已收集周印章 {n}个',
   'mission.fruit': '接住{n}个水果',
   'mission.clear': '通关{n}个关卡',

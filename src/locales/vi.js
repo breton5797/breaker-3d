@@ -373,6 +373,7 @@ export default {
   'events.tier': 'Mốc {k}',
   'events.claim': 'Nhận 🪙 {gold}',
   'events.claimed': 'Đã nhận ✓',
+  'events.double': "x2 🪙 {gold}",
   'events.stamps': '🏆 Tem tuần đã sưu tầm: {n}',
   'mission.fruit': 'Bắt {n} trái cây',
   'mission.clear': 'Qua {n} màn',

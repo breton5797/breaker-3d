@@ -373,6 +373,7 @@ export default {
   'events.tier': 'चरण {k}',
   'events.claim': 'लें 🪙 {gold}',
   'events.claimed': 'ले लिया ✓',
+  'events.double': "2x 🪙 {gold}",
   'events.stamps': '🏆 जमा किए साप्ताहिक स्टैम्प: {n}',
   'mission.fruit': '{n} फल पकड़ें',
   'mission.clear': '{n} स्टेज पार करें',

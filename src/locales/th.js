@@ -373,6 +373,7 @@ export default {
   'events.tier': 'ขั้นที่ {k}',
   'events.claim': 'รับ 🪙 {gold}',
   'events.claimed': 'รับแล้ว ✓',
+  'events.double': "x2 🪙 {gold}",
   'events.stamps': '🏆 แสตมป์ประจำสัปดาห์ที่สะสม {n}',
   'mission.fruit': 'รับผลไม้ {n} ลูก',
   'mission.clear': 'ผ่านด่าน {n} ด่าน',

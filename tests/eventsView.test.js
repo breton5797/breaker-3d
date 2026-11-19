@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { eventRows, eventsButtonText } from '../src/eventsView.js';
+import { eventRows, eventsButtonText, claimActions } from '../src/eventsView.js';
+import { t } from '../src/i18n.js';
 import { eventsStatus, track, dailyMissions, weeklyChallenge, claimMission } from '../src/events.js';
 
 // The events panel and the title button (owner, 2026-11-16). Korean is the default language.
@@ -38,5 +39,22 @@ describe('title button', () => {
     const m = dailyMissions(DAY, 30)[0];
     expect(eventsButtonText(eventsStatus(save(), DAY))).toBe('🎯 오늘의 미션 0/3 · 이번 주 0/3단계');
     expect(eventsButtonText(eventsStatus(track(save(), DAY, { [m.metric]: m.goal }), DAY))).toBe('🎯 오늘의 미션 1/3 · 이번 주 0/3단계 · 🎁 받을 보상 1개');
+  });
+});
+
+describe('mission reward x2 (owner, 2026-11-19: rewarded ad doubles a claim, AD_MONETIZATION 4: opt-in only)', () => {
+  const claim = { kind: 'mission', i: 0, gold: 50 };
+  const fmt = (n) => String(n);
+
+  it('with ads: the normal claim and a "watch an ad" double next to it', () => {
+    expect(claimActions(claim, 'ad', fmt)).toEqual([
+      { double: false, text: t('events.claim', { gold: '50' }) },
+      { double: true, text: t('reward.ad', { label: t('events.double', { gold: '100' }) }) },
+    ]);
+  });
+
+  it('after "remove ads" the double is free; with no ads (web) only the normal claim', () => {
+    expect(claimActions(claim, 'free', fmt)[1]).toEqual({ double: true, text: t('reward.free', { label: t('events.double', { gold: '100' }) }) });
+    expect(claimActions(claim, null, fmt)).toEqual([{ double: false, text: t('events.claim', { gold: '50' }) }]);
   });
 });

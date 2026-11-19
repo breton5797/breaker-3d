@@ -34,6 +34,19 @@ export function eventRows(st) {
   return [...missions, bonus, ...weekly];
 }
 
+/**
+ * The buttons on a claimable row: the normal claim and, where a rewarded ad (or "remove ads") allows it,
+ * a double claim beside it (owner, 2026-11-19; always the player's choice, AD_MONETIZATION 4).
+ * @param {{ gold: number }} claim @param {'ad'|'free'|null} via @param {(n: number) => string} fmt
+ * @returns {{ double: boolean, text: string }[]}
+ */
+export function claimActions(claim, via, fmt) {
+  const normal = { double: false, text: t('events.claim', { gold: fmt(claim.gold) }) };
+  if (!via) return [normal];
+  const label = t('events.double', { gold: fmt(claim.gold * 2) });
+  return [normal, { double: true, text: t(via === 'ad' ? 'reward.ad' : 'reward.free', { label }) }];
+}
+
 const el = (tag, className) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -43,9 +56,10 @@ const el = (tag, className) => {
 /**
  * @param {HTMLElement} list the panel's <ul>
  * @param {ReturnType<import('./events.js').eventsStatus>} st
- * @param {{ setRich: (el: HTMLElement, text: string) => void, fmt: (n: number) => string, onClaim: (kind: string, i: number) => void }} io
+ * @param {{ setRich: (el: HTMLElement, text: string) => void, fmt: (n: number) => string,
+ *   onClaim: (kind: string, i: number, double: boolean) => void, double?: 'ad'|'free'|null }} io
  */
-export function renderEvents(list, st, { setRich, fmt, onClaim }) {
+export function renderEvents(list, st, { setRich, fmt, onClaim, double = null }) {
   const head = (key, note) => {
     const li = el('li', 'events-head');
     const b = el('b');
@@ -65,9 +79,13 @@ export function renderEvents(list, st, { setRich, fmt, onClaim }) {
     detail.textContent = r.detail;
     let side;
     if (r.claim) {
-      side = el('button', 'primary events-claim');
-      setRich(side, t('events.claim', { gold: fmt(r.claim.gold) }));
-      side.addEventListener('click', () => onClaim(r.claim.kind, r.claim.i));
+      side = el('span', 'events-claims');
+      side.append(...claimActions(r.claim, double, fmt).map((a) => {
+        const b = el('button', a.double ? 'events-claim events-double' : 'primary events-claim');
+        setRich(b, a.text);
+        b.addEventListener('click', () => onClaim(r.claim.kind, r.claim.i, a.double));
+        return b;
+      }));
     } else {
       side = el('small', 'achv-gold');
       setRich(side, r.claimed ? t('events.claimed') : `+${fmt(r.gold)}🪙`);

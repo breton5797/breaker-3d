@@ -302,6 +302,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .events-list li.ready { border-color: var(--gold); background: rgba(255, 207, 74, 0.1); }
 .events-list li.done { opacity: 0.5; }
 .events-claim { grid-column: 3; grid-row: 1 / span 2; align-self: center; width: auto; min-height: 0; margin: 0; padding: 8px 12px; font-size: 13px; box-shadow: none; white-space: nowrap; }
+/* A ready row: the claim and, beside it, the rewarded-ad double (2026-11-19), stacked, 44px touch targets. */
+.events-claims { grid-column: 3; grid-row: 1 / span 2; align-self: center; display: flex; flex-direction: column; gap: 6px; }
+.events-claims .events-claim { min-height: 44px; }
+.events-double { border: 1px solid var(--gold); border-radius: 12px; background: rgba(255, 207, 74, 0.14); color: var(--gold); font-weight: 800; }
 
 /* Collection: boss dex and travel album (two tabs, chapter bars above the grid). */
 .tabs { display: flex; gap: 8px; margin: 0 0 12px; }

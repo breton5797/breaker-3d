@@ -373,6 +373,7 @@ export default {
   'events.tier': 'Ступень {k}',
   'events.claim': 'Забрать 🪙 {gold}',
   'events.claimed': 'Получено ✓',
+  'events.double': "×2 🪙 {gold}",
   'events.stamps': '🏆 Собрано печатей недели: {n}',
   'mission.fruit': 'Поймать фрукты: {n}',
   'mission.clear': 'Пройти уровни: {n}',

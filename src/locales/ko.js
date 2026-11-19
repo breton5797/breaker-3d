@@ -390,6 +390,7 @@ export default {
   'events.tier': '{k}단계',
   'events.claim': '받기 🪙 {gold}',
   'events.claimed': '받음 ✓',
+  'events.double': "2배 🪙 {gold}",
   'events.stamps': '🏆 모은 주간 스탬프 {n}개',
   'mission.fruit': '과일 {n}개 받기',
   'mission.clear': '스테이지 {n}개 클리어',

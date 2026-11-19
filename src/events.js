@@ -84,30 +84,32 @@ export function track(save, date, counts) {
 }
 
 const pay = (save, ev, gold) => ({ save: { ...save, events: ev, gold: (save.gold ?? 0) + gold }, gold });
+// A claim pays double only after a rewarded ad (or free after "remove ads"): main.js claimEvent. Anything else pays once.
+const times = (mult) => (mult === 2 ? 2 : 1);
 const none = (save) => ({ save, gold: 0 });
 
-/** Claims daily mission i (0-2) once it is done. */
-export function claimMission(save, date, i) {
+/** Claims daily mission i (0-2) once it is done; mult 2 pays double (rewarded ad). */
+export function claimMission(save, date, i, mult = 1) {
   const ev = current(save, date);
   const m = ev?.missions[i];
   if (!m || ev.dc[i] || (ev.dp[m.metric] ?? 0) < m.goal) return none(save);
-  return pay(save, { ...ev, dc: ev.dc.map((c, k) => c || k === i) }, m.gold);
+  return pay(save, { ...ev, dc: ev.dc.map((c, k) => c || k === i) }, m.gold * times(mult));
 }
 
 /** The bonus for claiming all three of the day's missions. */
-export function claimAllBonus(save, date) {
+export function claimAllBonus(save, date, mult = 1) {
   const ev = current(save, date);
   if (!ev || ev.bonus || !ev.dc.every(Boolean)) return none(save);
-  return pay(save, { ...ev, bonus: true }, ALL_DONE_GOLD);
+  return pay(save, { ...ev, bonus: true }, ALL_DONE_GOLD * times(mult));
 }
 
 /** Claims weekly tier k (0-2), in order; the last one also keeps the week's stamp. */
-export function claimWeekly(save, date, k) {
+export function claimWeekly(save, date, k, mult = 1) {
   const ev = current(save, date);
   const w = weeklyChallenge(date);
   if (!ev || ev.wc[k] || (k > 0 && !ev.wc[k - 1]) || (ev.wp[w.metric] ?? 0) < w.goals[k]) return none(save);
   const stamps = k === 2 && !ev.stamps.includes(w.week) ? [...ev.stamps, w.week] : ev.stamps;
-  return pay(save, { ...ev, wc: ev.wc.map((c, j) => c || j === k), stamps }, w.gold[k]);
+  return pay(save, { ...ev, wc: ev.wc.map((c, j) => c || j === k), stamps }, w.gold[k] * times(mult));
 }
 
 const TALLY = { collect: 'fruit', skill: 'skill' };

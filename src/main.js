@@ -36,8 +36,9 @@ import {
   buyInPlay, SKILL_USES, SKILL_PRICES, refundLoadout, firstClearBonus, chestProgress, achievementStage,
 } from './meta.js';
 import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
-import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
+import { track, tallyEvents, stageCounts, eventsStatus } from './events.js';
 import { missionLabel } from './eventsView.js';
+import { createEventClaims } from './eventsClaim.js';
 import { demoStage, demoTarget, demoServe } from './demo.js';
 import { createBoardPointer } from './boardPointer.js';
 import { aimText, serveText } from './serveHints.js';
@@ -152,8 +153,8 @@ const ui = createUI({
   onClosePicker: () => closePicker(),
   onCredits: () => ui.showCredits(credits),
   onCollection: () => ui.showCollection(save, 'boss'),
-  onEvents: () => ui.showEvents(save),
-  onClaimEvent: (kind, i) => claimEvent(kind, i),
+  onEvents: () => ui.showEvents(save, offers().missionDouble),
+  onClaimEvent: (kind, i, double) => claimEvent(kind, i, double),
   onLanguage: async (code) => {
     save = { ...save, lang: code }; // '' = follow the device
     persist();
@@ -464,17 +465,15 @@ function recordEvents(result) {
   return eventsStatus(save, date).missions.filter((m, i) => m.done && !before[i]?.done);
 }
 
-const CLAIMS = { mission: claimMission, bonus: (s, d) => claimAllBonus(s, d), weekly: claimWeekly };
-
-/** A tap on a claim button in the events panel: pays once, then redraws the panel. */
-function claimEvent(kind, i) {
-  const r = CLAIMS[kind]?.(save, today(), i);
-  if (!r?.gold) return;
-  save = r.save;
-  persist();
-  audio.coin();
-  ui.showEvents(save);
-}
+// A claim in the events panel pays once; the player may double it with a rewarded ad (eventsClaim.js).
+const claimEvent = createEventClaims({
+  getSave: () => save,
+  commit: (s) => { save = s; persist(); audio.coin(); ui.showEvents(save, offers().missionDouble); },
+  via: () => offers().missionDouble,
+  watchAd: (placement) => watchAd(placement),
+  toast: (key) => ui.toast(t(`reward.${key}`), 'small'),
+  today,
+});
 
 // ---------- rewards and the remove-ads purchase ----------
 
@@ -494,12 +493,17 @@ async function rewardThen(buttonId, placement, grant) {
   if (!via) return;
   if (via === 'ad') {
     ui.rewardState(buttonId, 'loading');
-    audio.setMuted(true); // the ad brings its own sound
-    const earned = await ads.showRewarded(placement);
-    audio.setMuted(save.muted);
-    if (!earned) { ui.rewardState(buttonId, 'failed'); return; }
+    if (!(await watchAd(placement))) { ui.rewardState(buttonId, 'failed'); return; }
   }
   grant(buttonId);
+}
+
+/** One rewarded ad with the game muted: true only when the ad reported the reward as earned. */
+async function watchAd(placement) {
+  audio.setMuted(true); // the ad brings its own sound
+  const earned = await ads.showRewarded(placement);
+  audio.setMuted(save.muted);
+  return earned;
 }
 
 function reviveRun() {

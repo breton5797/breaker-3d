@@ -373,6 +373,7 @@ export default {
   'events.tier': 'Tier {k}',
   'events.claim': 'Claim 🪙 {gold}',
   'events.claimed': 'Claimed ✓',
+  'events.double': "2x 🪙 {gold}",
   'events.stamps': '🏆 Week stamps collected: {n}',
   'mission.fruit': 'Catch {n} fruit',
   'mission.clear': 'Clear {n} stages',
