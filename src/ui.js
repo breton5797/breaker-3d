@@ -4,7 +4,7 @@ import { clearTimeline, countUp, SCORE_COUNT_MS } from './clearSequence.js';
 import { artUrl, bossArt, fruitArt } from './art.js';
 import { FRUITS } from './fruits.js';
 import { bossBarFill } from './bossLayers.js';
-import { iconArt, splitIcons } from './icons.js';
+import { emojiSpan, richParts, setRich, bonusList, iconifyStatic } from './richText.js';
 import { totalStars, nextGoals, dailyStatus, chestProgress, today } from './meta.js';
 import { bossDex, travelAlbum, collectionCounts } from './collection.js';
 import { renderBossDex, renderTravel, renderChapters } from './collectionView.js';
@@ -17,41 +17,6 @@ const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString(locale());
-
-/** A fruit (or other emoji) inline in text: its picture when it has one, the emoji if that fails to load. */
-function emojiSpan({ emoji, art }) {
-  const span = document.createElement('span');
-  span.className = 'toast-emoji';
-  span.setAttribute('aria-hidden', 'true'); // decoration: the words or aria-label next to it carry the meaning
-  const pic = art ?? iconArt(emoji);
-  if (!pic) { span.textContent = emoji; return span; }
-  const img = document.createElement('img');
-  img.className = 'art-icon';
-  img.src = artUrl(pic);
-  img.alt = '';
-  img.onerror = () => { span.textContent = emoji; };
-  span.append(img);
-  return span;
-}
-
-/** @param {string} text @returns {(Text | HTMLElement)[]} the text with each known emoji drawn as its icon */
-const richParts = (text) => splitIcons(text).map((p) => (typeof p === 'string' ? document.createTextNode(p) : emojiSpan(p)));
-
-/** Like `el.textContent = text`, with icons in place of emoji. */
-const setRich = (el, text) => el.replaceChildren(...richParts(text));
-
-/** A list of bonus lines (clear / game over), each with its icons. */
-const bonusList = (list, lines) => list.replaceChildren(...lines.map((line) => { const li = document.createElement('li'); setRich(li, line); return li; }));
-
-/** Swaps the emoji written straight into index.html for icons (text nodes only, markup untouched). */
-function iconifyStatic(root) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  for (const node of nodes) {
-    if (splitIcons(node.data).some((p) => typeof p !== 'string')) node.replaceWith(...richParts(node.data));
-  }
-}
 
 /** Unlocked achievements that still exist (old or tampered saves may hold unknown ids). */
 const ownedCount = (save) => ACHIEVEMENTS.filter((a) => save.achievements.includes(a.id)).length;

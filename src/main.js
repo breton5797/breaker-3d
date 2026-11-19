@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-import { COLS, ROWS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
+import { COLS, PADDLE_Y, PADDLE_H, BALL_R, COIN_VALUE } from './sim/constants.js';
 import { predictPath } from './sim/aim.js';
 import { aimStep } from './aimInput.js';
 import { SERVE_START, serveDown, serveMove, serveUp } from './serveInput.js';
@@ -40,6 +39,9 @@ import { createQualityGovernor, QUALITY_LEVELS } from './render/quality.js';
 import { track, tallyEvents, stageCounts, eventsStatus, claimMission, claimAllBonus, claimWeekly } from './events.js';
 import { missionLabel } from './eventsView.js';
 import { demoStage, demoTarget, demoServe } from './demo.js';
+import { createBoardPointer } from './boardPointer.js';
+import { aimText, serveText } from './serveHints.js';
+import { guardFrame } from './frameLoop.js';
 
 const DEMO = demoStage(location.search); // ?demo=<stage>: a bot plays it, for gameplay videos (demo.js)
 import { Capacitor } from '@capacitor/core';
@@ -548,18 +550,7 @@ async function restorePurchases() {
 
 // ---------- input ----------
 
-const raycaster = new THREE.Raycaster();
-const ndc = new THREE.Vector2();
-const paddlePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.5);
-const hit = new THREE.Vector3();
-
-/** Where the pointer is on the board: x for the paddle (with finger reach), and the true x, y. */
-function pointerOnBoard(e) {
-  ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
-  raycaster.setFromCamera(ndc, stage.camera);
-  if (!raycaster.ray.intersectPlane(paddlePlane, hit)) return null;
-  return { paddleX: hit.x * stage.reach + COLS / 2, x: hit.x + COLS / 2, y: hit.y + ROWS / 2 };
-}
+const pointerOnBoard = createBoardPointer(stage); // where the pointer is on the board (boardPointer.js)
 const pointerToField = (e) => pointerOnBoard(e)?.paddleX ?? null;
 
 // Serving: press and the ball stays put while you aim; release fires along the guide.
@@ -669,27 +660,12 @@ function keyboardPaddle(dt) {
 
 const HINT_ABOVE = 9; // cells above the paddle where the launch hint floats
 
-/** The serve hint in the player's language (aimInput.aimLabel is the Korean original, kept for its tests). */
-function aimText(angle, held) {
-  if (!held) return t('aim.hint');
-  const deg = Math.round((Math.abs(angle) * 180) / Math.PI);
-  if (deg === 0) return t('aim.vertical');
-  return t('aim.angle', { angle: angle < 0 ? `◀ ${deg}°` : `${deg}° ▶` });
-}
-
-/** The touch serve hint for each step (serveInput.js). */
-function serveText() {
-  if (serve.phase === 'place') return `◀ ${t('serve.place')} ▶`;
-  if (serve.id === null) return t('serve.aim');
-  return serve.cancel ? t('serve.cancel') : aimText(serve.angle, true);
-}
-
 function hud() {
   const g = world.grid;
   const ready = world.state === 'ready';
   if (ready) {
     const at = stage.project(COLS / 2, PADDLE_Y + HINT_ABOVE, 1);
-    ui.placeHint(at.x, at.y, touchServe ? serveText() : aimText(aim.angle, aim.held));
+    ui.placeHint(at.x, at.y, touchServe ? serveText(serve) : aimText(aim.angle, aim.held));
   }
   // The touch extras: "move paddle" while waiting to aim, and the fingertip until the first touch serve.
   ui.setServe(touchServe && ready && serve.phase === 'aim' && serve.id === null, touchServe && ready && !save.serveTip);
@@ -709,30 +685,15 @@ function hud() {
 }
 
 let last = performance.now();
-let crashes = 0; // frames in a row that threw
-const MAX_CRASHES = 30;
 
-/**
- * One frame, guarded: a single bad frame (an unexpected state somewhere) must not
- * freeze the game for good, so the loop always carries on. Only if every frame
- * keeps failing does the player get the reload notice (progress is saved).
- */
-function frame(now) {
-  try {
-    step(now);
-    crashes = 0;
-  } catch (err) {
-    crashes++;
-    last = now;
-    if (crashes === 1) console.error(err);
-    if (crashes >= MAX_CRASHES) {
-      document.getElementById('boot-error-text').textContent = t('boot.crashed');
-      document.getElementById('boot-error').hidden = false;
-      return;
-    }
-  }
-  requestAnimationFrame(frame);
-}
+// Every frame, guarded (frameLoop.js): only many bad frames in a row stop the game, with the reload notice.
+const frame = guardFrame((now) => step(now), {
+  onCrash: (now) => { last = now; },
+  onFatal: () => {
+    document.getElementById('boot-error-text').textContent = t('boot.crashed');
+    document.getElementById('boot-error').hidden = false;
+  },
+});
 
 function step(now) {
   const rawDt = (now - last) / 1000;
