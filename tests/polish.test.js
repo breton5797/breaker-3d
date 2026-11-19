@@ -131,7 +131,7 @@ describe('icons and copy', () => {
     const body = fnBody(ui(), 'showClear');
     expect(body).toMatch(/setRich\(dd, v\)/);
     expect(body).toMatch(/bonusList\(\$\('clear-bonus'\), bonus\)/);
-    expect(ui()).toMatch(/const bonusList = \(list, lines\) => [^\n]*setRich\(li, line\)/);
+    expect(read('src/richText.js')).toMatch(/const bonusList = \(list, lines\) => [^\n]*setRich\(li, line\)/); // helpers live in richText.js
     expect(body).not.toMatch(/textContent: line/);
   });
 
