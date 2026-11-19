@@ -71,14 +71,20 @@ const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const haptics = createHaptics();
-const { ads, store, ready: monetizationReady } = createMonetization({
+const { ads, store, privacy, ready: monetizationReady } = createMonetization({
   dev: import.meta.env.DEV,
   search: location.search,
   native: Capacitor.isNativePlatform() ? { platform: Capacitor.getPlatform() } : null,
   env: import.meta.env,
 });
 // The app's ads and store come up a moment after launch: refresh the title's shop button then.
-monetizationReady.then(() => { if (mode === 'title') showStore(); });
+monetizationReady.then(() => {
+  if (mode === 'title') showStore();
+  // Ad privacy settings on the title, only where Google's consent rules ask for it (monetize/native.js).
+  const privacyBtn = document.getElementById('btn-privacy');
+  privacyBtn.hidden = !privacy.required();
+  privacyBtn.addEventListener('click', () => { privacy.open(); });
+});
 // This attempt at the current stage: revives used and gold already banked (a game over banks it).
 let run = { revivesUsed: 0, goldBanked: 0, goldDoubled: false, clearGold: 0, tally: {} }; // tally: this stage's play for the events (events.js)
 const fullscreen = createFullscreen();

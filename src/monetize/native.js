@@ -40,6 +40,33 @@ export async function startAdMob(admob, platform) {
   }
 }
 
+/**
+ * The way back into the ad consent choices (Google's UMP privacy options form): GDPR lets users change
+ * or withdraw consent, and AdMob's US-states message relies on the same entry point. Offered only where
+ * UMP reports it as required; any plugin failure just hides it.
+ * @returns {Promise<{ required: boolean, open: () => Promise<boolean> }>}
+ */
+export async function privacyEntry(admob) {
+  let required = false;
+  try {
+    const info = await admob.requestConsentInfo();
+    required = info?.privacyOptionsRequirementStatus === 'REQUIRED';
+  } catch {
+    required = false;
+  }
+  return {
+    required,
+    open: async () => {
+      try {
+        await admob.showPrivacyOptionsForm();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
 /** A finished purchase: Android reports purchaseState "1"/"PURCHASED"; iOS lists only valid ones. */
 const finished = (p) => p.purchaseState === undefined || p.purchaseState === '1' || p.purchaseState === 'PURCHASED';
 

@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Full screen',
   'title.fullscreenOff': '⛶ Exit full screen',
   'title.restore': 'Restore purchase',
+  'title.privacy': 'Ad privacy settings', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Photo credits',
   'title.achievements': '🏆 Achievements {have} / {total}',
   'title.collection': '👾 Dex {b}/{bt} · 🌍 Travel {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · 🪙 {gold} still to earn',
   'achv.unlocked': ' Achievement: ',
   'credits.title': 'PHOTO CREDITS',
-  'credits.note': 'The background photos are freely licensed pictures from Wikimedia Commons. Changes: resized (768px), cropped to the board, and tinted on sunset and night stages. The changed pictures carry the same licence as the originals. Tap the author for the original and the licence for its full text.',
+  'credits.note': "The backgrounds listed below are public-domain or CC0 photos from Wikimedia Commons; every other background is original artwork made for this game. Changes to the photos: resized (768px), cropped to the board, and tinted on sunset and night stages. Tap the author to see the original photo.",
   'credits.failed': 'The photo information could not be loaded.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'COLLECTION',

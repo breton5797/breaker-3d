@@ -22,6 +22,7 @@ export const UI_SOUNDS = Object.freeze({
   'btn-collection-back': 'back',
   'btn-collection-close': 'back',
   'btn-events': 'open',
+  'btn-privacy': 'open',
   'btn-events-back': 'back',
   'btn-events-close': 'back',
   'collection-tab-boss': 'tap',

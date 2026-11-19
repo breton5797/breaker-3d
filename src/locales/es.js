@@ -52,6 +52,7 @@ export default {
   'title.fullscreen': '⛶ Pantalla completa',
   'title.fullscreenOff': '⛶ Salir de pantalla completa',
   'title.restore': 'Restaurar compra',
+  'title.privacy': 'Privacidad de los anuncios', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Créditos de fotos',
   'title.achievements': '🏆 Logros {have} / {total}',
   'title.collection': '👾 Bestiario {b}/{bt} · 🌍 Viajes {m}/{mt}',
@@ -132,7 +133,7 @@ export default {
   'achv.count': '{have} / {total} · 🪙 {gold} por ganar',
   'achv.unlocked': ' Logro: ',
   'credits.title': 'CRÉDITOS DE FOTOS',
-  'credits.note': 'Las fotos de fondo son imágenes de uso libre de Wikimedia Commons. Cambios: se redujo su tamaño (768px), se recortaron para ajustarlas al tablero y se tiñeron de color en los niveles de atardecer y noche. Las fotos modificadas mantienen la misma licencia que las originales. Toca el nombre del autor para ver el original y la licencia para leer su texto completo.',
+  'credits.note': "Los fondos de la lista son fotos de dominio público o CC0 de Wikimedia Commons; todos los demás fondos son ilustraciones originales creadas para este juego. Cambios en las fotos: se redujo su tamaño (768px), se recortaron para ajustarlas al tablero y se tiñeron en los niveles de atardecer y noche. Toca el nombre del autor para ver la foto original.",
   'credits.failed': 'No se pudo cargar la información de la foto.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'COLECCIÓN',

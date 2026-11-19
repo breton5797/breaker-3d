@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Layar penuh',
   'title.fullscreenOff': '⛶ Keluar layar penuh',
   'title.restore': 'Pulihkan pembelian',
+  'title.privacy': 'Privasi iklan', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Kredit foto',
   'title.achievements': '🏆 Pencapaian {have} / {total}',
   'title.collection': '👾 Koleksi {b}/{bt} · 🌍 Jelajah {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · hadiah tersisa 🪙 {gold}',
   'achv.unlocked': ' Pencapaian: ',
   'credits.title': 'KREDIT FOTO',
-  'credits.note': 'Foto latar adalah foto berlisensi bebas dari Wikimedia Commons. Perubahan: ukuran diperkecil (768px), dipotong agar pas dengan papan permainan, dan diberi warna pada level senja dan malam. Foto yang diubah mengikuti lisensi yang sama dengan aslinya. Ketuk nama pembuat untuk melihat foto asli, dan ketuk lisensi untuk membaca teks lengkapnya.',
+  'credits.note': "Latar yang tercantum di bawah adalah foto domain publik atau CC0 dari Wikimedia Commons; semua latar lainnya adalah karya seni orisinal yang dibuat untuk game ini. Perubahan pada foto: ukuran diperkecil (768px), dipotong agar pas dengan papan permainan, dan diberi warna pada level senja dan malam. Ketuk nama pembuat untuk melihat foto aslinya.",
   'credits.failed': 'Informasi foto gagal dimuat.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'KOLEKSI',

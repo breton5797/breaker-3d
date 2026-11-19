@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ फ़ुल स्क्रीन',
   'title.fullscreenOff': '⛶ फ़ुल स्क्रीन बंद',
   'title.restore': 'खरीद बहाल करें',
+  'title.privacy': 'विज्ञापन गोपनीयता सेटिंग', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 फ़ोटो श्रेय',
   'title.achievements': '🏆 उपलब्धियाँ {have} / {total}',
   'title.collection': '👾 संग्रह {b}/{bt} · 🌍 यात्रा {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · बाकी इनाम 🪙 {gold}',
   'achv.unlocked': ' उपलब्धि हासिल: ',
   'credits.title': 'फ़ोटो श्रेय',
-  'credits.note': 'पृष्ठभूमि की तस्वीरें Wikimedia Commons की मुक्त-लाइसेंस वाली तस्वीरें हैं। बदलाव: आकार घटाया गया (768px), बोर्ड के अनुसार काटा गया, और सूर्यास्त व रात के स्टेज में रंगत दी गई है। बदली हुई तस्वीरों पर भी मूल जैसा ही लाइसेंस लागू है। मूल तस्वीर के लिए लेखक के नाम पर और लाइसेंस के पूरे पाठ के लिए लाइसेंस पर टैप करें।',
+  'credits.note': "नीचे सूचीबद्ध पृष्ठभूमियाँ Wikimedia Commons की पब्लिक डोमेन या CC0 तस्वीरें हैं; बाकी सभी पृष्ठभूमियाँ इस गेम के लिए बनाई गई मौलिक कलाकृतियाँ हैं। तस्वीरों में बदलाव: आकार घटाया गया (768px), बोर्ड के अनुसार काटा गया, और सूर्यास्त व रात के स्टेज में रंगत दी गई है। मूल तस्वीर देखने के लिए लेखक के नाम पर टैप करें।",
   'credits.failed': 'फ़ोटो की जानकारी लोड नहीं हो सकी।',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'संग्रह',

@@ -54,6 +54,7 @@ export default {
   'title.fullscreen': '⛶ 전체 화면',
   'title.fullscreenOff': '⛶ 전체 화면 끄기',
   'title.restore': '구매 복원',
+  'title.privacy': '광고 개인정보 설정', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 사진 출처',
   'title.achievements': '🏆 업적 {have} / {total}',
   'title.collection': '👾 도감 {b}/{bt} · 🌍 여행 {m}/{mt}',
@@ -134,7 +135,7 @@ export default {
   'achv.count': '{have} / {total} · 남은 보상 🪙 {gold}',
   'achv.unlocked': ' 업적 달성: ',
   'credits.title': 'PHOTO CREDITS',
-  'credits.note': '배경 사진은 위키미디어 공용(Wikimedia Commons)의 자유 이용 사진입니다. 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 바꾼 사진도 원본과 같은 라이선스를 따릅니다. 작가 이름을 누르면 원본, 라이선스를 누르면 라이선스 전문으로 이동합니다.',
+  'credits.note': "아래 목록의 배경은 위키미디어 공용(Wikimedia Commons)의 퍼블릭 도메인·CC0 사진이며, 그 밖의 배경은 모두 이 게임을 위해 직접 만든 그림입니다. 사진 변경 사항: 크기를 줄이고(768px) 놀이판에 맞게 잘랐으며, 노을·밤 스테이지에서는 색을 입혀 표시합니다. 작가 이름을 누르면 원본 사진으로 이동합니다.",
   'credits.failed': '사진 정보를 불러오지 못했습니다.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'COLLECTION',

@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ Vollbild',
   'title.fullscreenOff': '⛶ Vollbild beenden',
   'title.restore': 'Kauf wiederherstellen',
+  'title.privacy': 'Werbe-Datenschutz', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 Bildnachweise',
   'title.achievements': '🏆 Erfolge {have} / {total}',
   'title.collection': '👾 Bossbuch {b}/{bt} · 🌍 Reise {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · noch 🪙 {gold} zu holen',
   'achv.unlocked': ' Erfolg freigeschaltet: ',
   'credits.title': 'BILDNACHWEISE',
-  'credits.note': 'Die Hintergrundfotos sind frei lizenzierte Bilder von Wikimedia Commons. Änderungen: verkleinert (768px), auf das Spielfeld zugeschnitten und in Abendrot- und Nacht-Leveln eingefärbt. Die bearbeiteten Bilder stehen unter derselben Lizenz wie die Originale. Tippe auf den Namen des Urhebers für das Original und auf die Lizenz für ihren vollständigen Text.',
+  'credits.note': "Die unten aufgeführten Hintergründe sind gemeinfreie oder CC0-Fotos von Wikimedia Commons; alle anderen Hintergründe sind eigens für dieses Spiel gestaltete Originalbilder. Änderungen an den Fotos: verkleinert (768px), auf das Spielfeld zugeschnitten und in Abendrot- und Nacht-Leveln eingefärbt. Tippe auf den Namen des Urhebers, um das Originalfoto zu sehen.",
   'credits.failed': 'Die Bildinformationen konnten nicht geladen werden.',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'SAMMLUNG',

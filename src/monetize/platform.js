@@ -33,6 +33,9 @@ async function nativeMonetization(platform, env) {
   ]);
   const unit = native.adUnitFor(platform, env);
   const adsOk = await native.startAdMob(AdMob, platform);
+  // Asked after start-up, whatever the consent answer: someone who declined must be able to change it.
+  const entry = await native.privacyEntry(AdMob);
+  const privacy = { required: () => entry.required, open: entry.open };
   const ads = adsOk ? createAds({ native: true, admob: AdMob, adUnitId: unit.id, isTesting: unit.isTesting }) : createAds({ native: false });
   let store = createStore({ native: false });
   try {
@@ -41,21 +44,25 @@ async function nativeMonetization(platform, env) {
   } catch {
     // billing unavailable (no store account on the device): no shop, rewards still work via ads
   }
-  return { ads, store };
+  return { ads, store, privacy };
 }
+
+/** No ads, so nothing to choose (the web build and dev builds). */
+const noPrivacy = Object.freeze({ required: () => false, open: async () => false });
 
 /**
  * @param {{ dev:boolean, search:string, native?:{ platform:'android'|'ios' }|null, env?:object }} options
- * @returns {{ ads: object, store: object, ready: Promise<void> }}
+ * @returns {{ ads: object, store: object, privacy: { required: () => boolean, open: () => Promise<boolean> }, ready: Promise<void> }}
  */
 export function createMonetization({ dev, search, native = null, env = {} }) {
   if (dev && new URLSearchParams(search).has('mockads')) {
-    return { ads: createMockAds(), store: createStore({ native: true, billing: mockBilling() }), ready: Promise.resolve() };
+    return { ads: createMockAds(), store: createStore({ native: true, billing: mockBilling() }), privacy: noPrivacy, ready: Promise.resolve() };
   }
   const ads = switchable(createAds({ native: false }));
   const store = switchable(createStore({ native: false }));
+  const privacy = switchable(noPrivacy);
   const ready = native
-    ? nativeMonetization(native.platform, env).then((m) => { ads.set(m.ads); store.set(m.store); }).catch(() => {})
+    ? nativeMonetization(native.platform, env).then((m) => { ads.set(m.ads); store.set(m.store); privacy.set(m.privacy); }).catch(() => {})
     : Promise.resolve();
-  return { ads: ads.proxy, store: store.proxy, ready };
+  return { ads: ads.proxy, store: store.proxy, privacy: privacy.proxy, ready };
 }

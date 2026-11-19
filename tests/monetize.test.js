@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { rewardOffers, REVIVES_PER_RUN } from '../src/monetize/rewards.js';
 import { createAds, createMockAds } from '../src/monetize/ads.js';
 import { createStore, PRODUCT_REMOVE_ADS } from '../src/monetize/store.js';
+import { createMonetization } from '../src/monetize/platform.js';
 import { createWorld, stepWorld, revive, drainEvents } from '../src/sim/world.js';
 import { loadSave, writeSave } from '../src/storage.js';
 
@@ -73,6 +74,13 @@ describe('ad and store adapters', () => {
     expect(store.available()).toBe(false);
     expect(await store.buy(PRODUCT_REMOVE_ADS)).toBe(false);
     expect(await store.restore()).toEqual([]);
+  });
+
+  it('the web build offers no ad privacy options (it shows no ads)', async () => {
+    const m = createMonetization({ dev: false, search: '' });
+    await m.ready;
+    expect(m.privacy.required()).toBe(false);
+    expect(await m.privacy.open()).toBe(false);
   });
 
   it('the mock ad (dev builds) rewards after a short "ad"', async () => {

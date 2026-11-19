@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ 全屏',
   'title.fullscreenOff': '⛶ 退出全屏',
   'title.restore': '恢复购买',
+  'title.privacy': '广告隐私设置', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 图片来源',
   'title.achievements': '🏆 成就 {have} / {total}',
   'title.collection': '👾 图鉴 {b}/{bt} · 🌍 旅行 {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · 待领奖励 🪙 {gold}',
   'achv.unlocked': ' 成就达成: ',
   'credits.title': '图片来源',
-  'credits.note': '背景图片均为维基共享资源（Wikimedia Commons）上可自由使用的照片。修改内容：缩小尺寸（768px）并按游戏面板裁剪，在黄昏和夜晚关卡中加以着色显示。修改后的图片沿用原图的许可协议。点击作者名可查看原图，点击许可名可查看许可全文。',
+  'credits.note': "下列背景为维基共享资源（Wikimedia Commons）上的公有领域或CC0照片，其余背景均为本游戏原创绘制。照片修改内容：缩小尺寸（768px）并按游戏面板裁剪，在黄昏和夜晚关卡中加以着色显示。点击作者名可查看原图。",
   'credits.failed': '无法加载图片信息。',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': '收藏',

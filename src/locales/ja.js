@@ -49,6 +49,7 @@ export default {
   'title.fullscreen': '⛶ 全画面',
   'title.fullscreenOff': '⛶ 全画面を終了',
   'title.restore': '購入を復元',
+  'title.privacy': '広告のプライバシー設定', // the UMP privacy options form (monetize/native.js privacyEntry)
   'title.credits': '📷 写真クレジット',
   'title.achievements': '🏆 実績 {have} / {total}',
   'title.collection': '👾 図鑑 {b}/{bt} · 🌍 旅 {m}/{mt}',
@@ -125,7 +126,7 @@ export default {
   'achv.count': '{have} / {total} · 残りの報酬 🪙 {gold}',
   'achv.unlocked': ' 実績達成: ',
   'credits.title': '写真クレジット',
-  'credits.note': '背景写真はウィキメディア・コモンズ（Wikimedia Commons）の自由に利用できる写真です。変更点：サイズを縮小し（768px）、盤面に合わせてトリミングし、夕焼け・夜のステージでは色味を加えて表示しています。変更後の写真も元の写真と同じライセンスに従います。作者名をタップすると元の写真に、ライセンス名をタップするとライセンス全文に移動します。',
+  'credits.note': "下記の背景はウィキメディア・コモンズ（Wikimedia Commons）のパブリックドメイン・CC0写真で、それ以外の背景はすべてこのゲームのために制作したオリジナルの絵です。写真の変更点：サイズを縮小し（768px）、盤面に合わせてトリミングし、夕焼け・夜のステージでは色味を加えて表示しています。作者名をタップすると元の写真に移動します。",
   'credits.failed': '写真情報を読み込めませんでした。',
   'credits.caption': '📷 {artist} · {license}',
   'coll.title': 'コレクション',
