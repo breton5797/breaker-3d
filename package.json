@@ -11,9 +11,11 @@
     "app:sync": "vite build && cap sync",
     "app:android": "vite build && cap sync android && cap open android",
     "app:ios": "vite build && cap sync ios && cap open ios",
-    "app:assets": "capacitor-assets generate --iconBackgroundColor '#06080f' --splashBackgroundColor '#06080f' --android --ios"
+    "app:assets": "capacitor-assets generate --iconBackgroundColor '#06080f' --splashBackgroundColor '#06080f' --android --ios",
+    "app:toss": "vite build --mode toss && ait build"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^3.10.0",
     "@capacitor-community/admob": "^8.2.1",
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",

@@ -47,7 +47,7 @@ if (!gl.ok) {
 }
 
 // The offline cache is for the web; the app already has every file on the device.
-const inApp = Boolean(window.Capacitor?.isNativePlatform?.());
+const inApp = Boolean(window.Capacitor?.isNativePlatform?.()) || import.meta.env.MODE === 'toss'; // the Toss bundle too
 if (import.meta.env.PROD && 'serviceWorker' in navigator && !inApp) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {

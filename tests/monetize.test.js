@@ -90,6 +90,26 @@ describe('ad and store adapters', () => {
     expect(await m.privacy.open()).toBe(false);
   });
 
+  it('the Apps in Toss build (2026-11-23): Toss rewarded ads, no shop, no privacy form', async () => {
+    const admob = {
+      loadAppsInTossAdMob: Object.assign(({ onEvent }) => { queueMicrotask(() => onEvent({ type: 'loaded' })); return () => {}; }, { isSupported: () => true }),
+      showAppsInTossAdMob: Object.assign(({ onEvent }) => { queueMicrotask(() => { onEvent({ type: 'userEarnedReward', data: {} }); onEvent({ type: 'dismissed' }); }); return () => {}; }, { isSupported: () => true }),
+    };
+    const m = createMonetization({ dev: false, search: '', toss: async () => ({ GoogleAdMob: admob }) });
+    expect(m.ads.available()).toBe(false); // until the SDK has loaded
+    await m.ready;
+    expect(m.ads.available()).toBe(true);
+    expect(await m.ads.showRewarded('revive')).toBe(true);
+    expect(m.store.available()).toBe(false);
+    expect(m.privacy.required()).toBe(false);
+  });
+
+  it('the Apps in Toss build keeps going without ads when the SDK fails to load', async () => {
+    const m = createMonetization({ dev: false, search: '', toss: async () => { throw new Error('no sdk'); } });
+    await m.ready;
+    expect(m.ads.available()).toBe(false);
+  });
+
   it('the mock ad (dev builds) rewards after a short "ad"', async () => {
     const ads = createMockAds({ delayMs: 1 });
     expect(ads.available()).toBe(true);
