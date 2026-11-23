@@ -6,10 +6,10 @@
 ## 빌드
 
 ```
-npm run app:toss        # vite build --mode toss && ait build  →  breaker-3d.ait (약 21MB, 한도 100MB)
+npm run app:toss        # vite build --mode toss && ait build  →  breaker3d.ait (약 21MB, 한도 100MB)
 ```
 
-- `apps-in-toss.config.ts`의 `appName`은 콘솔에 등록한 앱 이름과 같아야 한다 (지금은 `breaker-3d` 자리표시자).
+- `apps-in-toss.config.ts`의 `appName`은 콘솔에 등록한 앱 이름과 같아야 한다 (지금은 `breaker3d` (콘솔 등록 완료, 2026-11-23 · 워크스페이스 norion 108553)).
 - 보상형 광고 그룹 ID: 콘솔에서 받은 운영 ID를 빌드 환경변수 `VITE_TOSS_REWARDED`로 넣는다. 비우면 토스 테스트 ID(`ait-ad-test-rewarded-id`). 운영 ID로 테스트 금지(제재).
 - 웹·Android·iOS 빌드는 그대로다. 토스 SDK는 `--mode toss` 빌드에서만 불린다.
 
