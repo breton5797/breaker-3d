@@ -74,11 +74,14 @@ const coins3d = createCoins3d(stage.scene);
 const units3d = createUnits3d(stage.scene);
 const audio = createAudio();
 const haptics = createHaptics();
+const TOSS = import.meta.env.MODE === 'toss'; // the Apps in Toss build (toss.js; `npm run app:toss`)
+const tossSdk = () => import('@apps-in-toss/web-framework');
 const { ads, store, privacy, ready: monetizationReady } = createMonetization({
   dev: import.meta.env.DEV,
   search: location.search,
   native: Capacitor.isNativePlatform() ? { platform: Capacitor.getPlatform() } : null,
   env: import.meta.env,
+  toss: TOSS ? tossSdk : null,
 });
 // The app's ads and store come up a moment after launch: refresh the title's shop button then.
 monetizationReady.then(() => {
@@ -173,9 +176,10 @@ const director = createDirector({
 });
 ui.setVibe(haptics.supported, haptics.enabled);
 // An app is already full screen: no button there.
-ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), fullscreen.active);
+const canFullscreen = () => fullscreen.supported && !Capacitor.isNativePlatform() && !TOSS; // Toss games already fill the screen
+ui.setFullscreen(canFullscreen(), fullscreen.active);
 // Esc or the system back gesture also leaves fullscreen; keep the labels and the framing in step.
-fullscreen.onChange((on) => { ui.setFullscreen(fullscreen.supported && !Capacitor.isNativePlatform(), on); stage.resize(); layoutOverlays(); });
+fullscreen.onChange((on) => { ui.setFullscreen(canFullscreen(), on); stage.resize(); layoutOverlays(); });
 
 /** Toasts and the boss bar go in the band above the board; it moves with the screen shape. */
 function layoutOverlays() {
@@ -779,6 +783,8 @@ function showMenu() {
 }
 
 showMenu();
+const tossBack = { closePicker, pause: togglePause, menu: showMenu, closeSubscreen: () => ui.closeSubscreen() }; // system back (toss.js)
+if (TOSS) import('./toss.js').then((m) => m.startToss(tossSdk, { style: document.documentElement.style, state: () => ({ mode, picking, subscreen: ui.subscreenOpen() }), ...tossBack }));
 if (DEMO) { audio.unlock(); startLevel(DEMO - 1); } // the recorder's browser allows sound without a tap
 requestAnimationFrame(frame);
 // The first frame is on screen: lift the loading screen (see index.html / boot.js).

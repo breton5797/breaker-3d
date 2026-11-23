@@ -51,18 +51,30 @@ async function nativeMonetization(platform, env) {
 const noPrivacy = Object.freeze({ required: () => false, open: async () => false });
 
 /**
- * @param {{ dev:boolean, search:string, native?:{ platform:'android'|'ios' }|null, env?:object }} options
+ * The Apps in Toss build (2026-11-23): Toss's own rewarded ads only (AdMob may not be used directly
+ * in a mini-app). No shop in this first version (owner: ads only; Toss in-app payments later).
+ */
+async function tossMonetization(loadSdk, env) {
+  const [{ GoogleAdMob }, { createTossAds }] = await Promise.all([loadSdk(), import('./tossAds.js')]);
+  return { ads: createTossAds({ admob: GoogleAdMob, adGroupId: env.VITE_TOSS_REWARDED || undefined }) };
+}
+
+/**
+ * @param {{ dev:boolean, search:string, native?:{ platform:'android'|'ios' }|null, env?:object,
+ *   toss?: (() => Promise<object>)|null }} options toss: loads @apps-in-toss/web-framework (Toss build only)
  * @returns {{ ads: object, store: object, privacy: { required: () => boolean, open: () => Promise<boolean> }, ready: Promise<void> }}
  */
-export function createMonetization({ dev, search, native = null, env = {} }) {
+export function createMonetization({ dev, search, native = null, env = {}, toss = null }) {
   if (dev && new URLSearchParams(search).has('mockads')) {
     return { ads: createMockAds(), store: createStore({ native: true, billing: mockBilling() }), privacy: noPrivacy, ready: Promise.resolve() };
   }
   const ads = switchable(createAds({ native: false }));
   const store = switchable(createStore({ native: false }));
   const privacy = switchable(noPrivacy);
-  const ready = native
-    ? nativeMonetization(native.platform, env).then((m) => { ads.set(m.ads); store.set(m.store); privacy.set(m.privacy); }).catch(() => {})
-    : Promise.resolve();
+  const ready = toss
+    ? tossMonetization(toss, env).then((m) => { ads.set(m.ads); }).catch(() => {}) // no SDK: the game runs without ads
+    : native
+      ? nativeMonetization(native.platform, env).then((m) => { ads.set(m.ads); store.set(m.store); privacy.set(m.privacy); }).catch(() => {})
+      : Promise.resolve();
   return { ads: ads.proxy, store: store.proxy, privacy: privacy.proxy, ready };
 }

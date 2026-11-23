@@ -28,7 +28,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #hud {
   position: fixed; top: 0; left: 0; right: 0;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: start;
-  padding: max(10px, env(safe-area-inset-top)) 16px 0; pointer-events: none;
+  padding: max(10px, var(--safe-top, env(safe-area-inset-top))) 16px 0; pointer-events: none;
 }
 .hud-left, .hud-right { display: flex; gap: 8px; align-items: center; }
 .hud-left, .hud-center {
@@ -64,7 +64,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- skills ---------- */
 #skills {
-  position: fixed; left: 16px; bottom: max(16px, env(safe-area-inset-bottom));
+  position: fixed; left: 16px; bottom: max(16px, var(--safe-bottom, env(safe-area-inset-bottom)));
   display: flex; flex-direction: column; gap: 10px;
 }
 /* Portrait: side by side, so they fit the 96px band under the table (stage.js SKILLS_PX). */
@@ -106,7 +106,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes tipSweep { 0%, 100% { transform: translateX(0) scale(0.9); } 50% { transform: translateX(92px) scale(1); } }
 /* Back to placing the paddle: bottom right, clear of the skill buttons on the left. */
 .serve-again {
-  position: fixed; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); min-width: 48px; min-height: 48px;
+  position: fixed; right: 16px; bottom: max(16px, var(--safe-bottom, env(safe-area-inset-bottom))); min-width: 48px; min-height: 48px;
   padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(12, 16, 36, 0.8);
   color: #fff; font-weight: 800; font-size: 14px;
 }
@@ -173,7 +173,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Finale banner: a bold ribbon with a live countdown of bricks left. */
 /* Boss health: the core's remaining hit points, under the top HUD. */
 #boss-bar {
-  position: fixed; left: 50%; transform: translateX(-50%); top: calc(max(10px, env(safe-area-inset-top)) + 82px);
+  position: fixed; left: 50%; transform: translateX(-50%); top: calc(max(10px, var(--safe-top, env(safe-area-inset-top))) + 82px);
   width: min(340px, 72vw); pointer-events: none; text-align: center;
   font-weight: 900; font-size: 13px; letter-spacing: 0.12em; color: #ffd0d6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   animation: bannerIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
@@ -220,7 +220,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .title-goals { margin: -8px 0 12px; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .title-goals b { color: var(--ink); }
 /* Split picker: four multipliers with their coin prices, over the paddle lane (the stage holds still). */
-.split-picker { position: fixed; left: 50%; bottom: max(120px, calc(env(safe-area-inset-bottom) + 120px)); z-index: 5; transform: translateX(-50%);
+.split-picker { position: fixed; left: 50%; bottom: max(120px, calc(var(--safe-bottom, env(safe-area-inset-bottom)) + 120px)); z-index: 5; transform: translateX(-50%);
   width: min(380px, 92vw); padding: 12px 12px 6px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel-strong); text-align: center; }
 .split-picker-title { margin: 0 0 8px; font-weight: 800; }
 .split-picker-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -268,7 +268,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .credits-list li { display: grid; gap: 2px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); }
 .credits-list a { color: var(--muted); word-break: break-word; }
 .photo-credit {
-  position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); max-width: 46vw;
+  position: fixed; right: 12px; bottom: max(10px, var(--safe-bottom, env(safe-area-inset-bottom))); max-width: 46vw;
   font-size: 10px; color: rgba(238, 242, 255, 0.55); pointer-events: none; text-align: right;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -353,7 +353,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .overlay {
   position: fixed; inset: 0; display: grid; place-items: center;
   /* Clear of the notch / Dynamic Island and the home bar in the app (edge-to-edge web view). */
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  padding: max(16px, var(--safe-top, env(safe-area-inset-top))) 16px max(16px, var(--safe-bottom, env(safe-area-inset-bottom)));
   background: radial-gradient(ellipse at center, rgba(5, 7, 15, 0.35), rgba(5, 7, 15, 0.85));
 }
 .overlay.clear-bg { background: rgba(5, 7, 15, 0.55); }

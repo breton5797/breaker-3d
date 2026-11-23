@@ -14,6 +14,7 @@ import { t, applyStatic, fillLanguageSelects, locale } from './i18n.js';
 import { stageTitle, stageTitleAt, mapName, mapSubtitle, bossName, chapterName, achievementName, achievementDesc } from './names.js';
 
 const GRID_AHEAD = 10; // locked stages shown past the newest unlocked one
+const LINKS_OUT = import.meta.env.MODE !== 'toss'; // Toss mini-apps may not open outside URLs: credits as plain text
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString(locale());
@@ -283,15 +284,13 @@ export function createUI(h) {
       const li = document.createElement('li');
       const name = document.createElement('b');
       name.textContent = mapName(m.id);
-      const link = document.createElement('a');
-      link.href = c.source;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      const link = document.createElement(LINKS_OUT ? 'a' : 'span');
+      if (LINKS_OUT) Object.assign(link, { href: c.source, target: '_blank', rel: 'noopener noreferrer' });
       link.textContent = c.artist;
       const line = document.createElement('span');
       line.append(link, ' · ');
       // The licence itself, linked when it has a deed (CC licences ask for the link).
-      if (c.licenseUrl) {
+      if (c.licenseUrl && LINKS_OUT) {
         const lic = document.createElement('a');
         lic.href = c.licenseUrl;
         lic.target = '_blank';
@@ -421,8 +420,9 @@ export function createUI(h) {
   }
 
   /** Leaves the achievements, credits or collection list for the title (Esc / back). @returns {boolean} whether one was open */
+  const subscreenOpen = () => SUBSCREENS.some((id) => !$(id).hidden);
   function closeSubscreen() {
-    if (SUBSCREENS.every((id) => $(id).hidden)) return false;
+    if (!subscreenOpen()) return false;
     h.onMenu();
     return true;
   }
@@ -785,6 +785,7 @@ export function createUI(h) {
     meteorHint,
     layoutOverlays,
     closeSubscreen,
+    subscreenOpen,
     relocalize,
     setVibe,
     setPhotoCredit,
