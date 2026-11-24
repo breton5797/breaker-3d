@@ -3,7 +3,7 @@ import { predictPath } from './sim/aim.js';
 import { aimStep } from './aimInput.js';
 import { SERVE_START, serveDown, serveMove, serveUp } from './serveInput.js';
 import { GUARD_FLOOR } from './sim/boss.js';
-import { getLevel } from './sim/levels.js';
+import { getLevel, pressureParams } from './sim/levels.js';
 import { t, detectLanguage, setLanguage } from './i18n.js';
 import { stageTitleAt, bossBarName, stageBossName, bossName, chapterName, achievementName } from './names.js';
 import { createWorld, stepWorld, drainEvents, launch, setPaddleX, useSkill, revive } from './sim/world.js';
@@ -278,7 +278,7 @@ function startLevel(i) {
   world = createWorld(level.lines, {
     box: level.box, holes: level.holes, pipe: level.pipe,
     brickHp: p.brickHp, lives: p.lives, paddleW: p.paddleW, releaseRate: p.releaseRate,
-    dropSpeed: p.dropSpeed, aggression: p.aggression,
+    dropSpeed: p.dropSpeed, aggression: p.aggression, pressure: pressureParams(i),
     boss: level.boss, theme: level.theme ?? null,
     charges: { split: 0, meteor: 0 }, // no free skills: each use is bought with coins (skill buttons)
   });
