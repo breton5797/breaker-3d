@@ -4,7 +4,7 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  appName: 'breaker-3d',
+  appName: 'breaker3d', // intoss://breaker3d (console, 2026-11-23, permanent)
   webView: {},
   permissions: [],
   webBundleDir: 'dist',
