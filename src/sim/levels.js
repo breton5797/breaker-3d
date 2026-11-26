@@ -14,6 +14,7 @@ import { mulberry32 } from './rng.js';
 import { stageParams } from './stages.js';
 
 export { stageParams };
+export { pressureParams } from './pressure.js';
 
 const CHAR_CELL = {
   '#': CELL.BRICK,

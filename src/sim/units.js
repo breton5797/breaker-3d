@@ -58,14 +58,14 @@ export function updateUnits(w, dt) {
     const cd = u.cd - dt;
     if (cd > 0) return { ...u, cd };
     volley(w, u);
-    return { ...u, cd: (UNIT_TIERS[u.tier - 1].interval / w.aggression) * pace * (0.75 + w.rng() * 0.5) };
+    return { ...u, cd: (UNIT_TIERS[u.tier - 1].interval / (w.aggression * w.pressure.fire)) * pace * (0.75 + w.rng() * 0.5) };
   });
 }
 
-/** A bomb (or a boss attack) of this tier hit the paddle: stun it, and lethal tiers cost a life. */
-export function stunPaddle(w, tier) {
+/** A bomb (or a boss attack) of this tier hit the paddle: stun it, and lethal tiers cost a life. `scale` shortens unit-bomb stuns (pressure.js). */
+export function stunPaddle(w, tier, scale = 1) {
   const spec = UNIT_TIERS[tier - 1];
-  w.stun = Math.max(w.stun, spec.stun);
+  w.stun = Math.max(w.stun, spec.stun * scale);
   refreshPaddle(w);
   w.events.push({ t: 'paddle-hit', x: w.paddle.x, tier, lethal: spec.lethal });
   if (spec.lethal) {
@@ -91,7 +91,7 @@ export function updateShells(w, dt) {
     const y = s.y + s.vy * dt;
     const onPaddle = y <= PADDLE_TOP + 0.3 && y >= PADDLE_Y - PADDLE_H && Math.abs(x - p.x) <= p.w / 2 + 0.3;
     // While stunned the paddle is invulnerable: bombs pass through it.
-    if (onPaddle && w.state === 'play' && w.stun <= 0) stunPaddle(w, s.tier);
+    if (onPaddle && w.state === 'play' && w.stun <= 0) stunPaddle(w, s.tier, w.pressure.stun);
     else if (y > -1 && x > -2 && x < COLS + 2) kept.push({ ...s, x, y });
   }
   w.shells = kept;

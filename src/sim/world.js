@@ -63,7 +63,7 @@ const REENTRY_DRY = 0.5; // seconds without a ball inside before getting back in
 /**
  * @param {string[]} lines level text
  * @param {{ rng?: () => number, lives?: number, brickHp?: number, paddleW?: number, releaseRate?: number, box?: object, holes?: object[],
- *   dropSpeed?: number, aggression?: number, charges?: {split:number, meteor:number} }} [opts]
+ *   dropSpeed?: number, aggression?: number, pressure?: {fire:number, stun:number}, charges?: {split:number, meteor:number} }} [opts]
  */
 export function createWorld(lines, opts = {}) {
   const grid = parseLevel(lines, { brickHp: opts.brickHp, box: opts.box, holes: opts.holes });
@@ -82,6 +82,7 @@ export function createWorld(lines, opts = {}) {
     releaseRate: opts.releaseRate ?? RELEASE_RATE,
     dropSpeed: opts.dropSpeed ?? DROP_SPEED, // how fast fruit falls
     aggression: opts.aggression ?? 1, // unit fire-rate and bomb-speed factor
+    pressure: opts.pressure ?? { fire: 1, stun: 1 }, // per-stage unit pressure curve (pressure.js)
     state: 'ready', // ready | play | clear | over
     entered: false, // a ball of this serve has been inside the box (out of the pipe, if the stage has one)
     pipe: opts.pipe ?? null, // the stage's pipe (pipes.js), or null
